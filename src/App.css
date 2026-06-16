@@ -218,8 +218,8 @@
 }
 
 .meld-tile img {
-  width: 44px;
-  height: 60px;
+  width: 36px;
+  height: 49px;
   object-fit: contain;
   background: #fff;
   border-radius: 4px;
@@ -229,20 +229,20 @@
 
 /* 横向き牌：画像を90度回転、コンテナはその逆サイズ */
 .meld-tile--rotated {
-  width: 60px;
-  height: 44px;
+  width: 49px;
+  height: 36px;
 }
 
 .meld-tile--rotated img {
-  width: 44px;
-  height: 60px;
+  width: 36px;
+  height: 49px;
   transform: rotate(90deg);
 }
 
 /* 裏向き牌（暗槓） */
 .meld-tile--back {
-  width: 44px;
-  height: 60px;
+  width: 36px;
+  height: 49px;
   background: #1a1a2e;
   border: 2px solid #333;
   border-radius: 4px;
@@ -251,12 +251,12 @@
 .tile-button {
   background: #fff;
   border: 3px solid #ccc;
-  border-radius: 8px;
-  padding: 4px;
+  border-radius: 6px;
+  padding: 0;
   cursor: pointer;
   transition: border-color 0.15s, transform 0.1s, opacity 0.2s;
-  width: 56px;
-  height: 72px;
+  width: 40px;
+  height: 55px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -298,8 +298,8 @@
 }
 
 .tile-image {
-  width: 44px;
-  height: 60px;
+  width: 34px;
+  height: 49px;
   object-fit: contain;
 }
 
@@ -395,8 +395,13 @@
 }
 
 .discarded-tile-img {
-  width: 40px;
-  height: auto;
+  width: 36px;
+  height: 49px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 6px;
+  padding: 3px;
+  display: block;
 }
 
 .discarded-tile-name {
@@ -456,16 +461,21 @@
 
 .naki-choice-submit-btn:hover { opacity: 0.85; }
 
-/* ===== ドラ表示 ===== */
-.dora-display {
+/* ===== ドラ表示（手牌右端インライン） ===== */
+.dora-inline {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  background: #16213e;
-  border: 1px solid #0f3460;
-  border-radius: 8px;
-  padding: 8px 16px;
-  width: fit-content;
+  gap: 4px;
+  border-left: 2px solid #2a3a5a;
+  padding-left: 12px;
+  flex-shrink: 0;
+}
+
+.dora-inline .dora-label {
+  font-size: 0.7rem;
+  color: #aaa;
+  white-space: nowrap;
 }
 
 .dora-label {
@@ -475,12 +485,13 @@
 }
 
 .dora-tile-image {
-  width: 36px;
-  height: 48px;
+  width: 40px;
+  height: 55px;
   object-fit: contain;
   background: #fff;
-  border-radius: 4px;
-  padding: 2px;
+  border-radius: 6px;
+  padding: 3px;
+  display: block;
 }
 
 .dora-tile-name {
@@ -546,8 +557,8 @@
 }
 
 .tile-readonly img {
-  width: 44px;
-  height: 60px;
+  width: 40px;
+  height: 55px;
   object-fit: contain;
   background: #fff;
   border-radius: 6px;
@@ -670,14 +681,14 @@
     overflow-x: visible;
   }
 
-  /* 牌ボタンを小さく */
+  /* 牌ボタン */
   .tile-button {
-    width: 46px;
-    height: 60px;
+    width: 40px;
+    height: 55px;
   }
 
   .tile-image {
-    width: 36px;
+    width: 34px;
     height: 49px;
   }
 
@@ -689,8 +700,8 @@
   }
 
   .tile-readonly img {
-    width: 36px;
-    height: 49px;
+    width: 40px;
+    height: 55px;
   }
 
   /* 手牌＋鳴き牌エリア */
@@ -748,7 +759,7 @@
 
   /* ドラ表示 */
   .dora-tile-image {
-    width: 30px;
-    height: 40px;
+    width: 40px;
+    height: 55px;
   }
 }
