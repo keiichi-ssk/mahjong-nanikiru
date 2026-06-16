@@ -55,11 +55,12 @@ function MeldPreview({ meld }) {
 }
 
 export default function ProblemEditor({ problem, onSave }) {
-  const [tiles,     setTiles]     = useState(sortTiles(problem.tiles))
-  const [answer,    setAnswer]    = useState(problem.answer)
-  const [dora,      setDora]      = useState(problem.dora ?? null)
-  const [riichi,    setRiichi]    = useState(problem.riichi ?? null)
-  const [melds,     setMelds]     = useState(problem.melds ?? [])
+  const [tiles,       setTiles]       = useState(sortTiles(problem.tiles))
+  const [answer,      setAnswer]      = useState(problem.answer)
+  const [dora,        setDora]        = useState(problem.dora ?? null)
+  const [riichi,      setRiichi]      = useState(problem.riichi ?? null)
+  const [melds,       setMelds]       = useState(problem.melds ?? [])
+  const [explanation, setExplanation] = useState(problem.explanation ?? '')
   const [addingMeld, setAddingMeld] = useState(null) // { type, tiles: [] }
 
   function addTile(tile) {
@@ -106,7 +107,7 @@ export default function ProblemEditor({ problem, onSave }) {
   }
 
   function handleSave() {
-    onSave({ ...problem, tiles, answer, dora: dora || null, riichi, melds })
+    onSave({ ...problem, tiles, answer, dora: dora || null, riichi, melds, explanation })
   }
 
   const isAddingComplete = addingMeld && addingMeld.tiles.length === MELD_TILE_COUNT[addingMeld.type]
@@ -290,6 +291,18 @@ export default function ProblemEditor({ problem, onSave }) {
             onClick={() => setRiichi(null)}
           >設定なし</button>
         </div>
+      </section>
+
+      {/* 解説 */}
+      <section className="editor-section">
+        <div className="editor-section-label">解説テキスト</div>
+        <textarea
+          className="explanation-textarea"
+          value={explanation}
+          onChange={e => setExplanation(e.target.value)}
+          placeholder="解説を入力してください（未入力でも保存できます）"
+          rows={4}
+        />
       </section>
 
       {/* 保存 */}

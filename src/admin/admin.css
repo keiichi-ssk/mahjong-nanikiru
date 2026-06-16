@@ -517,3 +517,21 @@
 }
 
 .dora-toggle:hover, .dora-clear:hover { border-color: #f5c842; color: #f5c842; }
+
+/* ===== 解説テキスト ===== */
+.explanation-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: #0d1426;
+  color: #ddd;
+  border: 1px solid #1a2a4a;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.explanation-textarea:focus { border-color: #3a6fd8; }
