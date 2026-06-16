@@ -21,9 +21,10 @@ export default defineConfig({
           }
 
           if (req.method === 'PUT') {
-            let body = ''
-            req.on('data', chunk => (body += chunk))
+            const chunks = []
+            req.on('data', chunk => chunks.push(chunk))
             req.on('end', () => {
+              const body = Buffer.concat(chunks).toString('utf-8')
               fs.writeFileSync(PROBLEMS_PATH, body, 'utf-8')
               res.statusCode = 200
               res.end(JSON.stringify({ ok: true }))
