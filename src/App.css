@@ -1,0 +1,655 @@
+/* ===== カテゴリー一覧 ===== */
+.category-list {
+  text-align: center;
+}
+
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 16px;
+}
+
+.category-card {
+  background: #16213e;
+  border: 2px solid #0f3460;
+  border-radius: 12px;
+  padding: 20px 12px;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.15s;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+
+.category-card:hover:not(:disabled) {
+  border-color: #f5c842;
+  transform: translateY(-2px);
+}
+
+.category-card--disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.category-name {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #f5c842;
+}
+
+.category-count {
+  font-size: 0.8rem;
+  color: #aaa;
+}
+
+/* ===== 問題一覧 ===== */
+.problem-list {
+  text-align: center;
+}
+
+.problem-list-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.category-title {
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: #f5c842;
+  margin: 0;
+}
+
+.app-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #f5c842;
+  margin-bottom: 8px;
+}
+
+.problem-list-subtitle {
+  color: #aaa;
+  margin-bottom: 32px;
+}
+
+.problem-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+}
+
+.problem-card {
+  background: #16213e;
+  border: 2px solid #0f3460;
+  border-radius: 12px;
+  padding: 24px 12px;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.15s;
+}
+
+.problem-card:hover {
+  border-color: #f5c842;
+  transform: translateY(-2px);
+}
+
+.problem-number {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #f5c842;
+}
+
+/* ===== 問題画面 ===== */
+.problem-view {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.problem-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.btn-back {
+  background: none;
+  border: 1px solid #555;
+  color: #ccc;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: border-color 0.2s;
+}
+
+.btn-back:hover {
+  border-color: #f5c842;
+  color: #f5c842;
+}
+
+.problem-counter {
+  color: #aaa;
+  font-size: 0.9rem;
+}
+
+.problem-question {
+  font-size: 1.5rem;
+  color: #f5c842;
+  text-align: center;
+}
+
+/* ===== 問題画像 ===== */
+.problem-image-wrapper {
+  border-radius: 12px;
+  overflow: hidden;
+  background: #16213e;
+  border: 2px solid #0f3460;
+  text-align: center;
+}
+
+.problem-image {
+  width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  display: block;
+}
+
+.problem-image-placeholder {
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #555;
+  font-size: 0.9rem;
+}
+
+/* ===== 牌選択エリア ===== */
+.hand-and-melds {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.tile-selector {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  align-items: flex-end;
+}
+
+/* ===== 鳴き牌エリア ===== */
+.melds-area {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-shrink: 0;
+  border-left: 2px solid #2a3a5a;
+  padding-left: 12px;
+}
+
+.meld-set {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.meld-type-badge {
+  font-size: 0.65rem;
+  color: #888;
+  white-space: nowrap;
+}
+
+.meld-tiles {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.meld-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.meld-tile img {
+  width: 44px;
+  height: 60px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 4px;
+  padding: 2px;
+  display: block;
+}
+
+/* 横向き牌：画像を90度回転、コンテナはその逆サイズ */
+.meld-tile--rotated {
+  width: 60px;
+  height: 44px;
+}
+
+.meld-tile--rotated img {
+  width: 44px;
+  height: 60px;
+  transform: rotate(90deg);
+}
+
+/* 裏向き牌（暗槓） */
+.meld-tile--back {
+  width: 44px;
+  height: 60px;
+  background: #1a1a2e;
+  border: 2px solid #333;
+  border-radius: 4px;
+}
+
+.tile-button {
+  background: #fff;
+  border: 3px solid #ccc;
+  border-radius: 8px;
+  padding: 4px;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.1s, opacity 0.2s;
+  width: 56px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tile-button:hover:not(:disabled) {
+  border-color: #f5c842;
+  transform: translateY(-4px);
+}
+
+.tile-button:disabled {
+  cursor: default;
+}
+
+.tile-button--correct {
+  border-color: #2ecc71;
+  box-shadow: 0 0 10px rgba(46, 204, 113, 0.6);
+}
+
+.tile-button--wrong {
+  border-color: #e74c3c;
+  box-shadow: 0 0 10px rgba(231, 76, 60, 0.6);
+  opacity: 0.6;
+}
+
+.tile-button--disabled {
+  opacity: 0.4;
+}
+
+.tile-image {
+  width: 44px;
+  height: 60px;
+  object-fit: contain;
+}
+
+.tile-fallback {
+  font-size: 0.75rem;
+  color: #333;
+  text-align: center;
+}
+
+/* ===== 回答パネル ===== */
+.answer-panel {
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.answer-panel--correct {
+  background: rgba(46, 204, 113, 0.1);
+  border: 2px solid #2ecc71;
+}
+
+.answer-panel--wrong {
+  background: rgba(231, 76, 60, 0.1);
+  border: 2px solid #e74c3c;
+}
+
+.answer-result {
+  font-size: 1.4rem;
+  font-weight: bold;
+}
+
+.answer-panel--correct .answer-result { color: #2ecc71; }
+.answer-panel--wrong .answer-result { color: #e74c3c; }
+
+.answer-tile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.answer-label {
+  font-size: 1rem;
+  color: #ccc;
+}
+
+.answer-tile-image {
+  width: 44px;
+  height: 60px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 4px;
+  padding: 2px;
+}
+
+.answer-tile-name {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #f5c842;
+}
+
+.answer-explanation {
+  line-height: 1.7;
+  color: #ddd;
+  font-size: 0.95rem;
+}
+
+/* ===== ドラ表示 ===== */
+.dora-display {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #16213e;
+  border: 1px solid #0f3460;
+  border-radius: 8px;
+  padding: 8px 16px;
+  width: fit-content;
+}
+
+.dora-label {
+  font-size: 0.85rem;
+  color: #aaa;
+  white-space: nowrap;
+}
+
+.dora-tile-image {
+  width: 36px;
+  height: 48px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 4px;
+  padding: 2px;
+}
+
+.dora-tile-name {
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #f5c842;
+}
+
+/* ===== リーチトグル ===== */
+.tile-selector-row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.riichi-toggle {
+  align-self: flex-end;
+  padding: 8px 28px;
+  border-radius: 8px;
+  border: 2px solid #555;
+  background: #1a1a2e;
+  color: #888;
+  font-size: 0.95rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.riichi-toggle:hover:not(:disabled) {
+  border-color: #e74c3c;
+  color: #e74c3c;
+}
+
+.riichi-toggle--on {
+  background: #e74c3c;
+  border-color: #e74c3c;
+  color: #fff;
+  box-shadow: 0 0 12px rgba(231, 76, 60, 0.6);
+}
+
+.riichi-toggle:disabled {
+  cursor: default;
+}
+
+.answer-riichi {
+  font-size: 1rem;
+  color: #aaa;
+}
+
+/* ===== リーチ判断：手牌表示（読み取り専用） ===== */
+.tile-display-readonly {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  align-items: flex-end;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.tile-readonly {
+  flex-shrink: 0;
+}
+
+.tile-readonly img {
+  width: 44px;
+  height: 60px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 6px;
+  padding: 3px;
+  display: block;
+}
+
+/* ===== リーチ/ダマ 2択ボタン ===== */
+.riichi-choice-btns {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  padding: 8px 0;
+}
+
+.riichi-choice-btn {
+  flex: 1;
+  max-width: 200px;
+  padding: 20px 0;
+  border-radius: 12px;
+  border: 3px solid;
+  font-size: 1.4rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.15s, opacity 0.15s;
+}
+
+.riichi-choice-btn:hover {
+  transform: translateY(-3px);
+}
+
+.riichi-choice-btn:active {
+  transform: translateY(0);
+}
+
+.riichi-choice-btn--riichi {
+  background: rgba(231, 76, 60, 0.1);
+  border-color: #e74c3c;
+  color: #e74c3c;
+}
+
+.riichi-choice-btn--riichi:hover {
+  background: rgba(231, 76, 60, 0.25);
+  box-shadow: 0 4px 16px rgba(231, 76, 60, 0.4);
+}
+
+.riichi-choice-btn--dama {
+  background: rgba(52, 152, 219, 0.1);
+  border-color: #3498db;
+  color: #3498db;
+}
+
+.riichi-choice-btn--dama:hover {
+  background: rgba(52, 152, 219, 0.25);
+  box-shadow: 0 4px 16px rgba(52, 152, 219, 0.4);
+}
+
+/* ===== 準備中表示 ===== */
+.pending-notice {
+  text-align: center;
+  color: #888;
+  font-size: 0.95rem;
+  padding: 24px;
+  border: 1px dashed #444;
+  border-radius: 8px;
+  margin: 8px 0;
+}
+
+/* ===== ナビゲーション ===== */
+.problem-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.btn-nav {
+  flex: 1;
+  background: #16213e;
+  border: 2px solid #0f3460;
+  color: #ccc;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.btn-nav:hover:not(:disabled) {
+  border-color: #f5c842;
+  color: #f5c842;
+}
+
+.btn-nav:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* ===== スマホ対応 (max-width: 600px) ===== */
+@media (max-width: 600px) {
+  /* カテゴリ一覧 */
+  .category-grid {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px;
+  }
+
+  .app-title {
+    font-size: 1.4rem;
+  }
+
+  /* 問題タイトル */
+  .problem-question {
+    font-size: 1.2rem;
+  }
+
+  /* 手牌：折り返して複数行に */
+  .tile-selector {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    overflow-x: visible;
+  }
+
+  /* 牌ボタンを小さく */
+  .tile-button {
+    width: 46px;
+    height: 60px;
+  }
+
+  .tile-image {
+    width: 36px;
+    height: 49px;
+  }
+
+  /* 手牌（読み取り専用・リーチ判断） */
+  .tile-display-readonly {
+    flex-wrap: wrap;
+    justify-content: center;
+    overflow-x: visible;
+  }
+
+  .tile-readonly img {
+    width: 36px;
+    height: 49px;
+  }
+
+  /* 手牌＋鳴き牌エリア */
+  .hand-and-melds {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .melds-area {
+    border-left: none;
+    border-top: 2px solid #2a3a5a;
+    padding-left: 0;
+    padding-top: 8px;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  /* 鳴き牌サイズ縮小 */
+  .meld-tile img {
+    width: 36px;
+    height: 49px;
+  }
+
+  .meld-tile--rotated {
+    width: 49px;
+    height: 36px;
+  }
+
+  .meld-tile--rotated img {
+    width: 36px;
+    height: 49px;
+  }
+
+  .meld-tile--back {
+    width: 36px;
+    height: 49px;
+  }
+
+  /* リーチ/ダマ 2択ボタン */
+  .riichi-choice-btn {
+    font-size: 1.2rem;
+    padding: 16px 0;
+  }
+
+  /* 回答パネル */
+  .answer-panel {
+    padding: 14px;
+  }
+
+  /* ナビゲーション */
+  .btn-nav {
+    padding: 10px 8px;
+    font-size: 0.85rem;
+  }
+
+  /* ドラ表示 */
+  .dora-tile-image {
+    width: 30px;
+    height: 40px;
+  }
+}
