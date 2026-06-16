@@ -24,7 +24,21 @@
       "Bash(git --version)",
       "Bash(gh --version)",
       "Bash(git init *)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(git commit *)",
+      "Bash(npm run *)",
+      "Skill(claude-api)",
+      "Skill(claude-api:*)",
+      "Bash(node -e \"const d=require\\('./src/data/problems.json'\\); const cats=[...new Set\\(d.map\\(p=>p.section\\)\\)].sort\\(\\(a,b\\)=>parseInt\\(a\\)-parseInt\\(b\\)\\); cats.forEach\\(c=>console.log\\(c\\)\\)\")",
+      "Bash(node -e \"const d=require\\('./src/data/problems.json'\\); const p=d.find\\(p=>p.section==='18_役確定の鳴き'\\); console.log\\(JSON.stringify\\(p,null,2\\)\\)\")",
+      "Bash(npx vite *)",
+      "Bash(git -C \"d:\\\\ClaudeCode\\\\麻雀何切るアプリ開発\" status)",
+      "Bash(git -C \"d:\\\\ClaudeCode\\\\麻雀何切るアプリ開発\" log --oneline -8)",
+      "Bash(git -C \"d:\\\\ClaudeCode\\\\麻雀何切るアプリ開発\" diff --stat)",
+      "Bash(git -C \"d:\\\\ClaudeCode\\\\麻雀何切るアプリ開発\" add src/App.css src/admin/AdminApp.jsx src/admin/ProblemEditor.jsx src/admin/admin.css src/components/ProblemView.jsx src/components/TileButton.jsx .claude/settings.local.json)"
     ],
     "additionalDirectories": [
       "d:\\ClaudeCode\\�������؂�A�v���J��\\src",

@@ -12,7 +12,7 @@ export default function TileButton({ tile, onClick, state }) {
     <button
       className={classNames}
       onClick={onClick}
-      disabled={state !== null}
+      disabled={state !== null && state !== 'selected'}
       title={label}
     >
       {imageUrl ? (

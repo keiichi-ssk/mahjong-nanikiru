@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { getTileImageUrl, getTileLabel } from '../utils/tileUtils'
 
 const TILE_GROUPS = [
@@ -10,9 +10,16 @@ const TILE_GROUPS = [
 
 const SUIT_ORDER = { m: 0, p: 1, s: 2, z: 3 }
 
-const MELD_LABELS = { chi: 'チー', pon: 'ポン', kan: '大明槓', kakan: '加槓', ankan: '暗槓' }
+const MELD_LABELS     = { chi: 'チー', pon: 'ポン', kan: '大明槓', kakan: '加槓', ankan: '暗槓' }
 const MELD_TILE_COUNT = { chi: 3, pon: 3, kan: 4, kakan: 4, ankan: 4 }
-const MELD_TYPES = ['chi', 'pon', 'kan', 'kakan', 'ankan']
+const MELD_TYPES      = ['chi', 'pon', 'kan', 'kakan', 'ankan']
+
+const NAKI_TIMING_OPTIONS = [
+  { value: 'early', label: '序盤から鳴く' },
+  { value: 'mid',   label: '中盤から鳴く' },
+  { value: 'late',  label: '終盤から鳴く' },
+  { value: 'no',    label: '鳴かない' },
+]
 
 function sortTiles(tiles) {
   return [...tiles].sort((a, b) => {
@@ -42,7 +49,7 @@ function MeldPreview({ meld }) {
     <div className="meld-preview">
       {tiles.map((t, i) => {
         const isRotated = type !== 'ankan' && i === 0
-        const isBack = type === 'ankan' && (i === 0 || i === 3)
+        const isBack    = type === 'ankan' && (i === 0 || i === 3)
         if (isBack) return <div key={i} className="meld-preview-back" />
         return (
           <div key={i} className={`meld-preview-tile${isRotated ? ' meld-preview-tile--rotated' : ''}`}>
@@ -54,14 +61,36 @@ function MeldPreview({ meld }) {
   )
 }
 
-export default function ProblemEditor({ problem, onSave }) {
-  const [tiles,       setTiles]       = useState(sortTiles(problem.tiles))
-  const [answer,      setAnswer]      = useState(problem.answer)
-  const [dora,        setDora]        = useState(problem.dora ?? null)
-  const [riichi,      setRiichi]      = useState(problem.riichi ?? null)
-  const [melds,       setMelds]       = useState(problem.melds ?? [])
-  const [explanation, setExplanation] = useState(problem.explanation ?? '')
-  const [addingMeld, setAddingMeld] = useState(null) // { type, tiles: [] }
+export default function ProblemEditor({
+  problem, onSave, onSaveAndNext, onPrev, onNext, hasPrev, hasNext, catIdx, catTotal,
+}) {
+  const [tiles,         setTiles]         = useState(sortTiles(problem.tiles))
+  const [answer,        setAnswer]        = useState(problem.answer)
+  const [dora,          setDora]          = useState(problem.dora ?? null)
+  const [riichi,        setRiichi]        = useState(problem.riichi ?? null)
+  const [melds,         setMelds]         = useState(problem.melds ?? [])
+  const [explanation,   setExplanation]   = useState(problem.explanation ?? '')
+  const [reviewed,      setReviewed]      = useState(problem.reviewed ?? false)
+  const [addingMeld,    setAddingMeld]    = useState(null)
+  const [problemType,   setProblemType]   = useState(problem.problemType   ?? 'default')
+  const [discardedTile, setDiscardedTile] = useState(problem.discardedTile ?? null)
+  const [nakiChoices,   setNakiChoices]   = useState(problem.nakiChoices   ?? [])
+
+  const explanationRef = useRef(null)
+
+  function insertTileCode(tile) {
+    const ta = explanationRef.current
+    if (!ta) return
+    const start = ta.selectionStart
+    const end   = ta.selectionEnd
+    const code  = `[${tile}]`
+    const next  = explanation.slice(0, start) + code + explanation.slice(end)
+    setExplanation(next)
+    requestAnimationFrame(() => {
+      ta.focus()
+      ta.setSelectionRange(start + code.length, start + code.length)
+    })
+  }
 
   function addTile(tile) {
     setTiles(prev => sortTiles([...prev, tile]))
@@ -70,16 +99,13 @@ export default function ProblemEditor({ problem, onSave }) {
   function removeTile(index) {
     setTiles(prev => {
       const removed = prev[index]
-      const next = prev.filter((_, i) => i !== index)
+      const next    = prev.filter((_, i) => i !== index)
       if (answer === removed && !next.includes(removed)) setAnswer('')
       return next
     })
   }
 
-  // 鳴き追加フロー
-  function startAddMeld(type) {
-    setAddingMeld({ type, tiles: [] })
-  }
+  function startAddMeld(type) { setAddingMeld({ type, tiles: [] }) }
 
   function addTileToMeld(tile) {
     setAddingMeld(prev => {
@@ -96,8 +122,7 @@ export default function ProblemEditor({ problem, onSave }) {
 
   function confirmMeld() {
     if (!addingMeld) return
-    const required = MELD_TILE_COUNT[addingMeld.type]
-    if (addingMeld.tiles.length < required) return
+    if (addingMeld.tiles.length < MELD_TILE_COUNT[addingMeld.type]) return
     setMelds(prev => [...prev, { type: addingMeld.type, tiles: addingMeld.tiles }])
     setAddingMeld(null)
   }
@@ -106,17 +131,99 @@ export default function ProblemEditor({ problem, onSave }) {
     setMelds(prev => prev.filter((_, i) => i !== index))
   }
 
-  function handleSave() {
-    onSave({ ...problem, tiles, answer, dora: dora || null, riichi, melds, explanation })
+  function addNakiChoice(tile) {
+    if (nakiChoices.some(c => c.tile === tile)) return
+    setNakiChoices(prev => [...prev, { tile, correct: false }])
   }
+
+  function toggleNakiChoiceCorrect(index) {
+    setNakiChoices(prev => prev.map((c, i) => i === index ? { ...c, correct: !c.correct } : c))
+  }
+
+  function removeNakiChoice(index) {
+    setNakiChoices(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const buildSaveData = useCallback(() => ({
+    ...problem,
+    tiles,
+    answer,
+    dora: dora || null,
+    riichi,
+    melds,
+    explanation,
+    reviewed,
+    problemType,
+    discardedTile: discardedTile || null,
+    nakiChoices,
+  }), [problem, tiles, answer, dora, riichi, melds, explanation, reviewed, problemType, discardedTile, nakiChoices])
+
+  const handleSave = useCallback(() => {
+    onSave(buildSaveData())
+  }, [onSave, buildSaveData])
+
+  const handleSaveAndNext = useCallback(() => {
+    onSaveAndNext(buildSaveData())
+  }, [onSaveAndNext, buildSaveData])
+
+  useEffect(() => {
+    function onKeyDown(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault()
+        handleSaveAndNext()
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [handleSaveAndNext])
 
   const isAddingComplete = addingMeld && addingMeld.tiles.length === MELD_TILE_COUNT[addingMeld.type]
 
   return (
     <div className="editor">
+      {/* ナビゲーションバー */}
+      <div className="editor-nav">
+        <button className="editor-nav-btn" onClick={onPrev} disabled={!hasPrev} title="前の問題（←キー）">
+          ← 前
+        </button>
+        <span className="editor-nav-pos">{catIdx + 1} / {catTotal}</span>
+        <button className="editor-nav-btn" onClick={onNext} disabled={!hasNext} title="次の問題（→キー）">
+          次 →
+        </button>
+      </div>
+
+      {/* ヘッダー */}
       <div className="editor-header">
         <h3 className="editor-title">{problem.section.replace(/^\d+_/, '')} — ID {problem.id}</h3>
+        <label className="reviewed-check">
+          <input
+            type="checkbox"
+            checked={reviewed}
+            onChange={e => setReviewed(e.target.checked)}
+          />
+          修正済み
+        </label>
       </div>
+
+      {/* 問題タイプ */}
+      <section className="editor-section">
+        <div className="editor-section-label">問題タイプ</div>
+        <div className="problem-type-selector">
+          {[
+            { value: 'default',     label: '通常（何切る）' },
+            { value: 'naki-timing', label: '鳴きタイミング' },
+            { value: 'naki-choice', label: '鳴き選択' },
+          ].map(opt => (
+            <button
+              key={opt.value}
+              className={`problem-type-btn${problemType === opt.value ? ' problem-type-btn--active' : ''}`}
+              onClick={() => setProblemType(opt.value)}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </section>
 
       {/* 問題画像 */}
       <div className="editor-image-wrap">
@@ -172,8 +279,6 @@ export default function ProblemEditor({ problem, onSave }) {
       {/* 副露（鳴き）セクション */}
       <section className="editor-section">
         <div className="editor-section-label">副露（鳴き）</div>
-
-        {/* 副露追加UI */}
         {addingMeld ? (
           <div className="meld-adding">
             <div className="meld-adding-header">
@@ -183,8 +288,6 @@ export default function ProblemEditor({ problem, onSave }) {
               </span>
               <button className="meld-cancel-btn" onClick={() => setAddingMeld(null)}>キャンセル</button>
             </div>
-
-            {/* 選択中の牌 */}
             <div className="meld-selected-tiles">
               {addingMeld.tiles.map((t, i) => (
                 <TileImg key={i} tile={t} size={36} onClick={() => removeTileFromMeld(i)} className="editor-tile" />
@@ -193,8 +296,6 @@ export default function ProblemEditor({ problem, onSave }) {
                 <div key={`empty-${i}`} className="meld-tile-slot" />
               ))}
             </div>
-
-            {/* 牌選択パレット */}
             <div className="meld-palette">
               {TILE_GROUPS.map(group => (
                 <div key={group.label} className="palette-row">
@@ -211,7 +312,6 @@ export default function ProblemEditor({ problem, onSave }) {
                 </div>
               ))}
             </div>
-
             <button
               className={`meld-confirm-btn${isAddingComplete ? ' meld-confirm-btn--ready' : ''}`}
               onClick={confirmMeld}
@@ -260,53 +360,177 @@ export default function ProblemEditor({ problem, onSave }) {
         </div>
       </section>
 
-      {/* 正解牌 */}
-      <section className="editor-section">
-        <div className="editor-section-label">正解牌（手牌からクリックで選択）</div>
-        <div className="editor-tiles">
-          {[...new Set(tiles)].map(t => (
-            <TileImg
-              key={t}
-              tile={t}
-              onClick={() => setAnswer(t)}
-              className={`editor-tile ${answer === t ? 'tile--answer' : ''}`}
-            />
+      {/* 正解設定：通常（何切る） */}
+      {problemType === 'default' && (
+        <section className="editor-section">
+          <div className="editor-section-label">正解牌（手牌からクリックで選択）</div>
+          <div className="editor-tiles">
+            {[...new Set(tiles)].map(t => (
+              <TileImg
+                key={t}
+                tile={t}
+                onClick={() => setAnswer(t)}
+                className={`editor-tile ${answer === t ? 'tile--answer' : ''}`}
+              />
+            ))}
+          </div>
+          <div className="editor-current">
+            現在の正解: <strong>{answer ? getTileLabel(answer) : '未設定'}</strong>
+          </div>
+          <div className="riichi-setting">
+            <span className="riichi-setting-label">リーチ：</span>
+            <button
+              className={`riichi-setting-btn ${riichi === true  ? 'riichi-setting-btn--active' : ''}`}
+              onClick={() => setRiichi(true)}
+            >する</button>
+            <button
+              className={`riichi-setting-btn ${riichi === false ? 'riichi-setting-btn--active' : ''}`}
+              onClick={() => setRiichi(false)}
+            >しない</button>
+            <button
+              className={`riichi-setting-btn ${riichi === null  ? 'riichi-setting-btn--active' : ''}`}
+              onClick={() => setRiichi(null)}
+            >設定なし</button>
+          </div>
+        </section>
+      )}
+
+      {/* 正解設定：鳴きタイミング */}
+      {problemType === 'naki-timing' && (
+        <>
+          {/* 出た牌設定 */}
+          <section className="editor-section">
+            <div className="editor-section-label">
+              出た牌（他家の打牌）
+              {discardedTile && (
+                <button className="dora-clear" onClick={() => setDiscardedTile(null)}>クリア</button>
+              )}
+            </div>
+            <div className="editor-current">
+              現在の出牌: <strong>{discardedTile ? getTileLabel(discardedTile) : '未設定'}</strong>
+              {discardedTile && (
+                <img
+                  src={getTileImageUrl(discardedTile)}
+                  alt={getTileLabel(discardedTile)}
+                  style={{ width: 32, verticalAlign: 'middle', marginLeft: 8 }}
+                />
+              )}
+            </div>
+            {TILE_GROUPS.map(group => (
+              <div key={group.label} className="palette-row">
+                <span className="palette-label">{group.label}</span>
+                <div className="palette-tiles">
+                  {group.tiles.map(t => (
+                    <TileImg
+                      key={t} tile={t} size={36}
+                      onClick={() => setDiscardedTile(t)}
+                      className={`palette-tile ${discardedTile === t ? 'tile--answer' : ''}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </section>
+
+          {/* 正解タイミング */}
+          <section className="editor-section">
+            <div className="editor-section-label">正解タイミング</div>
+            <div className="naki-timing-selector">
+              {NAKI_TIMING_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  className={`naki-timing-btn${answer === opt.value ? ' naki-timing-btn--active' : ''}`}
+                  onClick={() => setAnswer(opt.value)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+            <div className="editor-current">
+              現在の正解: <strong>{NAKI_TIMING_OPTIONS.find(o => o.value === answer)?.label ?? '未設定'}</strong>
+            </div>
+          </section>
+        </>
+      )}
+
+      {/* 正解設定：鳴き選択 */}
+      {problemType === 'naki-choice' && (
+        <section className="editor-section">
+          <div className="editor-section-label">選択肢（何が出たら鳴くか）</div>
+          {nakiChoices.length > 0 && (
+            <div className="naki-choices-list">
+              {nakiChoices.map((c, i) => (
+                <div key={i} className="naki-choice-item">
+                  <TileImg tile={c.tile} size={32} onClick={() => {}} className="palette-tile" />
+                  <span className="naki-choice-tile-name">{getTileLabel(c.tile)}</span>
+                  <button
+                    className={`naki-choice-correct-btn${c.correct ? ' naki-choice-correct-btn--on' : ''}`}
+                    onClick={() => toggleNakiChoiceCorrect(i)}
+                  >
+                    {c.correct ? '正解' : '不正解'}
+                  </button>
+                  <button className="naki-choice-remove-btn" onClick={() => removeNakiChoice(i)}>×</button>
+                </div>
+              ))}
+            </div>
+          )}
+          {nakiChoices.length === 0 && <span className="editor-empty">牌パレットから選択肢を追加してください</span>}
+          <div className="editor-section-label" style={{ marginTop: 8 }}>牌パレット（クリックで選択肢に追加）</div>
+          {TILE_GROUPS.map(group => (
+            <div key={group.label} className="palette-row">
+              <span className="palette-label">{group.label}</span>
+              <div className="palette-tiles">
+                {group.tiles.map(t => {
+                  const added = nakiChoices.some(c => c.tile === t)
+                  return (
+                    <TileImg
+                      key={t} tile={t} size={36}
+                      onClick={() => addNakiChoice(t)}
+                      className={`palette-tile${added ? ' palette-tile--disabled' : ''}`}
+                    />
+                  )
+                })}
+              </div>
+            </div>
           ))}
-        </div>
-        <div className="editor-current">
-          現在の正解: <strong>{answer ? getTileLabel(answer) : '未設定'}</strong>
-        </div>
-        <div className="riichi-setting">
-          <span className="riichi-setting-label">リーチ：</span>
-          <button
-            className={`riichi-setting-btn ${riichi === true ? 'riichi-setting-btn--active' : ''}`}
-            onClick={() => setRiichi(true)}
-          >する</button>
-          <button
-            className={`riichi-setting-btn ${riichi === false ? 'riichi-setting-btn--active' : ''}`}
-            onClick={() => setRiichi(false)}
-          >しない</button>
-          <button
-            className={`riichi-setting-btn ${riichi === null ? 'riichi-setting-btn--active' : ''}`}
-            onClick={() => setRiichi(null)}
-          >設定なし</button>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* 解説 */}
       <section className="editor-section">
         <div className="editor-section-label">解説テキスト</div>
         <textarea
+          ref={explanationRef}
           className="explanation-textarea"
           value={explanation}
           onChange={e => setExplanation(e.target.value)}
           placeholder="解説を入力してください（未入力でも保存できます）"
-          rows={4}
+          rows={3}
         />
+        <div className="explanation-tile-palette">
+          <span className="explanation-palette-label">牌を挿入：</span>
+          {TILE_GROUPS.map(group => (
+            <div key={group.label} className="palette-row">
+              <span className="palette-label">{group.label}</span>
+              <div className="palette-tiles">
+                {group.tiles.map(t => (
+                  <TileImg key={t} tile={t} size={28} onClick={() => insertTileCode(t)} className="palette-tile" />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </section>
 
-      {/* 保存 */}
-      <button className="editor-save-btn" onClick={handleSave}>保存</button>
+      {/* 保存ボタン */}
+      <div className="editor-save-area">
+        <button className="editor-save-btn" onClick={handleSave}>
+          保存のみ
+        </button>
+        <button className="editor-save-next-btn" onClick={handleSaveAndNext} disabled={!hasNext}>
+          保存して次へ → <kbd>Ctrl+S</kbd>
+        </button>
+      </div>
     </div>
   )
 }
