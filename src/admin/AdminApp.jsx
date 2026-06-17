@@ -56,6 +56,30 @@ export default function AdminApp() {
     }
   }
 
+  async function handleAddProblem() {
+    if (!selectedCat) return
+    const maxId = problems.reduce((m, p) => Math.max(m, p.id), 0)
+    const newProblem = {
+      id: maxId + 1,
+      section: selectedCat,
+      image: '',
+      tiles: [],
+      answer: '',
+      dora: null,
+      riichi: null,
+      melds: [],
+      explanation: '',
+      reviewed: false,
+      problemType: 'default',
+      discardedTile: null,
+      nakiChoices: [],
+    }
+    const next = [...problems, newProblem]
+    setProblems(next)
+    await saveToServer(next)
+    setSelectedId(newProblem.id)
+  }
+
   const handlePrev = useCallback(() => {
     if (catIdx > 0) setSelectedId(catProblems[catIdx - 1].id)
   }, [catIdx, catProblems])
@@ -108,6 +132,9 @@ export default function AdminApp() {
                         {p.reviewed && <span className="admin-reviewed-badge">✓</span>}
                       </button>
                     ))}
+                    <button className="admin-add-problem-btn" onClick={handleAddProblem}>
+                      ＋ 問題を追加
+                    </button>
                   </div>
                 )}
               </div>

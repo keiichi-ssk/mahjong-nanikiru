@@ -61,6 +61,20 @@ function MeldPreview({ meld }) {
   )
 }
 
+function parseTilesText(text) {
+  const result = []
+  let buf = []
+  for (const ch of text.trim()) {
+    if ('0123456789'.includes(ch)) {
+      buf.push(ch)
+    } else if ('mpsz'.includes(ch)) {
+      for (const n of buf) result.push(n + ch)
+      buf = []
+    }
+  }
+  return result
+}
+
 export default function ProblemEditor({
   problem, onSave, onSaveAndNext, onPrev, onNext, hasPrev, hasNext, catIdx, catTotal,
 }) {
@@ -75,6 +89,7 @@ export default function ProblemEditor({
   const [problemType,   setProblemType]   = useState(problem.problemType   ?? 'default')
   const [discardedTile, setDiscardedTile] = useState(problem.discardedTile ?? null)
   const [nakiChoices,   setNakiChoices]   = useState(problem.nakiChoices   ?? [])
+  const [tilesInput,    setTilesInput]    = useState('')
 
   const explanationRef = useRef(null)
 
@@ -226,14 +241,53 @@ export default function ProblemEditor({
       </section>
 
       {/* 問題画像 */}
-      <div className="editor-image-wrap">
-        <img src={problem.image} alt="問題" className="editor-image" />
-      </div>
+      {problem.image && (
+        <div className="editor-image-wrap">
+          <img src={problem.image} alt="問題" className="editor-image" />
+        </div>
+      )}
 
       {/* 現在の手牌 */}
       <section className="editor-section">
         <div className="editor-section-label">
           手牌（クリックで削除）<span className="tile-count">{tiles.length}枚</span>
+        </div>
+        <div className="tiles-text-input-row">
+          <input
+            type="text"
+            className="tiles-text-input"
+            value={tilesInput}
+            onChange={e => setTilesInput(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                const parsed = parseTilesText(tilesInput)
+                if (parsed.length > 0) {
+                  setTiles(sortTiles(parsed))
+                  setTilesInput('')
+                }
+              }
+            }}
+            placeholder="例: 23467m234p234888s（Enterで適用）"
+          />
+          <button
+            className="tiles-text-apply-btn"
+            onClick={() => {
+              const parsed = parseTilesText(tilesInput)
+              if (parsed.length > 0) {
+                setTiles(sortTiles(parsed))
+                setTilesInput('')
+              }
+            }}
+          >
+            適用
+          </button>
+          <button
+            className="tiles-text-apply-btn tiles-text-clear-btn"
+            onClick={() => setTiles([])}
+          >
+            全削除
+          </button>
         </div>
         <div className="editor-hand-row">
           <div className="editor-tiles">
