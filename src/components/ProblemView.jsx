@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import TileButton from './TileButton';
-import { getTileLabel, getTileImageUrl } from '../utils/tileUtils';
+import { getTileLabel, getTileImageUrl, randomSuitMap, remapProblem } from '../utils/tileUtils';
 
 const MELD_TYPE_LABELS = { chi: 'チー', pon: 'ポン', kan: '大明槓', kakan: '加槓', ankan: '暗槓' };
 
@@ -56,7 +56,7 @@ function MeldDisplay({ meld }) {
   );
 }
 
-function HandDisplay({ tiles, melds }) {
+function HandDisplay({ tiles, melds, dora }) {
   const hasMetlds = Array.isArray(melds) && melds.length > 0;
   if (!tiles || tiles.length === 0) return null;
   return (
@@ -73,6 +73,12 @@ function HandDisplay({ tiles, melds }) {
           {melds.map((meld, i) => (
             <MeldDisplay key={i} meld={meld} />
           ))}
+        </div>
+      )}
+      {dora && (
+        <div className="dora-inline">
+          <span className="dora-label">ドラ</span>
+          <img src={getTileImageUrl(dora)} alt={getTileLabel(dora)} className="dora-tile-image" />
         </div>
       )}
     </div>
@@ -99,7 +105,7 @@ function NakiTimingView({ problem }) {
         </div>
       )}
 
-      <HandDisplay tiles={problem.tiles} melds={problem.melds} />
+      <HandDisplay tiles={problem.tiles} melds={problem.melds} dora={problem.dora} />
 
       {!answered ? (
         <div className="naki-timing-btns">
@@ -171,7 +177,7 @@ function NakiChoiceView({ problem }) {
 
   return (
     <>
-      <HandDisplay tiles={problem.tiles} melds={problem.melds} />
+      <HandDisplay tiles={problem.tiles} melds={problem.melds} dora={problem.dora} />
 
       <p className="naki-choice-instruction">鳴く牌をすべて選んでください（複数選択可）</p>
 
@@ -211,19 +217,41 @@ function NakiChoiceView({ problem }) {
 export default function ProblemView({ problem, index, total, onBack, onPrev, onNext }) {
   const [selected, setSelected] = useState(null);
   const [selectedRiichi, setSelectedRiichi] = useState(null);
+  const [suitMap, setSuitMap] = useState(() => randomSuitMap());
 
-  const problemType   = problem.problemType ?? 'default';
-  const isRiichiCategory = problem.section === '1_リーチ判断';
-  const needsRiichi = !isRiichiCategory && problem.riichi !== null && problem.riichi !== undefined;
+  useEffect(() => {
+    setSuitMap(randomSuitMap());
+    setSelected(null);
+    setSelectedRiichi(null);
+  }, [problem.id]);
+
+  const p = useMemo(() => remapProblem(problem, suitMap), [problem, suitMap]);
+
+  const problemType   = p.problemType ?? 'default';
+  const isRiichiCategory = p.section === '1_リーチ判断';
+  const needsRiichi = !isRiichiCategory && p.riichi !== null && p.riichi !== undefined;
   const answered = selected !== null;
-  const hasMetlds = Array.isArray(problem.melds) && problem.melds.length > 0;
+  const hasMetlds = Array.isArray(p.melds) && p.melds.length > 0;
+
+  const answerIsKan = typeof p.answer === 'string' && p.answer.startsWith('ankan:');
+  const answerKanTile = answerIsKan ? p.answer.slice(6) : null;
+
+  const quadTiles = useMemo(() => {
+    const counts = {};
+    for (const tile of p.tiles ?? []) counts[tile] = (counts[tile] ?? 0) + 1;
+    return Object.keys(counts).filter(tile => counts[tile] === 4);
+  }, [p.tiles]);
 
   const isCorrect = isRiichiCategory
-    ? selectedRiichi === problem.riichi
-    : selected === problem.answer && (!needsRiichi || selectedRiichi === problem.riichi);
+    ? selectedRiichi === p.riichi
+    : selected === p.answer && (!needsRiichi || selectedRiichi === p.riichi);
 
   function handleSelect(tile) {
     if (!answered) setSelected(tile);
+  }
+
+  function handleKan(kanTile) {
+    if (!answered) setSelected(`ankan:${kanTile}`);
   }
 
   function handleRiichiChoice(choice) {
@@ -238,8 +266,19 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
 
   function getTileState(tile) {
     if (!answered) return null;
-    if (tile === problem.answer) return 'correct';
+    if (answerIsKan) {
+      if (tile === selected) return 'wrong';
+      return 'disabled';
+    }
+    if (tile === p.answer) return 'correct';
     if (tile === selected) return 'wrong';
+    return 'disabled';
+  }
+
+  function getKanBtnState(kanTile) {
+    if (!answered) return null;
+    if (answerKanTile === kanTile) return 'correct';
+    if (selected === `ankan:${kanTile}`) return 'wrong';
     return 'disabled';
   }
 
@@ -260,22 +299,10 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
               : '何を切る？'}
       </h2>
 
-      {problem.dora && (
-        <div className="dora-display">
-          <span className="dora-label">ドラ</span>
-          <img
-            src={getTileImageUrl(problem.dora)}
-            alt={getTileLabel(problem.dora)}
-            className="dora-tile-image"
-          />
-          <span className="dora-tile-name">{getTileLabel(problem.dora)}</span>
-        </div>
-      )}
-
       <div className="problem-image-wrapper">
         <img
-          src={problem.image}
-          alt={`問題${problem.id}`}
+          src={p.image}
+          alt={`問題${p.id}`}
           className="problem-image"
           onError={(e) => {
             e.target.style.display = 'none';
@@ -283,27 +310,27 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
           }}
         />
         <div className="problem-image-placeholder" style={{ display: 'none' }}>
-          <span>画像未登録 (問題 {problem.id})</span>
+          <span>画像未登録 (問題 {p.id})</span>
         </div>
       </div>
 
       {/* ===== 鳴きタイミング ===== */}
       {problemType === 'naki-timing' && (
-        <NakiTimingView problem={problem} />
+        <NakiTimingView problem={p} />
       )}
 
       {/* ===== 鳴き選択 ===== */}
       {problemType === 'naki-choice' && (
-        <NakiChoiceView problem={problem} />
+        <NakiChoiceView problem={p} />
       )}
 
       {/* ===== リーチ判断カテゴリ ===== */}
       {problemType === 'default' && isRiichiCategory && (
         <>
-          {problem.tiles && problem.tiles.length > 0 && (
+          {p.tiles && p.tiles.length > 0 && (
             <div className="hand-and-melds">
               <div className="tile-display-readonly">
-                {problem.tiles.map((tile, i) => (
+                {p.tiles.map((tile, i) => (
                   <div key={`${tile}-${i}`} className="tile-readonly">
                     <img src={getTileImageUrl(tile)} alt={getTileLabel(tile)} />
                   </div>
@@ -311,9 +338,15 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
               </div>
               {hasMetlds && (
                 <div className="melds-area">
-                  {problem.melds.map((meld, i) => (
+                  {p.melds.map((meld, i) => (
                     <MeldDisplay key={i} meld={meld} />
                   ))}
+                </div>
+              )}
+              {p.dora && (
+                <div className="dora-inline">
+                  <span className="dora-label">ドラ</span>
+                  <img src={getTileImageUrl(p.dora)} alt={getTileLabel(p.dora)} className="dora-tile-image" />
                 </div>
               )}
             </div>
@@ -334,10 +367,10 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
               <div className="answer-tile">
                 <span className="answer-label">正解：</span>
                 <span className="answer-tile-name">
-                  {problem.riichi === true ? 'リーチ' : problem.riichi === false ? 'ダマ' : '未設定'}
+                  {p.riichi === true ? 'リーチ' : p.riichi === false ? 'ダマ' : '未設定'}
                 </span>
               </div>
-              <ExplanationText text={problem.explanation} />
+              <ExplanationText text={p.explanation} />
             </div>
           )}
         </>
@@ -345,12 +378,12 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
 
       {/* ===== 通常の何切るカテゴリ ===== */}
       {problemType === 'default' && !isRiichiCategory && (
-        problem.tiles && problem.tiles.length > 0 ? (
+        p.tiles && p.tiles.length > 0 ? (
           <>
             <div className="tile-selector-row">
               <div className="hand-and-melds">
                 <div className="tile-selector">
-                  {problem.tiles.map((tile, i) => (
+                  {p.tiles.map((tile, i) => (
                     <TileButton
                       key={`${tile}-${i}`}
                       tile={tile}
@@ -361,9 +394,15 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
                 </div>
                 {hasMetlds && (
                   <div className="melds-area">
-                    {problem.melds.map((meld, i) => (
+                    {p.melds.map((meld, i) => (
                       <MeldDisplay key={i} meld={meld} />
                     ))}
+                  </div>
+                )}
+                {p.dora && (
+                  <div className="dora-inline">
+                    <span className="dora-label">ドラ</span>
+                    <img src={getTileImageUrl(p.dora)} alt={getTileLabel(p.dora)} className="dora-tile-image" />
                   </div>
                 )}
               </div>
@@ -377,25 +416,57 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
                 </button>
               )}
             </div>
+            {quadTiles.length > 0 && (
+              <div className="ankan-options">
+                {quadTiles.map(kanTile => {
+                  const st = getKanBtnState(kanTile);
+                  return (
+                    <button
+                      key={kanTile}
+                      className={`ankan-btn${st ? ` ankan-btn--${st}` : ''}`}
+                      onClick={() => handleKan(kanTile)}
+                      disabled={answered}
+                    >
+                      <span className="ankan-btn-label">カン</span>
+                      <img src={getTileImageUrl(kanTile)} alt={getTileLabel(kanTile)} />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             {answered && (
               <div className={`answer-panel ${isCorrect ? 'answer-panel--correct' : 'answer-panel--wrong'}`}>
                 <div className="answer-result">{isCorrect ? '正解！' : '不正解'}</div>
                 <div className="answer-tile">
                   <span className="answer-label">正解：</span>
-                  <img
-                    src={getTileImageUrl(problem.answer)}
-                    alt={getTileLabel(problem.answer)}
-                    className="answer-tile-image"
-                  />
-                  <span className="answer-tile-name">{getTileLabel(problem.answer)}</span>
+                  {answerIsKan ? (
+                    <>
+                      <span className="answer-tile-name">暗槓（</span>
+                      <img
+                        src={getTileImageUrl(answerKanTile)}
+                        alt={getTileLabel(answerKanTile)}
+                        className="answer-tile-image"
+                      />
+                      <span className="answer-tile-name">{getTileLabel(answerKanTile)}）</span>
+                    </>
+                  ) : (
+                    <>
+                      <img
+                        src={getTileImageUrl(p.answer)}
+                        alt={getTileLabel(p.answer)}
+                        className="answer-tile-image"
+                      />
+                      <span className="answer-tile-name">{getTileLabel(p.answer)}</span>
+                    </>
+                  )}
                   {needsRiichi && (
                     <span className="answer-riichi">
-                      {problem.riichi ? '・リーチする' : '・リーチしない'}
+                      {p.riichi ? '・リーチする' : '・リーチしない'}
                     </span>
                   )}
                 </div>
-                <ExplanationText text={problem.explanation} />
+                <ExplanationText text={p.explanation} />
               </div>
             )}
           </>

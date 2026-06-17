@@ -31,3 +31,50 @@ export function getTileImageUrl(tile) {
 export function getTileLabel(tile) {
   return TILE_LABEL_MAP[tile] ?? tile;
 }
+
+// ===== 数牌種類ランダム入れ替え =====
+
+const SUIT_PERMUTATIONS = [
+  ['m','p','s'], ['m','s','p'],
+  ['p','m','s'], ['p','s','m'],
+  ['s','m','p'], ['s','p','m'],
+];
+
+export function randomSuitMap() {
+  const perm = SUIT_PERMUTATIONS[Math.floor(Math.random() * 6)];
+  return { m: perm[0], p: perm[1], s: perm[2] };
+}
+
+function remapTile(tile, suitMap) {
+  if (!tile) return tile;
+  const suit = tile.slice(-1);
+  if (!suitMap[suit]) return tile;
+  return tile[0] + suitMap[suit];
+}
+
+function remapAnswer(answer, suitMap) {
+  if (!answer) return answer;
+  if (answer.startsWith('ankan:')) return `ankan:${remapTile(answer.slice(6), suitMap)}`;
+  return remapTile(answer, suitMap);
+}
+
+export function remapProblem(problem, suitMap) {
+  const t = tile => remapTile(tile, suitMap);
+  const ts = tiles => tiles ? tiles.map(t) : tiles;
+  return {
+    ...problem,
+    tiles: ts(problem.tiles),
+    answer: remapAnswer(problem.answer, suitMap),
+    dora: t(problem.dora),
+    melds: problem.melds
+      ? problem.melds.map(meld => ({ ...meld, tiles: ts(meld.tiles) }))
+      : problem.melds,
+    discardedTile: t(problem.discardedTile),
+    nakiChoices: problem.nakiChoices
+      ? problem.nakiChoices.map(c => ({ ...c, tile: t(c.tile) }))
+      : problem.nakiChoices,
+    explanation: problem.explanation
+      ? problem.explanation.replace(/\[([0-9][mps])\]/g, (_, code) => `[${t(code)}]`)
+      : problem.explanation,
+  };
+}

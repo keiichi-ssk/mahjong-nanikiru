@@ -258,6 +258,12 @@ export default function ProblemEditor({
               ))}
             </div>
           )}
+          {dora && (
+            <div className="editor-dora-inline">
+              <span className="editor-dora-label">ドラ</span>
+              <img src={getTileImageUrl(dora)} alt={getTileLabel(dora)} width={32} height={Math.round(32 * 60 / 44)} />
+            </div>
+          )}
         </div>
       </section>
 
@@ -374,8 +380,34 @@ export default function ProblemEditor({
               />
             ))}
           </div>
+          {(() => {
+            const counts = {}
+            tiles.forEach(t => { counts[t] = (counts[t] ?? 0) + 1 })
+            const quadTiles = Object.keys(counts).filter(t => counts[t] === 4)
+            if (quadTiles.length === 0) return null
+            return (
+              <div className="editor-ankan-options">
+                {quadTiles.map(t => (
+                  <button
+                    key={t}
+                    className={`editor-ankan-btn${answer === `ankan:${t}` ? ' editor-ankan-btn--active' : ''}`}
+                    onClick={() => setAnswer(`ankan:${t}`)}
+                  >
+                    カン
+                    <img src={getTileImageUrl(t)} alt={getTileLabel(t)} />
+                  </button>
+                ))}
+              </div>
+            )
+          })()}
           <div className="editor-current">
-            現在の正解: <strong>{answer ? getTileLabel(answer) : '未設定'}</strong>
+            現在の正解: <strong>
+              {answer
+                ? answer.startsWith('ankan:')
+                  ? `暗槓（${getTileLabel(answer.slice(6))}）`
+                  : getTileLabel(answer)
+                : '未設定'}
+            </strong>
           </div>
           <div className="riichi-setting">
             <span className="riichi-setting-label">リーチ：</span>

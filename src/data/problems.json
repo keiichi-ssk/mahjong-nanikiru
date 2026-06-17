@@ -175,11 +175,14 @@
       "8s"
     ],
     "answer": "7m",
-    "dora": "8s",
+    "dora": "4z",
     "explanation": "",
     "riichi": true,
     "melds": [],
-    "reviewed": true
+    "reviewed": true,
+    "problemType": "default",
+    "discardedTile": null,
+    "nakiChoices": []
   },
   {
     "id": 8,
@@ -227,11 +230,14 @@
       "8s"
     ],
     "answer": "8s",
-    "dora": "4z",
+    "dora": "8s",
     "explanation": "",
     "riichi": false,
     "melds": [],
-    "reviewed": true
+    "reviewed": true,
+    "problemType": "default",
+    "discardedTile": null,
+    "nakiChoices": []
   },
   {
     "id": 10,
@@ -7861,6 +7867,26 @@
       {
         "tile": "3s",
         "correct": true
+      },
+      {
+        "tile": "3m",
+        "correct": false
+      },
+      {
+        "tile": "6m",
+        "correct": false
+      },
+      {
+        "tile": "8m",
+        "correct": false
+      },
+      {
+        "tile": "2p",
+        "correct": false
+      },
+      {
+        "tile": "5p",
+        "correct": false
       }
     ]
   },
@@ -7874,92 +7900,198 @@
       "5m",
       "6m",
       "7m",
-      "0p",
-      "0p",
-      "0p",
-      "0p",
-      "0p",
-      "1z",
-      "5z",
-      "6z",
-      "7z",
-      "0s"
+      "2p",
+      "2p",
+      "5p",
+      "6p",
+      "3s",
+      "0s",
+      "7s",
+      "7s"
     ],
     "answer": "7m",
-    "dora": null,
-    "explanation": ""
+    "dora": "5p",
+    "explanation": "[7s]は鳴かない",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "2m",
+        "correct": true
+      },
+      {
+        "tile": "2p",
+        "correct": true
+      },
+      {
+        "tile": "4p",
+        "correct": true
+      },
+      {
+        "tile": "7p",
+        "correct": true
+      },
+      {
+        "tile": "4s",
+        "correct": true
+      },
+      {
+        "tile": "6s",
+        "correct": true
+      },
+      {
+        "tile": "7s",
+        "correct": false
+      }
+    ]
   },
   {
     "id": 298,
     "section": "18_役確定の鳴き",
     "image": "/samplequestions/18_役確定の鳴き/11.jpg",
     "tiles": [
-      "11z",
-      "1m",
+      "2m",
       "4m",
       "8m",
       "8m",
-      "3p",
-      "3p",
-      "5p",
-      "5p",
-      "5p",
-      "1s",
-      "1s",
-      "1s",
-      "4z"
+      "2p",
+      "4p",
+      "6p",
+      "8p",
+      "8p",
+      "4s",
+      "4s",
+      "6s",
+      "3z"
     ],
-    "answer": "11z",
-    "dora": null,
-    "explanation": ""
+    "answer": "no",
+    "dora": "4z",
+    "explanation": "中盤以降鳴かない",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "5s",
+    "nakiChoices": []
   },
   {
     "id": 299,
     "section": "18_役確定の鳴き",
     "image": "/samplequestions/18_役確定の鳴き/12.jpg",
     "tiles": [
-      "1m",
+      "2m",
       "2m",
       "6m",
       "8m",
-      "5p",
-      "5p",
-      "0p",
-      "0p",
-      "1s",
-      "1s",
-      "5s",
-      "5s",
+      "2p",
+      "4p",
+      "6p",
+      "8p",
+      "8p",
+      "6s",
+      "7s",
       "2z",
       "3z"
     ],
     "answer": "8m",
-    "dora": null,
-    "explanation": ""
+    "dora": "4z",
+    "explanation": "",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "7m",
+        "correct": true
+      },
+      {
+        "tile": "2m",
+        "correct": false
+      },
+      {
+        "tile": "3p",
+        "correct": false
+      },
+      {
+        "tile": "5p",
+        "correct": false
+      },
+      {
+        "tile": "8p",
+        "correct": false
+      },
+      {
+        "tile": "5s",
+        "correct": false
+      },
+      {
+        "tile": "7s",
+        "correct": false
+      }
+    ]
   },
   {
     "id": 300,
     "section": "18_役確定の鳴き",
     "image": "/samplequestions/18_役確定の鳴き/13.jpg",
     "tiles": [
-      "1m",
-      "5m",
-      "5m",
+      "2m",
+      "2m",
       "6m",
       "7m",
-      "0p",
-      "0p",
-      "0p",
-      "5s",
-      "5s",
-      "6s",
+      "2p",
+      "4p",
+      "6p",
+      "8p",
+      "8p",
       "6s",
       "7s",
-      "2z"
+      "2z",
+      "3z"
     ],
-    "answer": "2z",
-    "dora": null,
-    "explanation": ""
+    "answer": "",
+    "dora": "4z",
+    "explanation": "",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "2m",
+        "correct": true
+      },
+      {
+        "tile": "3p",
+        "correct": true
+      },
+      {
+        "tile": "5p",
+        "correct": true
+      },
+      {
+        "tile": "7p",
+        "correct": true
+      },
+      {
+        "tile": "8p",
+        "correct": true
+      },
+      {
+        "tile": "5s",
+        "correct": false
+      },
+      {
+        "tile": "8s",
+        "correct": false
+      }
+    ]
   },
   {
     "id": 301,
@@ -7967,71 +8099,86 @@
     "image": "/samplequestions/19_役不確定の鳴き/1.jpg",
     "tiles": [
       "1m",
-      "2m",
-      "2m",
-      "0p",
-      "0p",
-      "0p",
-      "1s",
-      "1s",
-      "1s",
-      "2z",
+      "3m",
+      "4p",
+      "5p",
+      "5p",
+      "4s",
+      "5s",
+      "6s",
+      "7s",
+      "8s",
+      "9s",
       "5z",
-      "6z",
-      "7z",
-      "7z"
+      "5z"
     ],
-    "answer": "2z",
-    "dora": null,
-    "explanation": ""
+    "answer": "early",
+    "dora": "4z",
+    "explanation": "いつでも鳴く",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "2m",
+    "nakiChoices": []
   },
   {
     "id": 302,
     "section": "19_役不確定の鳴き",
     "image": "/samplequestions/19_役不確定の鳴き/2.jpg",
     "tiles": [
-      "2m",
+      "1m",
       "3m",
       "5m",
       "5p",
       "5p",
-      "5p",
-      "1s",
-      "1s",
-      "1s",
-      "1z",
-      "2z",
-      "3z",
-      "4z",
+      "4s",
+      "5s",
+      "6s",
+      "7s",
+      "8s",
+      "9s",
+      "5z",
       "5z"
     ],
-    "answer": "5z",
-    "dora": null,
-    "explanation": ""
+    "answer": "early",
+    "dora": "4z",
+    "explanation": "再序盤は次から鳴く",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "2m",
+    "nakiChoices": []
   },
   {
     "id": 303,
     "section": "19_役不確定の鳴き",
     "image": "/samplequestions/19_役不確定の鳴き/3.jpg",
     "tiles": [
-      "3z",
-      "1m",
+      "3m",
       "4m",
-      "5p",
-      "5p",
-      "5p",
-      "6p",
-      "6p",
-      "7p",
-      "8p",
-      "2z",
-      "3z",
-      "4z",
+      "3p",
+      "4p",
+      "4p",
+      "4s",
+      "5s",
+      "6s",
+      "7s",
+      "8s",
+      "9s",
+      "5z",
       "5z"
     ],
-    "answer": "1m",
-    "dora": null,
-    "explanation": ""
+    "answer": "early",
+    "dora": "4z",
+    "explanation": "再序盤は次から鳴く",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "5z",
+    "nakiChoices": []
   },
   {
     "id": 304,
@@ -8039,47 +8186,57 @@
     "image": "/samplequestions/19_役不確定の鳴き/4.jpg",
     "tiles": [
       "3m",
-      "3m",
       "4m",
-      "0p",
-      "0p",
-      "0p",
-      "1s",
-      "1s",
-      "1s",
-      "1s",
-      "4z",
-      "3z",
-      "2z",
-      "0s"
+      "4p",
+      "5p",
+      "5p",
+      "4s",
+      "5s",
+      "6s",
+      "7s",
+      "8s",
+      "9s",
+      "5z",
+      "5z"
     ],
-    "answer": "2z",
-    "dora": "2m",
-    "explanation": ""
+    "answer": "late",
+    "dora": "4z",
+    "explanation": "",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "2m",
+    "nakiChoices": []
   },
   {
     "id": 305,
     "section": "19_役不確定の鳴き",
     "image": "/samplequestions/19_役不確定の鳴き/5.jpg",
     "tiles": [
-      "5z",
-      "2m",
-      "2m",
-      "0p",
-      "0p",
-      "5z",
-      "5z",
-      "1z",
-      "2z",
+      "3m",
+      "4m",
+      "5p",
+      "5p",
+      "4s",
+      "5s",
+      "6s",
+      "7s",
+      "8s",
+      "9s",
       "3z",
-      "4z",
-      "6z",
-      "7z",
-      "1m"
+      "5z",
+      "5z"
     ],
-    "answer": "1m",
-    "dora": "2m",
-    "explanation": ""
+    "answer": "mid",
+    "dora": "4z",
+    "explanation": "中盤過ぎ以降鳴き",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "2m",
+    "nakiChoices": []
   },
   {
     "id": 306,
@@ -8087,119 +8244,144 @@
     "image": "/samplequestions/19_役不確定の鳴き/6.jpg",
     "tiles": [
       "1m",
-      "1m",
-      "1m",
-      "0p",
-      "0p",
-      "0p",
-      "7z",
       "2m",
       "3m",
-      "4m",
-      "5m",
-      "6m",
-      "7m",
-      "8m"
+      "2p",
+      "2p",
+      "3p",
+      "1s",
+      "2s",
+      "3s",
+      "5s",
+      "6s",
+      "5z",
+      "5z"
     ],
-    "answer": "7z",
-    "dora": null,
-    "explanation": ""
+    "answer": "mid",
+    "dora": "4z",
+    "explanation": "",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "5z",
+    "nakiChoices": []
   },
   {
     "id": 307,
     "section": "19_役不確定の鳴き",
     "image": "/samplequestions/19_役不確定の鳴き/7.jpg",
     "tiles": [
-      "7z",
       "1m",
-      "1m",
-      "1m",
-      "0p",
-      "0p",
-      "0p",
-      "1p",
-      "1p",
-      "1p",
+      "2m",
+      "3m",
       "2p",
       "2p",
-      "2p",
-      "2z"
+      "3p",
+      "2s",
+      "3s",
+      "5s",
+      "6s",
+      "7s",
+      "5z",
+      "5z"
     ],
-    "answer": "2z",
-    "dora": null,
-    "explanation": ""
+    "answer": "mid",
+    "dora": "4z",
+    "explanation": "",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "5z",
+    "nakiChoices": []
   },
   {
     "id": 308,
     "section": "19_役不確定の鳴き",
     "image": "/samplequestions/19_役不確定の鳴き/8.jpg",
     "tiles": [
-      "8z",
       "1m",
-      "1m",
-      "1m",
-      "0p",
-      "0p",
-      "1s",
+      "2m",
+      "3m",
+      "1p",
+      "1p",
+      "3p",
       "2s",
       "3s",
-      "2z",
-      "3z",
-      "4z",
+      "5s",
+      "6s",
+      "7s",
       "5z",
-      "6z"
+      "5z"
     ],
-    "answer": "8z",
-    "dora": null,
-    "explanation": ""
+    "answer": "mid",
+    "dora": "4z",
+    "explanation": "",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "5z",
+    "nakiChoices": []
   },
   {
     "id": 309,
     "section": "19_役不確定の鳴き",
     "image": "/samplequestions/19_役不確定の鳴き/9.jpg",
     "tiles": [
-      "9m",
       "4m",
       "5m",
       "7m",
       "7m",
       "7m",
-      "0p",
-      "0p",
-      "0p",
-      "0p",
-      "0s",
-      "0s",
-      "0s",
-      "1z"
+      "5p",
+      "6p",
+      "7p",
+      "8p",
+      "8p",
+      "2s",
+      "2s",
+      "3s"
     ],
-    "answer": "1z",
-    "dora": "9m",
-    "explanation": ""
+    "answer": "mid",
+    "dora": "4z",
+    "explanation": "中盤過ぎから鳴く",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "3m",
+    "nakiChoices": []
   },
   {
     "id": 310,
     "section": "19_役不確定の鳴き",
     "image": "/samplequestions/19_役不確定の鳴き/10.jpg",
     "tiles": [
-      "1m",
-      "4p",
+      "4m",
+      "5m",
+      "7m",
+      "7m",
+      "7m",
       "5p",
+      "6p",
       "7p",
-      "7p",
-      "7p",
-      "0p",
-      "0p",
-      "0p",
+      "8p",
+      "8p",
       "4s",
       "4s",
-      "4s",
-      "2z",
-      "3z"
+      "5s"
     ],
-    "answer": "3z",
-    "dora": null,
-    "explanation": ""
+    "answer": "mid",
+    "dora": "4z",
+    "explanation": "",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "3m",
+    "nakiChoices": []
   },
   {
     "id": 311,
@@ -8207,23 +8389,28 @@
     "image": "/samplequestions/19_役不確定の鳴き/11.jpg",
     "tiles": [
       "2m",
-      "2m",
-      "0p",
-      "0p",
-      "1p",
-      "1p",
-      "0s",
-      "1s",
-      "1z",
-      "2z",
-      "3z",
-      "4z",
-      "4z",
-      "0s"
+      "3m",
+      "2p",
+      "2p",
+      "3p",
+      "3p",
+      "3p",
+      "6p",
+      "7p",
+      "5s",
+      "6s",
+      "7s",
+      "3z"
     ],
-    "answer": "2m",
-    "dora": null,
-    "explanation": ""
+    "answer": "late",
+    "dora": "4z",
+    "explanation": "11巡目から鳴き",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "5p",
+    "nakiChoices": []
   },
   {
     "id": 312,
@@ -8231,23 +8418,28 @@
     "image": "/samplequestions/19_役不確定の鳴き/12.jpg",
     "tiles": [
       "2m",
-      "2m",
-      "4z",
-      "5p",
-      "5p",
-      "5p",
-      "1p",
-      "1p",
+      "3m",
       "2p",
       "3p",
       "4p",
-      "4p",
-      "3z",
-      "6z"
+      "6p",
+      "7p",
+      "2s",
+      "2s",
+      "5s",
+      "6s",
+      "7s",
+      "3z"
     ],
-    "answer": "6z",
-    "dora": null,
-    "explanation": ""
+    "answer": "late",
+    "dora": "4z",
+    "explanation": "",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "5p",
+    "nakiChoices": []
   },
   {
     "id": 313,
@@ -8256,22 +8448,27 @@
     "tiles": [
       "2m",
       "2m",
-      "2m",
-      "4z",
-      "4z",
-      "0p",
-      "0p",
-      "0p",
-      "0p",
-      "1z",
-      "2z",
-      "3z",
-      "4z",
-      "0s"
+      "3m",
+      "2p",
+      "2p",
+      "3p",
+      "3p",
+      "3p",
+      "6p",
+      "7p",
+      "5s",
+      "6s",
+      "7s"
     ],
-    "answer": "4z",
-    "dora": null,
-    "explanation": ""
+    "answer": "late",
+    "dora": "5p",
+    "explanation": "",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": null,
+    "nakiChoices": []
   },
   {
     "id": 314,
@@ -8280,22 +8477,27 @@
     "tiles": [
       "2m",
       "3m",
-      "1p",
-      "1p",
-      "0p",
+      "2p",
       "2p",
       "3p",
-      "4p",
-      "5p",
+      "3p",
+      "3p",
+      "6p",
       "6p",
       "7p",
-      "1z",
-      "2z",
-      "0s"
+      "5s",
+      "6s",
+      "7s"
     ],
-    "answer": "1z",
-    "dora": "0s",
-    "explanation": ""
+    "answer": "late",
+    "dora": "4z",
+    "explanation": "",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "5p",
+    "nakiChoices": []
   },
   {
     "id": 315,
@@ -8303,24 +8505,28 @@
     "image": "/samplequestions/19_役不確定の鳴き/15.jpg",
     "tiles": [
       "2m",
-      "2m",
-      "2m",
-      "5p",
-      "5p",
-      "5p",
-      "5p",
-      "5p",
+      "3m",
+      "3m",
+      "2p",
+      "3p",
+      "4p",
       "6p",
-      "6p",
-      "1z",
-      "2z",
-      "3z",
-      "4z",
-      "0p"
+      "7p",
+      "2s",
+      "2s",
+      "5s",
+      "6s",
+      "7s"
     ],
-    "answer": "1z",
-    "dora": "0p",
-    "explanation": ""
+    "answer": "late",
+    "dora": "4z",
+    "explanation": "",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "5p",
+    "nakiChoices": []
   },
   {
     "id": 316,
@@ -8329,22 +8535,27 @@
     "tiles": [
       "2m",
       "3m",
-      "0p",
-      "1p",
       "2p",
       "3p",
       "4p",
-      "5p",
+      "6p",
       "6p",
       "7p",
-      "1z",
-      "2z",
-      "4z",
-      "0s"
+      "2s",
+      "2s",
+      "5s",
+      "6s",
+      "7s"
     ],
-    "answer": "1z",
-    "dora": "0s",
-    "explanation": ""
+    "answer": "late",
+    "dora": "4z",
+    "explanation": "",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "5p",
+    "nakiChoices": []
   },
   {
     "id": 317,
@@ -8353,22 +8564,27 @@
     "tiles": [
       "2m",
       "3m",
-      "1p",
-      "1p",
-      "1p",
-      "1p",
-      "1p",
-      "1p",
-      "5p",
-      "5p",
-      "5p",
-      "1z",
-      "2z",
-      "4m"
+      "2p",
+      "2p",
+      "3p",
+      "3p",
+      "3p",
+      "6p",
+      "8p",
+      "5s",
+      "6s",
+      "7s",
+      "3z"
     ],
-    "answer": "4m",
-    "dora": null,
-    "explanation": ""
+    "answer": "early",
+    "dora": "4z",
+    "explanation": "3巡目から鳴き",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "4m",
+    "nakiChoices": []
   },
   {
     "id": 318,
@@ -8378,21 +8594,26 @@
       "2m",
       "3m",
       "3m",
-      "5p",
-      "5p",
-      "5p",
-      "5p",
-      "5p",
+      "2p",
+      "2p",
+      "3p",
+      "3p",
+      "3p",
       "6p",
-      "6p",
-      "1s",
-      "1s",
-      "2z",
-      "4z"
+      "8p",
+      "5s",
+      "6s",
+      "7s"
     ],
-    "answer": "2m",
-    "dora": null,
-    "explanation": ""
+    "answer": "mid",
+    "dora": "4z",
+    "explanation": "6巡目から鳴き",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "4m",
+    "nakiChoices": []
   },
   {
     "id": 319,
@@ -8400,23 +8621,28 @@
     "image": "/samplequestions/19_役不確定の鳴き/19.jpg",
     "tiles": [
       "2m",
-      "2m",
       "3m",
-      "4p",
-      "4p",
-      "4p",
-      "4p",
-      "4p",
-      "4p",
-      "0p",
-      "0p",
-      "5z",
-      "6z",
-      "7z"
+      "2p",
+      "2p",
+      "3p",
+      "3p",
+      "3p",
+      "6p",
+      "6p",
+      "8p",
+      "5s",
+      "6s",
+      "7s"
     ],
-    "answer": "2m",
-    "dora": null,
-    "explanation": ""
+    "answer": "mid",
+    "dora": "4z",
+    "explanation": "8巡目から鳴き",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "7p",
+    "nakiChoices": []
   },
   {
     "id": 320,
@@ -8429,18 +8655,23 @@
       "7m",
       "7m",
       "7m",
-      "0p",
-      "0p",
-      "3p",
-      "0s",
-      "0s",
-      "2z",
-      "7z",
-      "5z"
+      "5p",
+      "6p",
+      "7p",
+      "8p",
+      "8p",
+      "2s",
+      "3s"
     ],
-    "answer": "2z",
-    "dora": null,
-    "explanation": ""
+    "answer": "mid",
+    "dora": "7m",
+    "explanation": "序盤は鳴かない",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "3m",
+    "nakiChoices": []
   },
   {
     "id": 321,
@@ -8453,18 +8684,52 @@
       "7m",
       "9m",
       "8p",
-      "8p",
-      "0p",
-      "0p",
-      "1z",
-      "1z",
+      "9p",
+      "9p",
+      "5s",
+      "6s",
+      "7s",
       "7z",
-      "7z",
-      "2z"
+      "7z"
     ],
     "answer": "9m",
-    "dora": "2z",
-    "explanation": ""
+    "dora": "4p",
+    "explanation": "序盤は[1m][4m]以外鳴く、以降は全鳴き",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "1m",
+        "correct": false
+      },
+      {
+        "tile": "4m",
+        "correct": false
+      },
+      {
+        "tile": "7m",
+        "correct": true
+      },
+      {
+        "tile": "8m",
+        "correct": true
+      },
+      {
+        "tile": "7p",
+        "correct": true
+      },
+      {
+        "tile": "9p",
+        "correct": true
+      },
+      {
+        "tile": "7z",
+        "correct": true
+      }
+    ]
   },
   {
     "id": 322,
@@ -8472,71 +8737,181 @@
     "image": "/samplequestions/19_役不確定の鳴き/22.jpg",
     "tiles": [
       "1m",
-      "1m",
+      "3m",
       "6m",
       "7m",
-      "0p",
-      "0p",
-      "0s",
-      "6z",
-      "7z",
-      "1z",
-      "2z",
-      "3z",
-      "4z",
+      "6p",
+      "6p",
+      "8p",
+      "1s",
+      "2s",
+      "6s",
+      "8s",
+      "5z",
       "5z"
     ],
     "answer": "1m",
-    "dora": null,
-    "explanation": ""
+    "dora": "4z",
+    "explanation": "[2m][3s][7s]は鳴き、[5z]はスルー",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "2m",
+        "correct": true
+      },
+      {
+        "tile": "5m",
+        "correct": false
+      },
+      {
+        "tile": "8m",
+        "correct": false
+      },
+      {
+        "tile": "6p",
+        "correct": false
+      },
+      {
+        "tile": "7p",
+        "correct": false
+      },
+      {
+        "tile": "3s",
+        "correct": true
+      },
+      {
+        "tile": "7s",
+        "correct": true
+      },
+      {
+        "tile": "5z",
+        "correct": false
+      }
+    ]
   },
   {
     "id": 323,
     "section": "19_役不確定の鳴き",
     "image": "/samplequestions/19_役不確定の鳴き/23.jpg",
     "tiles": [
-      "1m",
-      "0m",
+      "2m",
       "4m",
       "8m",
       "9m",
-      "0p",
-      "0p",
-      "3p",
+      "2p",
+      "4p",
       "6p",
-      "9p",
-      "9p",
-      "3z",
-      "3z",
+      "8p",
+      "8p",
+      "6s",
+      "7s",
+      "5z",
       "5z"
     ],
-    "answer": "5z",
-    "dora": null,
-    "explanation": ""
+    "answer": "",
+    "dora": "4p",
+    "explanation": "[3m][7m][3p][5p][5z]を鳴く。[5s][8s]は[5z]を鳴いたときに愚形*2の安手1シャンテンになるのでスルー",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "3m",
+        "correct": true
+      },
+      {
+        "tile": "7m",
+        "correct": true
+      },
+      {
+        "tile": "3p",
+        "correct": true
+      },
+      {
+        "tile": "5p",
+        "correct": true
+      },
+      {
+        "tile": "8p",
+        "correct": false
+      },
+      {
+        "tile": "5s",
+        "correct": false
+      },
+      {
+        "tile": "8s",
+        "correct": false
+      },
+      {
+        "tile": "5z",
+        "correct": true
+      }
+    ]
   },
   {
     "id": 324,
     "section": "19_役不確定の鳴き",
     "image": "/samplequestions/19_役不確定の鳴き/24.jpg",
     "tiles": [
-      "1m",
       "2m",
       "4m",
       "8m",
       "9m",
-      "0p",
-      "0p",
-      "0p",
-      "0p",
-      "1z",
+      "2p",
+      "4p",
+      "6p",
+      "8p",
+      "8p",
+      "6s",
+      "8s",
       "5z",
-      "6z",
-      "6z",
-      "6z"
+      "5z"
     ],
-    "answer": "1m",
-    "dora": "0s",
-    "explanation": ""
+    "answer": "",
+    "dora": "4p",
+    "explanation": "",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "3m",
+        "correct": true
+      },
+      {
+        "tile": "7m",
+        "correct": true
+      },
+      {
+        "tile": "3p",
+        "correct": true
+      },
+      {
+        "tile": "5p",
+        "correct": true
+      },
+      {
+        "tile": "8p",
+        "correct": false
+      },
+      {
+        "tile": "7s",
+        "correct": true
+      },
+      {
+        "tile": "5z",
+        "correct": false
+      }
+    ]
   },
   {
     "id": 325,
@@ -8544,23 +8919,45 @@
     "image": "/samplequestions/19_役不確定の鳴き/25.jpg",
     "tiles": [
       "2p",
-      "3p",
-      "3p",
+      "4p",
       "1s",
       "1s",
       "1s",
-      "2z",
+      "2s",
+      "4s",
+      "8s",
       "3z",
       "3z",
-      "4z",
-      "4z",
+      "5z",
       "6z",
-      "6z",
-      "0p"
+      "6z"
     ],
     "answer": "2p",
-    "dora": "0p",
-    "explanation": ""
+    "dora": "9p",
+    "explanation": "ホンイツ変化があるので[3p]は鳴かない",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "3p",
+        "correct": false
+      },
+      {
+        "tile": "3s",
+        "correct": true
+      },
+      {
+        "tile": "3z",
+        "correct": true
+      },
+      {
+        "tile": "6z",
+        "correct": true
+      }
+    ]
   },
   {
     "id": 326,
@@ -8574,65 +8971,172 @@
       "7m",
       "9m",
       "9m",
-      "0p",
-      "0p",
-      "0p",
+      "2p",
+      "4p",
+      "6p",
+      "5z",
       "6z",
-      "6z",
-      "2z",
-      "9m"
+      "6z"
     ],
-    "answer": "2z",
-    "dora": "0s",
-    "explanation": ""
+    "answer": "",
+    "dora": "9m",
+    "explanation": "3ハン以上確定なので[3p][5p]も鳴く",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "7m",
+        "correct": true
+      },
+      {
+        "tile": "9m",
+        "correct": true
+      },
+      {
+        "tile": "3p",
+        "correct": true
+      },
+      {
+        "tile": "5p",
+        "correct": true
+      },
+      {
+        "tile": "6z",
+        "correct": true
+      }
+    ]
   },
   {
     "id": 327,
     "section": "19_役不確定の鳴き",
     "image": "/samplequestions/19_役不確定の鳴き/27.jpg",
     "tiles": [
-      "2m",
-      "5m",
-      "6m",
-      "7m",
-      "8m",
       "1p",
-      "2p",
-      "3p",
-      "4p",
-      "5p",
       "6p",
+      "7p",
+      "1s",
+      "1s",
       "7z",
-      "7z",
-      "5z"
+      "7z"
     ],
-    "answer": "5z",
-    "dora": "7z",
-    "explanation": ""
+    "answer": "",
+    "dora": "1s",
+    "explanation": "[5p][8p]は序盤は鳴かない（[1p][2p][3p]引きに加え、ツモ[6p][7p][9p][1s]、ポン[1s]も強い変化なので）",
+    "riichi": null,
+    "melds": [
+      {
+        "type": "pon",
+        "tiles": [
+          "1m",
+          "1m",
+          "1m"
+        ]
+      },
+      {
+        "type": "pon",
+        "tiles": [
+          "9s",
+          "9s",
+          "9s"
+        ]
+      }
+    ],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "5p",
+        "correct": true
+      },
+      {
+        "tile": "8p",
+        "correct": true
+      },
+      {
+        "tile": "1s",
+        "correct": true
+      },
+      {
+        "tile": "7z",
+        "correct": true
+      }
+    ]
   },
   {
     "id": 328,
     "section": "20_メンツ候補不足・ヘッドレスの鳴き",
     "image": "/samplequestions/20_メンツ候補不足・ヘッドレスの鳴き/1.jpg",
     "tiles": [
-      "1m",
+      "4m",
       "5m",
       "5m",
       "6m",
-      "0p",
-      "0p",
-      "0p",
-      "0p",
-      "0s",
-      "0s",
-      "6z",
-      "6z",
-      "7z",
-      "4z"
+      "2p",
+      "3p",
+      "4p",
+      "6p",
+      "7s",
+      "7s"
     ],
-    "answer": "4z",
-    "dora": null,
-    "explanation": ""
+    "answer": "",
+    "dora": "4z",
+    "explanation": "愚形聴牌になる牌は中盤まで鳴かない",
+    "riichi": null,
+    "melds": [
+      {
+        "type": "pon",
+        "tiles": [
+          "5z",
+          "5z",
+          "5z"
+        ]
+      }
+    ],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "3m",
+        "correct": true
+      },
+      {
+        "tile": "4m",
+        "correct": true
+      },
+      {
+        "tile": "5m",
+        "correct": false
+      },
+      {
+        "tile": "6m",
+        "correct": true
+      },
+      {
+        "tile": "1p",
+        "correct": false
+      },
+      {
+        "tile": "4p",
+        "correct": false
+      },
+      {
+        "tile": "5p",
+        "correct": true
+      },
+      {
+        "tile": "7s",
+        "correct": false
+      },
+      {
+        "tile": "7m",
+        "correct": true
+      }
+    ]
   },
   {
     "id": 329,
@@ -8643,68 +9147,174 @@
       "3m",
       "4m",
       "6m",
-      "0p",
-      "0p",
-      "0p",
-      "0p",
-      "0p",
-      "0p",
-      "1z",
-      "5z",
-      "6z",
-      "4z"
+      "2p",
+      "3p",
+      "4p",
+      "6p",
+      "7s",
+      "7s"
     ],
-    "answer": "4z",
-    "dora": null,
-    "explanation": ""
+    "answer": "",
+    "dora": "4z",
+    "explanation": "",
+    "riichi": null,
+    "melds": [
+      {
+        "type": "pon",
+        "tiles": [
+          "5z",
+          "5z",
+          "5z"
+        ]
+      }
+    ],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "1m",
+        "correct": true
+      },
+      {
+        "tile": "4m",
+        "correct": true
+      },
+      {
+        "tile": "5m",
+        "correct": true
+      },
+      {
+        "tile": "1p",
+        "correct": true
+      },
+      {
+        "tile": "4p",
+        "correct": true
+      },
+      {
+        "tile": "5p",
+        "correct": true
+      },
+      {
+        "tile": "7s",
+        "correct": true
+      }
+    ]
   },
   {
     "id": 330,
     "section": "20_メンツ候補不足・ヘッドレスの鳴き",
     "image": "/samplequestions/20_メンツ候補不足・ヘッドレスの鳴き/3.jpg",
     "tiles": [
-      "2m",
-      "3m",
-      "4m",
-      "5m",
-      "6m",
-      "7m",
-      "8m",
-      "2z",
       "3s",
       "3s",
       "3s",
-      "4z",
-      "6z",
-      "6z"
+      "4s",
+      "6s",
+      "6s",
+      "2z"
     ],
-    "answer": "2m",
-    "dora": "0p",
-    "explanation": ""
+    "answer": "",
+    "dora": "1p",
+    "explanation": "鳴いて愚形2ハンになる[2s]はスルー",
+    "riichi": null,
+    "melds": [
+      {
+        "type": "pon",
+        "tiles": [
+          "3z",
+          "3z",
+          "3z"
+        ]
+      },
+      {
+        "type": "pon",
+        "tiles": [
+          "4z",
+          "4z",
+          "4z"
+        ]
+      }
+    ],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "2s",
+        "correct": false
+      },
+      {
+        "tile": "3s",
+        "correct": true
+      },
+      {
+        "tile": "5s",
+        "correct": true
+      },
+      {
+        "tile": "6s",
+        "correct": true
+      }
+    ]
   },
   {
     "id": 331,
     "section": "20_メンツ候補不足・ヘッドレスの鳴き",
     "image": "/samplequestions/20_メンツ候補不足・ヘッドレスの鳴き/4.jpg",
     "tiles": [
-      "2m",
-      "3m",
-      "4m",
-      "5m",
-      "6m",
-      "7m",
-      "8m",
-      "2z",
-      "3z",
-      "7z",
-      "7z",
-      "7z",
-      "1z",
-      "6z"
+      "3s",
+      "3s",
+      "3s",
+      "4s",
+      "6s",
+      "6s",
+      "2z"
     ],
-    "answer": "1z",
-    "dora": "6z",
-    "explanation": ""
+    "answer": "",
+    "dora": "1p",
+    "explanation": "",
+    "riichi": null,
+    "melds": [
+      {
+        "type": "pon",
+        "tiles": [
+          "5z",
+          "5z",
+          "5z"
+        ]
+      },
+      {
+        "type": "pon",
+        "tiles": [
+          "7z",
+          "7z",
+          "7z"
+        ]
+      }
+    ],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "2s",
+        "correct": true
+      },
+      {
+        "tile": "3s",
+        "correct": true
+      },
+      {
+        "tile": "5s",
+        "correct": true
+      },
+      {
+        "tile": "6s",
+        "correct": true
+      }
+    ]
   },
   {
     "id": 332,
@@ -8714,21 +9324,53 @@
       "3m",
       "4m",
       "7m",
-      "0p",
-      "5z",
-      "6z",
-      "0s",
-      "1z",
-      "2z",
-      "3z",
-      "7z",
-      "2z",
-      "7z",
-      "4z"
+      "1p",
+      "2p",
+      "9p",
+      "4s",
+      "8s",
+      "9s",
+      "9s"
     ],
     "answer": "4m",
-    "dora": null,
-    "explanation": ""
+    "dora": "4z",
+    "explanation": "鳴いても2シャンテンなので[2m][5m]からは鳴かない",
+    "riichi": null,
+    "melds": [
+      {
+        "type": "pon",
+        "tiles": [
+          "7z",
+          "7z",
+          "7z"
+        ]
+      }
+    ],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "2m",
+        "correct": false
+      },
+      {
+        "tile": "5m",
+        "correct": false
+      },
+      {
+        "tile": "3p",
+        "correct": true
+      },
+      {
+        "tile": "7s",
+        "correct": false
+      },
+      {
+        "tile": "9s",
+        "correct": false
+      }
+    ]
   },
   {
     "id": 333,
@@ -8740,19 +9382,43 @@
       "4m",
       "6m",
       "7m",
-      "0p",
-      "0p",
-      "0s",
-      "0s",
-      "1z",
-      "5z",
-      "7z",
-      "7z",
-      "7z"
+      "4p",
+      "8p",
+      "8p",
+      "3s",
+      "7s"
     ],
-    "answer": "1z",
-    "dora": null,
-    "explanation": ""
+    "answer": "",
+    "dora": "4z",
+    "explanation": "ヘッドレスになる[8p]は鳴かない",
+    "riichi": null,
+    "melds": [
+      {
+        "type": "pon",
+        "tiles": [
+          "7z",
+          "7z",
+          "7z"
+        ]
+      }
+    ],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "5m",
+        "correct": true
+      },
+      {
+        "tile": "8m",
+        "correct": true
+      },
+      {
+        "tile": "8p",
+        "correct": false
+      }
+    ]
   },
   {
     "id": 334,
@@ -8765,42 +9431,79 @@
       "5m",
       "6m",
       "9m",
-      "0p",
-      "0p",
+      "4p",
       "1z",
       "1z",
-      "5z",
-      "7z",
-      "7z",
-      "7z"
+      "5z"
     ],
-    "answer": "5z",
-    "dora": null,
-    "explanation": ""
+    "answer": "",
+    "dora": "4z",
+    "explanation": "3ハン以上見込めるので手が進む牌は全て鳴く",
+    "riichi": null,
+    "melds": [
+      {
+        "type": "pon",
+        "tiles": [
+          "7z",
+          "7z",
+          "7z"
+        ]
+      }
+    ],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "1m",
+        "correct": true
+      },
+      {
+        "tile": "3m",
+        "correct": true
+      },
+      {
+        "tile": "4m",
+        "correct": true
+      },
+      {
+        "tile": "7m",
+        "correct": true
+      },
+      {
+        "tile": "1z",
+        "correct": true
+      }
+    ]
   },
   {
     "id": 335,
     "section": "20_メンツ候補不足・ヘッドレスの鳴き",
     "image": "/samplequestions/20_メンツ候補不足・ヘッドレスの鳴き/8.jpg",
     "tiles": [
-      "8z",
-      "1m",
       "2m",
       "3m",
       "4m",
-      "0p",
-      "0p",
-      "0p",
-      "0p",
+      "5m",
+      "2p",
+      "3p",
+      "4p",
+      "5p",
+      "8s",
+      "8s",
       "6z",
       "6z",
-      "7z",
-      "7z",
-      "7z"
+      "6z"
     ],
-    "answer": "8z",
-    "dora": null,
-    "explanation": ""
+    "answer": "mid",
+    "dora": "4z",
+    "explanation": "",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "3m",
+    "nakiChoices": []
   },
   {
     "id": 336,
@@ -8810,21 +9513,26 @@
       "1m",
       "2m",
       "3m",
-      "4z",
-      "0p",
-      "0p",
-      "0s",
-      "0s",
-      "2z",
-      "1z",
+      "4m",
+      "5p",
+      "6p",
+      "7p",
+      "4s",
+      "7s",
+      "8s",
+      "9s",
       "6z",
-      "6z",
-      "4z",
       "6z"
     ],
-    "answer": "4z",
-    "dora": null,
-    "explanation": ""
+    "answer": "mid",
+    "dora": "4z",
+    "explanation": "1枚目の[6z]は序盤ならスルー",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "6z",
+    "nakiChoices": []
   },
   {
     "id": 337,
@@ -8833,46 +9541,93 @@
     "tiles": [
       "1m",
       "6m",
-      "6m",
       "1p",
-      "5p",
-      "5p",
-      "0p",
-      "1z",
-      "2z",
-      "2z",
+      "2p",
+      "2p",
+      "9p",
+      "3s",
+      "5s",
+      "8s",
+      "5z",
       "6z",
       "7z",
-      "7z",
-      "4z"
+      "7z"
     ],
-    "answer": "4z",
-    "dora": null,
-    "explanation": ""
+    "answer": "early",
+    "dora": "4z",
+    "explanation": "安全牌を抱えやすく、うまくホンイツになればマンガン以上の手になる可能性もあるのでポンして打[1m]",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "7z",
+    "nakiChoices": []
   },
   {
     "id": 338,
     "section": "20_メンツ候補不足・ヘッドレスの鳴き",
     "image": "/samplequestions/20_メンツ候補不足・ヘッドレスの鳴き/11.jpg",
     "tiles": [
-      "1m",
       "3m",
       "4m",
-      "5m",
+      "0m",
       "6m",
       "8m",
-      "0p",
-      "1p",
       "2p",
-      "5p",
+      "4p",
       "6p",
-      "7z",
-      "4z",
-      "2z"
+      "7p",
+      "3s",
+      "4s",
+      "5z",
+      "7z"
     ],
     "answer": "8m",
-    "dora": null,
-    "explanation": ""
+    "dora": "4z",
+    "explanation": "良形や連続系ターツがなくなる[7m]は鳴かない",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "2m",
+        "correct": false
+      },
+      {
+        "tile": "5m",
+        "correct": false
+      },
+      {
+        "tile": "4m",
+        "correct": false
+      },
+      {
+        "tile": "7m",
+        "correct": false
+      },
+      {
+        "tile": "3p",
+        "correct": true
+      },
+      {
+        "tile": "5p",
+        "correct": false
+      },
+      {
+        "tile": "8p",
+        "correct": false
+      },
+      {
+        "tile": "2s",
+        "correct": false
+      },
+      {
+        "tile": "5s",
+        "correct": false
+      }
+    ]
   },
   {
     "id": 339,
@@ -8882,21 +9637,55 @@
       "3m",
       "4m",
       "6m",
+      "1p",
+      "2p",
       "0p",
-      "5s",
-      "5s",
-      "0s",
-      "0s",
-      "1p",
-      "1p",
-      "2p",
-      "2p",
-      "7z",
-      "6z"
+      "7p",
+      "3s",
+      "4s",
+      "6s",
+      "8s",
+      "5z",
+      "7z"
     ],
     "answer": "3m",
-    "dora": "4p",
-    "explanation": ""
+    "dora": "7p",
+    "explanation": "",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "2m",
+        "correct": false
+      },
+      {
+        "tile": "5m",
+        "correct": false
+      },
+      {
+        "tile": "3p",
+        "correct": false
+      },
+      {
+        "tile": "6p",
+        "correct": true
+      },
+      {
+        "tile": "2s",
+        "correct": false
+      },
+      {
+        "tile": "5s",
+        "correct": false
+      },
+      {
+        "tile": "7s",
+        "correct": false
+      }
+    ]
   },
   {
     "id": 340,
@@ -8908,19 +9697,41 @@
       "3m",
       "5m",
       "6m",
-      "0p",
-      "0p",
-      "0p",
-      "1s",
-      "1s",
-      "1s",
-      "2s",
-      "2s",
-      "2s"
+      "5p",
+      "6p",
+      "3s",
+      "4s",
+      "5s",
+      "5z",
+      "5z",
+      "5z"
     ],
     "answer": "5m",
-    "dora": null,
-    "explanation": ""
+    "dora": "4z",
+    "explanation": "13巡目からチー",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "4m",
+        "correct": false
+      },
+      {
+        "tile": "7m",
+        "correct": false
+      },
+      {
+        "tile": "4p",
+        "correct": false
+      },
+      {
+        "tile": "7p",
+        "correct": false
+      }
+    ]
   },
   {
     "id": 341,
@@ -8932,67 +9743,82 @@
       "4m",
       "6m",
       "7m",
-      "0p",
-      "0p",
-      "0p",
-      "0p",
-      "0p",
-      "0p",
-      "2z",
-      "3z",
-      "4z"
+      "3p",
+      "4p",
+      "5p",
+      "5p",
+      "6p",
+      "3s",
+      "4s",
+      "5s"
     ],
-    "answer": "2m",
-    "dora": null,
-    "explanation": ""
+    "answer": "late",
+    "dora": "4z",
+    "explanation": "流局間際ならチー",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "4p",
+    "nakiChoices": []
   },
   {
     "id": 342,
     "section": "21_形式聴牌・後々付け",
     "image": "/samplequestions/21_形式聴牌・後々付け/1.jpg",
     "tiles": [
-      "1z",
-      "1m",
-      "1m",
-      "1m",
-      "0p",
+      "2m",
+      "2m",
+      "3m",
       "1p",
-      "1p",
-      "1p",
-      "0p",
-      "1p",
-      "0s",
-      "0s",
-      "2z",
-      "0p"
+      "2p",
+      "2p",
+      "3p",
+      "3p",
+      "8p",
+      "8p",
+      "8p",
+      "6s",
+      "6s"
     ],
-    "answer": "2z",
-    "dora": "0p",
-    "explanation": ""
+    "answer": "late",
+    "dora": "8p",
+    "explanation": "15巡目からは鳴いて形テンに取る",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "4m",
+    "nakiChoices": []
   },
   {
     "id": 343,
     "section": "21_形式聴牌・後々付け",
     "image": "/samplequestions/21_形式聴牌・後々付け/2.jpg",
     "tiles": [
-      "2m",
-      "2m",
+      "1m",
+      "1m",
       "3m",
       "6m",
       "7m",
       "8m",
-      "0p",
-      "0p",
-      "1s",
-      "1s",
+      "9p",
+      "9p",
       "2s",
-      "4z",
-      "5z",
-      "2z"
+      "4s",
+      "7s",
+      "8s",
+      "9s"
     ],
-    "answer": "2z",
-    "dora": "2m",
-    "explanation": ""
+    "answer": "late",
+    "dora": "4z",
+    "explanation": "11巡目以降は形テン取りが有利",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "9p",
+    "nakiChoices": []
   },
   {
     "id": 344,
@@ -9001,94 +9827,132 @@
     "tiles": [
       "1m",
       "2m",
-      "2m",
       "4m",
       "6m",
       "8m",
-      "0p",
-      "2p",
-      "2p",
-      "2p",
-      "2p",
-      "2s",
-      "2s",
+      "1p",
+      "5p",
+      "9p",
+      "9p",
+      "4s",
+      "6s",
+      "5z",
       "7z"
     ],
-    "answer": "1m",
-    "dora": "0p",
-    "explanation": ""
+    "answer": "early",
+    "dora": "9p",
+    "explanation": "一通、456、役牌をみて鳴いて打[1p]",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "5m",
+    "nakiChoices": []
   },
   {
     "id": 345,
     "section": "21_形式聴牌・後々付け",
     "image": "/samplequestions/21_形式聴牌・後々付け/4.jpg",
     "tiles": [
-      "5z",
       "1m",
       "1m",
-      "1m",
+      "2m",
       "6m",
       "9m",
       "9m",
-      "1p",
-      "9p",
-      "9p",
+      "2s",
+      "6s",
+      "9s",
       "2z",
       "2z",
-      "6z",
-      "0p"
+      "5z",
+      "6z"
     ],
-    "answer": "5z",
-    "dora": null,
-    "explanation": ""
+    "answer": "early",
+    "dora": "4p",
+    "explanation": "ホンイツ本線でトイトイ、チャンタをみて鳴いて打[6s]",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "1m",
+    "nakiChoices": []
   },
   {
     "id": 346,
     "section": "21_形式聴牌・後々付け",
     "image": "/samplequestions/21_形式聴牌・後々付け/5.jpg",
     "tiles": [
-      "5z",
-      "0m",
+      "5m",
       "0m",
       "7m",
       "9m",
-      "0p",
-      "0p",
-      "1z",
-      "1z",
-      "2z",
-      "6z",
-      "7z",
-      "6z",
-      "0s"
+      "4p",
+      "6p",
+      "2s",
+      "5s",
+      "6s",
+      "6s",
+      "4z",
+      "5z",
+      "6z"
     ],
     "answer": "7m",
-    "dora": null,
-    "explanation": ""
+    "dora": "5m",
+    "explanation": "[5p]は序盤からチー、[8m]はスルー",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "8m",
+        "correct": false
+      },
+      {
+        "tile": "5p",
+        "correct": true
+      },
+      {
+        "tile": "4s",
+        "correct": false
+      },
+      {
+        "tile": "7s",
+        "correct": false
+      },
+      {
+        "tile": "6s",
+        "correct": false
+      }
+    ]
   },
   {
     "id": 347,
     "section": "22_シャンテン変わらずの鳴き",
     "image": "/samplequestions/22_シャンテン変わらずの鳴き/1.jpg",
     "tiles": [
-      "1z",
-      "0m",
-      "0m",
-      "0p",
-      "0p",
-      "6z",
-      "6z",
-      "6z",
-      "1p",
-      "1p",
-      "1p",
-      "2z",
-      "3z",
-      "4z"
+      "6m",
+      "6m",
+      "3p",
+      "3p",
+      "3p",
+      "7p",
+      "9p",
+      "4s",
+      "5s",
+      "6s"
     ],
-    "answer": "1z",
-    "dora": null,
-    "explanation": ""
+    "answer": "early",
+    "dora": "4z",
+    "explanation": "[6m]ポン打[7p]で、いい待ちになりやすくなる",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "6m",
+    "nakiChoices": []
   },
   {
     "id": 348,
@@ -9097,22 +9961,38 @@
     "tiles": [
       "6m",
       "6m",
-      "0p",
-      "5p",
-      "5p",
-      "0s",
-      "0s",
-      "5s",
-      "5s",
-      "1z",
-      "6z",
-      "6z",
-      "6z",
-      "4z"
+      "2p",
+      "3p",
+      "4p",
+      "7p",
+      "9p"
     ],
-    "answer": "4z",
-    "dora": null,
-    "explanation": ""
+    "answer": "no",
+    "dora": "4z",
+    "explanation": "",
+    "riichi": null,
+    "melds": [
+      {
+        "type": "chi",
+        "tiles": [
+          "6s",
+          "4s",
+          "5s"
+        ]
+      },
+      {
+        "type": "pon",
+        "tiles": [
+          "6z",
+          "6z",
+          "6z"
+        ]
+      }
+    ],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "6m",
+    "nakiChoices": []
   },
   {
     "id": 349,
@@ -9124,20 +10004,35 @@
       "3m",
       "6m",
       "6m",
-      "0p",
-      "0p",
-      "2p",
-      "3p",
-      "0p",
-      "5z",
-      "6z",
-      "6z",
-      "6z",
-      "0s"
+      "7p",
+      "9p"
     ],
-    "answer": "2p",
-    "dora": null,
-    "explanation": ""
+    "answer": "early",
+    "dora": "9p",
+    "explanation": "",
+    "riichi": null,
+    "melds": [
+      {
+        "type": "chi",
+        "tiles": [
+          "6s",
+          "4s",
+          "0s"
+        ]
+      },
+      {
+        "type": "pon",
+        "tiles": [
+          "6z",
+          "6z",
+          "6z"
+        ]
+      }
+    ],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "6m",
+    "nakiChoices": []
   },
   {
     "id": 350,
@@ -9145,95 +10040,195 @@
     "image": "/samplequestions/22_シャンテン変わらずの鳴き/4.jpg",
     "tiles": [
       "2m",
-      "2m",
+      "3m",
+      "2p",
+      "2p",
+      "4p",
       "5p",
-      "5p",
-      "1s",
       "2s",
-      "3s",
-      "4s",
-      "5s",
-      "6s",
-      "6s",
-      "1z",
-      "2z",
+      "2s",
+      "2s",
       "4z"
     ],
-    "answer": "4z",
-    "dora": null,
-    "explanation": ""
+    "answer": "early",
+    "dora": "3z",
+    "explanation": "[2p]ポン、打[4z]。索子が[2s][3s][4s]なら[2p]は鳴かない。ドラ[2s]の場合も、リャンメンマンガンテンパイににある受け入れが減るので鳴かず",
+    "riichi": null,
+    "melds": [
+      {
+        "type": "pon",
+        "tiles": [
+          "7z",
+          "7z",
+          "7z"
+        ]
+      }
+    ],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "2p",
+    "nakiChoices": []
   },
   {
     "id": 351,
     "section": "22_シャンテン変わらずの鳴き",
     "image": "/samplequestions/22_シャンテン変わらずの鳴き/5.jpg",
     "tiles": [
-      "5m",
-      "5m",
+      "1m",
+      "2m",
       "5m",
       "7m",
-      "0p",
-      "5z",
-      "5z",
-      "5z",
-      "1z",
-      "1z",
-      "1z",
-      "7z",
-      "7z",
-      "7z"
+      "3p",
+      "4p",
+      "4p"
     ],
     "answer": "7m",
-    "dora": null,
-    "explanation": ""
+    "dora": "7z",
+    "explanation": "ドラ3につき鳴く",
+    "riichi": null,
+    "melds": [
+      {
+        "type": "pon",
+        "tiles": [
+          "8s",
+          "8s",
+          "8s"
+        ]
+      },
+      {
+        "type": "pon",
+        "tiles": [
+          "7z",
+          "7z",
+          "7z"
+        ]
+      }
+    ],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "3m",
+        "correct": true
+      },
+      {
+        "tile": "6m",
+        "correct": true
+      },
+      {
+        "tile": "2p",
+        "correct": true
+      },
+      {
+        "tile": "4p",
+        "correct": true
+      },
+      {
+        "tile": "5p",
+        "correct": true
+      }
+    ]
   },
   {
     "id": 352,
     "section": "22_シャンテン変わらずの鳴き",
     "image": "/samplequestions/22_シャンテン変わらずの鳴き/6.jpg",
     "tiles": [
-      "1m",
+      "4m",
       "5m",
       "6m",
       "7m",
       "9m",
-      "6z",
-      "1z",
-      "1z",
-      "2z",
-      "2z",
-      "7z",
-      "7z",
-      "7z",
-      "4z"
+      "1s",
+      "2s",
+      "3s",
+      "8s",
+      "8s"
     ],
-    "answer": "4z",
-    "dora": "6z",
-    "explanation": ""
+    "answer": "",
+    "dora": "4z",
+    "explanation": "",
+    "riichi": null,
+    "melds": [
+      {
+        "type": "pon",
+        "tiles": [
+          "7z",
+          "7z",
+          "7z"
+        ]
+      }
+    ],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "3m",
+        "correct": true
+      },
+      {
+        "tile": "5m",
+        "correct": true
+      },
+      {
+        "tile": "6m",
+        "correct": true
+      },
+      {
+        "tile": "8s",
+        "correct": true
+      }
+    ]
   },
   {
     "id": 353,
     "section": "22_シャンテン変わらずの鳴き",
     "image": "/samplequestions/22_シャンテン変わらずの鳴き/7.jpg",
     "tiles": [
-      "7z",
       "3m",
       "3m",
       "3m",
       "4m",
       "4m",
-      "6z",
-      "1p",
-      "1p",
-      "5m",
-      "5m",
-      "7z",
-      "7z",
-      "7z"
+      "1s",
+      "2s",
+      "3s",
+      "8s",
+      "8s"
     ],
-    "answer": "1p",
-    "dora": null,
-    "explanation": ""
+    "answer": "",
+    "dora": "4z",
+    "explanation": "",
+    "riichi": null,
+    "melds": [
+      {
+        "type": "pon",
+        "tiles": [
+          "7z",
+          "7z",
+          "7z"
+        ]
+      }
+    ],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "2m",
+        "correct": true
+      },
+      {
+        "tile": "3m",
+        "correct": true
+      },
+      {
+        "tile": "5m",
+        "correct": true
+      }
+    ]
   },
   {
     "id": 354,
@@ -9248,40 +10243,100 @@
       "6m",
       "6m",
       "7m",
-      "0s",
-      "0s",
-      "7z",
-      "7z",
-      "7z",
-      "4z"
+      "9p",
+      "9p"
     ],
-    "answer": "4z",
-    "dora": null,
-    "explanation": ""
+    "answer": "",
+    "dora": "4z",
+    "explanation": "",
+    "riichi": null,
+    "melds": [
+      {
+        "type": "pon",
+        "tiles": [
+          "7z",
+          "7z",
+          "7z"
+        ]
+      }
+    ],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "1m",
+        "correct": false
+      },
+      {
+        "tile": "2m",
+        "correct": false
+      },
+      {
+        "tile": "3m",
+        "correct": true
+      },
+      {
+        "tile": "4m",
+        "correct": false
+      },
+      {
+        "tile": "6m",
+        "correct": false
+      },
+      {
+        "tile": "7m",
+        "correct": false
+      },
+      {
+        "tile": "9p",
+        "correct": true
+      }
+    ]
   },
   {
     "id": 355,
     "section": "22_シャンテン変わらずの鳴き",
     "image": "/samplequestions/22_シャンテン変わらずの鳴き/9.jpg",
     "tiles": [
-      "9z",
-      "1m",
-      "1m",
-      "4p",
-      "4p",
-      "0p",
-      "2z",
-      "3z",
-      "3z",
-      "3z",
-      "7z",
-      "7z",
-      "7z",
-      "4z"
+      "3m",
+      "3m",
+      "4m",
+      "4m",
+      "1s",
+      "2s",
+      "3s",
+      "8s",
+      "8s",
+      "8s"
     ],
-    "answer": "4z",
-    "dora": null,
-    "explanation": ""
+    "answer": "",
+    "dora": "4z",
+    "explanation": "",
+    "riichi": null,
+    "melds": [
+      {
+        "type": "pon",
+        "tiles": [
+          "7z",
+          "7z",
+          "7z"
+        ]
+      }
+    ],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "2m",
+        "correct": true
+      },
+      {
+        "tile": "5m",
+        "correct": true
+      }
+    ]
   },
   {
     "id": 356,
@@ -9290,22 +10345,66 @@
     "tiles": [
       "4m",
       "5m",
+      "5m",
       "6m",
-      "6m",
-      "1p",
-      "1p",
-      "1p",
-      "1p",
-      "0p",
-      "0p",
-      "7z",
-      "2z",
-      "2z",
-      "2z"
+      "7p",
+      "9p",
+      "2s",
+      "2s",
+      "4s",
+      "5s"
     ],
     "answer": "6m",
     "dora": null,
-    "explanation": ""
+    "explanation": "",
+    "riichi": null,
+    "melds": [
+      {
+        "type": "pon",
+        "tiles": [
+          "7z",
+          "7z",
+          "7z"
+        ]
+      }
+    ],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "3m",
+        "correct": true
+      },
+      {
+        "tile": "4m",
+        "correct": true
+      },
+      {
+        "tile": "6m",
+        "correct": true
+      },
+      {
+        "tile": "7m",
+        "correct": true
+      },
+      {
+        "tile": "2s",
+        "correct": false
+      },
+      {
+        "tile": "3s",
+        "correct": true
+      },
+      {
+        "tile": "6s",
+        "correct": true
+      },
+      {
+        "tile": "8p",
+        "correct": true
+      }
+    ]
   },
   {
     "id": 357,
@@ -9313,23 +10412,57 @@
     "image": "/samplequestions/22_シャンテン変わらずの鳴き/11.jpg",
     "tiles": [
       "1m",
-      "2m",
       "3m",
-      "4m",
-      "0p",
-      "0p",
-      "0p",
-      "0p",
-      "1s",
-      "1s",
-      "1z",
-      "1z",
-      "2z",
-      "2z"
+      "6m",
+      "8m",
+      "4p",
+      "5p",
+      "6p",
+      "7p",
+      "2s",
+      "3s",
+      "4s",
+      "8s",
+      "8s"
     ],
     "answer": "1m",
-    "dora": null,
-    "explanation": ""
+    "dora": "4z",
+    "explanation": "7巡目以降は[3p][5p][6p][8p]チー、[7m]は序盤からチー",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "2m",
+        "correct": false
+      },
+      {
+        "tile": "7m",
+        "correct": true
+      },
+      {
+        "tile": "3p",
+        "correct": true
+      },
+      {
+        "tile": "5p",
+        "correct": true
+      },
+      {
+        "tile": "6p",
+        "correct": true
+      },
+      {
+        "tile": "8p",
+        "correct": true
+      },
+      {
+        "tile": "8s",
+        "correct": false
+      }
+    ]
   },
   {
     "id": 358,
@@ -9339,21 +10472,57 @@
       "7m",
       "8m",
       "9m",
-      "0p",
-      "0p",
-      "0p",
-      "0p",
-      "0p",
-      "0s",
-      "0s",
-      "6z",
-      "6z",
-      "6z",
-      "9m"
+      "2p",
+      "3p",
+      "4p",
+      "5p",
+      "6p",
+      "7p",
+      "3s"
     ],
     "answer": "9m",
-    "dora": null,
-    "explanation": ""
+    "dora": "9m",
+    "explanation": "",
+    "riichi": null,
+    "melds": [
+      {
+        "type": "pon",
+        "tiles": [
+          "6z",
+          "6z",
+          "6z"
+        ]
+      }
+    ],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "6m",
+        "correct": true
+      },
+      {
+        "tile": "9m",
+        "correct": true
+      },
+      {
+        "tile": "1p",
+        "correct": true
+      },
+      {
+        "tile": "4p",
+        "correct": true
+      },
+      {
+        "tile": "5p",
+        "correct": true
+      },
+      {
+        "tile": "8p",
+        "correct": true
+      }
+    ]
   },
   {
     "id": 359,
@@ -9362,118 +10531,313 @@
     "tiles": [
       "2m",
       "3m",
-      "3m",
       "4m",
       "7m",
-      "0p",
       "1p",
-      "1p",
-      "6s",
-      "6s",
-      "5z",
-      "7z",
-      "7z",
-      "7z"
+      "3p",
+      "5p",
+      "7p",
+      "8s",
+      "8s"
     ],
     "answer": "2m",
-    "dora": "0p",
-    "explanation": ""
+    "dora": "4z",
+    "explanation": "",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "2p",
+        "correct": true
+      },
+      {
+        "tile": "4p",
+        "correct": true
+      },
+      {
+        "tile": "6p",
+        "correct": true
+      },
+      {
+        "tile": "8s",
+        "correct": false
+      }
+    ]
   },
   {
     "id": 360,
     "section": "22_シャンテン変わらずの鳴き",
     "image": "/samplequestions/22_シャンテン変わらずの鳴き/14.jpg",
     "tiles": [
-      "1m",
       "2m",
       "3m",
       "4m",
       "5m",
       "6m",
       "7m",
-      "0p",
-      "0p",
-      "0p",
-      "2z",
-      "7z",
-      "7z",
-      "7z"
+      "6p",
+      "7p",
+      "7p",
+      "3s"
     ],
-    "answer": "1m",
-    "dora": null,
-    "explanation": ""
+    "answer": "",
+    "dora": "4z",
+    "explanation": "",
+    "riichi": null,
+    "melds": [
+      {
+        "type": "pon",
+        "tiles": [
+          "7z",
+          "7z",
+          "7z"
+        ]
+      }
+    ],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "1m",
+        "correct": true
+      },
+      {
+        "tile": "4m",
+        "correct": true
+      },
+      {
+        "tile": "5m",
+        "correct": true
+      },
+      {
+        "tile": "8m",
+        "correct": true
+      },
+      {
+        "tile": "5p",
+        "correct": true
+      },
+      {
+        "tile": "7p",
+        "correct": true
+      },
+      {
+        "tile": "8p",
+        "correct": true
+      }
+    ]
   },
   {
     "id": 361,
     "section": "22_シャンテン変わらずの鳴き",
     "image": "/samplequestions/22_シャンテン変わらずの鳴き/15.jpg",
     "tiles": [
-      "1m",
-      "1m",
+      "2m",
+      "3m",
       "4m",
       "5m",
       "6m",
       "7m",
       "9m",
       "9m",
-      "5p",
-      "5p",
-      "7z",
-      "7z",
-      "7z",
-      "4z"
+      "4p",
+      "3s"
     ],
-    "answer": "4z",
-    "dora": null,
-    "explanation": ""
+    "answer": "",
+    "dora": "4z",
+    "explanation": "[3m][6m]は[4m][5m]でチー打[4p]",
+    "riichi": null,
+    "melds": [
+      {
+        "type": "pon",
+        "tiles": [
+          "6z",
+          "6z",
+          "6z"
+        ]
+      }
+    ],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "1m",
+        "correct": true
+      },
+      {
+        "tile": "2m",
+        "correct": false
+      },
+      {
+        "tile": "3m",
+        "correct": true
+      },
+      {
+        "tile": "4m",
+        "correct": true
+      },
+      {
+        "tile": "5m",
+        "correct": true
+      },
+      {
+        "tile": "6m",
+        "correct": true
+      },
+      {
+        "tile": "7m",
+        "correct": false
+      },
+      {
+        "tile": "8m",
+        "correct": true
+      },
+      {
+        "tile": "9m",
+        "correct": false
+      }
+    ]
   },
   {
     "id": 362,
     "section": "22_シャンテン変わらずの鳴き",
     "image": "/samplequestions/22_シャンテン変わらずの鳴き/16.jpg",
     "tiles": [
-      "2m",
-      "3m",
-      "5m",
-      "6m",
-      "7m",
-      "8m",
-      "0p",
-      "3p",
-      "4p",
-      "5p",
-      "6p",
-      "7p",
-      "8p",
-      "9p"
-    ],
-    "answer": "9p",
-    "dora": null,
-    "explanation": ""
-  },
-  {
-    "id": 363,
-    "section": "22_シャンテン変わらずの鳴き",
-    "image": "/samplequestions/22_シャンテン変わらずの鳴き/17.jpg",
-    "tiles": [
-      "2m",
       "3m",
       "4m",
       "5m",
       "6m",
       "7m",
       "8m",
-      "9m",
-      "1p",
-      "2p",
-      "3p",
-      "2z",
-      "3z",
-      "4z"
+      "4p",
+      "0p",
+      "5s",
+      "0s"
     ],
-    "answer": "9m",
-    "dora": null,
-    "explanation": ""
+    "answer": "",
+    "dora": "2m",
+    "explanation": "マンガンになる鳴きを見逃さない",
+    "riichi": null,
+    "melds": [
+      {
+        "type": "pon",
+        "tiles": [
+          "8p",
+          "8p",
+          "8p"
+        ]
+      }
+    ],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "2m",
+        "correct": true
+      },
+      {
+        "tile": "0m",
+        "correct": true
+      },
+      {
+        "tile": "3p",
+        "correct": true
+      },
+      {
+        "tile": "6p",
+        "correct": true
+      },
+      {
+        "tile": "5s",
+        "correct": true
+      },
+      {
+        "tile": "0s",
+        "correct": true
+      },
+      {
+        "tile": "5m",
+        "correct": false
+      }
+    ]
+  },
+  {
+    "id": 363,
+    "section": "22_シャンテン変わらずの鳴き",
+    "image": "/samplequestions/22_シャンテン変わらずの鳴き/17.jpg",
+    "tiles": [
+      "2s",
+      "3s",
+      "3s",
+      "4s",
+      "5s",
+      "6s",
+      "7s",
+      "8s",
+      "5z",
+      "5z"
+    ],
+    "answer": "",
+    "dora": "2s",
+    "explanation": "",
+    "riichi": null,
+    "melds": [
+      {
+        "type": "pon",
+        "tiles": [
+          "4z",
+          "4z",
+          "4z"
+        ]
+      }
+    ],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "2s",
+        "correct": true
+      },
+      {
+        "tile": "3s",
+        "correct": false
+      },
+      {
+        "tile": "5s",
+        "correct": false
+      },
+      {
+        "tile": "0s",
+        "correct": true
+      },
+      {
+        "tile": "6s",
+        "correct": true
+      },
+      {
+        "tile": "7s",
+        "correct": false
+      },
+      {
+        "tile": "8s",
+        "correct": false
+      },
+      {
+        "tile": "9s",
+        "correct": true
+      },
+      {
+        "tile": "5z",
+        "correct": true
+      }
+    ]
   },
   {
     "id": 364,
@@ -9484,116 +10848,227 @@
       "2m",
       "3m",
       "4m",
-      "5m",
       "0m",
-      "2p",
       "3p",
-      "5p",
-      "6p",
-      "8p",
+      "4p",
+      "0p",
+      "7p",
+      "7p",
+      "6s",
+      "8s",
+      "8s",
       "2z",
       "3z",
       "4z"
     ],
     "answer": "4m",
-    "dora": null,
-    "explanation": ""
+    "dora": "4z",
+    "explanation": "鳴いて30符3ハンあるので[4m][6p]も鳴く。赤1ならテンパイする牌のみ鳴く",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "2m",
+        "correct": true
+      },
+      {
+        "tile": "4m",
+        "correct": true
+      },
+      {
+        "tile": "6p",
+        "correct": true
+      },
+      {
+        "tile": "7p",
+        "correct": true
+      },
+      {
+        "tile": "7s",
+        "correct": true
+      },
+      {
+        "tile": "8s",
+        "correct": true
+      }
+    ]
   },
   {
     "id": 365,
     "section": "22_シャンテン変わらずの鳴き",
     "image": "/samplequestions/22_シャンテン変わらずの鳴き/19.jpg",
     "tiles": [
-      "1m",
-      "2m",
-      "5m",
-      "0p",
-      "0p",
+      "3m",
+      "4m",
+      "1p",
+      "1p",
+      "6p",
+      "7p",
+      "7p",
+      "7p",
+      "4s",
       "5s",
       "5s",
-      "5s",
-      "6z",
-      "6z",
-      "1z",
-      "1z",
-      "1z",
-      "2z"
+      "6s",
+      "7s"
     ],
-    "answer": "2m",
-    "dora": null,
-    "explanation": ""
+    "answer": "",
+    "dora": "7p",
+    "explanation": "ドラ[5s]の場合は[0m][0p]は鳴くが、他は中盤以降鳴く。ドラ[3m]の場合は[0m][0p]以外基本鳴かない",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "2m",
+        "correct": true
+      },
+      {
+        "tile": "5m",
+        "correct": true
+      },
+      {
+        "tile": "5p",
+        "correct": true
+      },
+      {
+        "tile": "7p",
+        "correct": false
+      },
+      {
+        "tile": "8p",
+        "correct": true
+      },
+      {
+        "tile": "3s",
+        "correct": true
+      },
+      {
+        "tile": "6s",
+        "correct": true
+      }
+    ]
   },
   {
     "id": 366,
     "section": "22_シャンテン変わらずの鳴き",
     "image": "/samplequestions/22_シャンテン変わらずの鳴き/20.jpg",
     "tiles": [
-      "2m",
       "3m",
       "4m",
       "7m",
       "8m",
       "9m",
-      "0p",
-      "0p",
-      "0p",
-      "0p",
-      "3z",
+      "3p",
+      "4p",
+      "5p",
+      "6s",
+      "7s",
       "4z",
-      "2z",
+      "5z",
       "5z"
     ],
-    "answer": "5z",
-    "dora": null,
-    "explanation": ""
+    "answer": "no",
+    "dora": "1p",
+    "explanation": "役はつくが良形テンパイになる受け入れは増えず鳴いて2ハン以下なので基本的に[5z]は鳴かない。愚形ターツがある場合やドラ[5z]の場合は鳴く",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "5z",
+    "nakiChoices": []
   },
   {
     "id": 367,
     "section": "22_シャンテン変わらずの鳴き",
     "image": "/samplequestions/22_シャンテン変わらずの鳴き/21.jpg",
     "tiles": [
-      "2m",
-      "2m",
+      "1m",
+      "3m",
       "6m",
       "8m",
-      "2p",
-      "2p",
-      "0p",
-      "0p",
-      "0p",
-      "1s",
-      "1s",
-      "1s",
-      "4z",
-      "4z"
+      "4p",
+      "5p",
+      "6p",
+      "7p",
+      "2s",
+      "3s",
+      "4s",
+      "8s",
+      "8s"
     ],
     "answer": "8m",
     "dora": "4z",
-    "explanation": ""
+    "explanation": "[3p][5p][6p][8p]は中盤から鳴きを考える。[7m]は常に鳴く。ドラ[8s]の場合は[3p][5p][6p][8p][8s]も鳴く",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "2m",
+        "correct": false
+      },
+      {
+        "tile": "7m",
+        "correct": true
+      },
+      {
+        "tile": "3p",
+        "correct": true
+      },
+      {
+        "tile": "5p",
+        "correct": true
+      },
+      {
+        "tile": "6p",
+        "correct": true
+      },
+      {
+        "tile": "8p",
+        "correct": true
+      },
+      {
+        "tile": "8s",
+        "correct": false
+      }
+    ]
   },
   {
     "id": 368,
     "section": "22_シャンテン変わらずの鳴き",
     "image": "/samplequestions/22_シャンテン変わらずの鳴き/22.jpg",
     "tiles": [
-      "2z",
-      "1p",
-      "5p",
-      "6p",
-      "0p",
-      "0p",
-      "1s",
-      "2s",
-      "0s",
-      "1m",
-      "2m",
-      "3m",
       "4m",
-      "5m"
+      "5m",
+      "6m",
+      "3p",
+      "4p",
+      "0p",
+      "6p",
+      "3s",
+      "4s",
+      "0s",
+      "7s",
+      "9s",
+      "3z"
     ],
-    "answer": "5m",
-    "dora": null,
-    "explanation": ""
+    "answer": "no",
+    "dora": "4z",
+    "explanation": "ヘッドレス形のため、筒子4連形に加えヘッドが作りやすくなる変化もある。役が付き鳴いても3ハンあるが、[6s]は鳴かずにメンゼンで進める。鳴いて4ハンなら鳴く",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "6s",
+    "nakiChoices": []
   },
   {
     "id": 369,
@@ -9605,67 +11080,152 @@
       "6m",
       "8m",
       "8m",
-      "8m",
-      "0p",
-      "0p",
-      "1s",
-      "1s",
-      "1s",
-      "1s",
-      "4z",
-      "2z"
+      "6p",
+      "7p",
+      "7p",
+      "2s",
+      "2s",
+      "4s",
+      "4s",
+      "3z"
     ],
-    "answer": "2z",
-    "dora": null,
-    "explanation": ""
+    "answer": "",
+    "dora": "4z",
+    "explanation": "",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "2m",
+        "correct": false
+      },
+      {
+        "tile": "5m",
+        "correct": false
+      },
+      {
+        "tile": "7m",
+        "correct": false
+      },
+      {
+        "tile": "8m",
+        "correct": false
+      },
+      {
+        "tile": "5p",
+        "correct": false
+      },
+      {
+        "tile": "7p",
+        "correct": false
+      },
+      {
+        "tile": "8p",
+        "correct": false
+      },
+      {
+        "tile": "2s",
+        "correct": true
+      },
+      {
+        "tile": "4s",
+        "correct": true
+      }
+    ]
   },
   {
     "id": 370,
     "section": "22_シャンテン変わらずの鳴き",
     "image": "/samplequestions/22_シャンテン変わらずの鳴き/24.jpg",
     "tiles": [
-      "2m",
-      "4m",
-      "5m",
-      "6m",
-      "7m",
-      "8m",
-      "9m",
-      "0p",
-      "1p",
-      "2p",
-      "3p",
-      "1z",
-      "4z",
-      "4z"
+      "1m",
+      "1m",
+      "5p",
+      "5p",
+      "5p",
+      "6p",
+      "6p",
+      "7p",
+      "2s",
+      "4s",
+      "4s",
+      "7s",
+      "7s"
     ],
-    "answer": "2m",
+    "answer": "no",
     "dora": "4z",
-    "explanation": ""
+    "explanation": "メンゼンで進める",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "7s",
+    "nakiChoices": []
   },
   {
     "id": 371,
     "section": "22_シャンテン変わらずの鳴き",
     "image": "/samplequestions/22_シャンテン変わらずの鳴き/25.jpg",
     "tiles": [
-      "1m",
-      "0m",
-      "0m",
+      "4m",
+      "4m",
       "6m",
       "7m",
-      "8m",
-      "8m",
-      "8m",
-      "0p",
-      "0p",
-      "1z",
-      "1z",
-      "2z",
-      "2z"
+      "6s",
+      "8s",
+      "8s",
+      "9s",
+      "9s",
+      "4z",
+      "4z",
+      "5z",
+      "5z"
     ],
-    "answer": "2z",
-    "dora": "6m",
-    "explanation": ""
+    "answer": "",
+    "dora": "4s",
+    "explanation": "[4m]以外から鳴いた場合はホンイツ変化があるので、鳴いて打[7m]",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "4m",
+        "correct": true
+      },
+      {
+        "tile": "5m",
+        "correct": false
+      },
+      {
+        "tile": "8m",
+        "correct": false
+      },
+      {
+        "tile": "7s",
+        "correct": false
+      },
+      {
+        "tile": "8s",
+        "correct": true
+      },
+      {
+        "tile": "9s",
+        "correct": true
+      },
+      {
+        "tile": "4z",
+        "correct": true
+      },
+      {
+        "tile": "5z",
+        "correct": true
+      }
+    ]
   },
   {
     "id": 372,
@@ -9679,41 +11239,68 @@
       "5m",
       "8m",
       "8m",
-      "0p",
-      "0p",
-      "0p",
-      "1z",
-      "2z",
-      "3z",
-      "6z"
+      "6p",
+      "8p",
+      "0s",
+      "7s",
+      "8s",
+      "9s"
     ],
-    "answer": "1z",
-    "dora": null,
-    "explanation": ""
+    "answer": "",
+    "dora": "6p",
+    "explanation": "筒子が[6p][7p]なら[6s]のみ鳴く",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "7p",
+        "correct": true
+      },
+      {
+        "tile": "6s",
+        "correct": true
+      },
+      {
+        "tile": "3m",
+        "correct": false
+      },
+      {
+        "tile": "6m",
+        "correct": false
+      }
+    ]
   },
   {
     "id": 373,
     "section": "22_シャンテン変わらずの鳴き",
     "image": "/samplequestions/22_シャンテン変わらずの鳴き/27.jpg",
     "tiles": [
-      "2m",
-      "5m",
-      "5m",
-      "1p",
-      "1p",
-      "2p",
-      "4p",
+      "3m",
+      "0m",
       "5p",
       "6p",
       "7p",
+      "7p",
       "8p",
       "9p",
-      "1s",
-      "1s"
+      "3s",
+      "4s",
+      "6s",
+      "7s",
+      "8s"
     ],
-    "answer": "5m",
-    "dora": null,
-    "explanation": ""
+    "answer": "early",
+    "dora": "4z",
+    "explanation": "[4m]チー打[9p]",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-timing",
+    "discardedTile": "4m",
+    "nakiChoices": []
   },
   {
     "id": 374,
@@ -9721,23 +11308,61 @@
     "image": "/samplequestions/22_シャンテン変わらずの鳴き/28.jpg",
     "tiles": [
       "4m",
-      "1p",
-      "5p",
-      "0p",
-      "0p",
+      "5m",
       "2p",
       "3p",
-      "0p",
-      "4p",
+      "3p",
       "5p",
-      "6p",
+      "0p",
       "7p",
-      "1z",
-      "2z"
+      "7p",
+      "8p",
+      "9p",
+      "2s",
+      "4s"
     ],
     "answer": "4m",
-    "dora": null,
-    "explanation": ""
+    "dora": "5p",
+    "explanation": "鳴いて4ハンあるのでタンヤオがつくものは基本全部鳴くが、メンゼンならツモ[3s]で完全1シャンテンになるので、鳴くと良形ターツが残らない[3m][6m]は序盤鳴くかどうか微妙。鳴いて3ハンの場合は[3p][4p][5p][6p][7p][3s]（[6p]は[7p][8p]で鳴いて打[7p]）を鳴き、鳴いて2ハン以下の場合は[3s]のみ鳴く",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "3m",
+        "correct": true
+      },
+      {
+        "tile": "6m",
+        "correct": true
+      },
+      {
+        "tile": "3p",
+        "correct": true
+      },
+      {
+        "tile": "4p",
+        "correct": true
+      },
+      {
+        "tile": "5p",
+        "correct": true
+      },
+      {
+        "tile": "6p",
+        "correct": true
+      },
+      {
+        "tile": "7p",
+        "correct": true
+      },
+      {
+        "tile": "3s",
+        "correct": true
+      }
+    ]
   },
   {
     "id": 375,
@@ -9752,16 +11377,34 @@
       "7m",
       "7m",
       "0p",
-      "0p",
-      "6z",
-      "6z",
-      "6z",
-      "1z",
-      "2z"
+      "1s",
+      "1s",
+      "1s",
+      "5s",
+      "7s"
     ],
-    "answer": "1z",
+    "answer": "",
     "dora": "5p",
-    "explanation": ""
+    "explanation": "",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "naki-choice",
+    "discardedTile": null,
+    "nakiChoices": [
+      {
+        "tile": "2m",
+        "correct": true
+      },
+      {
+        "tile": "7m",
+        "correct": true
+      },
+      {
+        "tile": "6s",
+        "correct": true
+      }
+    ]
   },
   {
     "id": 376,
@@ -9772,20 +11415,26 @@
       "5m",
       "6m",
       "6m",
-      "0p",
-      "0p",
-      "0p",
-      "0p",
-      "5s",
-      "5s",
-      "6s",
-      "6s",
-      "1z",
-      "2z"
+      "1p",
+      "1p",
+      "1p",
+      "1p",
+      "4p",
+      "7p",
+      "7p",
+      "3s",
+      "3s",
+      "4s"
     ],
-    "answer": "4m",
-    "dora": "2z",
-    "explanation": ""
+    "answer": "ankan:1p",
+    "dora": "4z",
+    "explanation": "序盤[1p]カン。",
+    "riichi": null,
+    "melds": [],
+    "reviewed": true,
+    "problemType": "default",
+    "discardedTile": null,
+    "nakiChoices": []
   },
   {
     "id": 377,
@@ -9797,19 +11446,31 @@
       "3m",
       "3m",
       "4m",
-      "0p",
-      "6p",
-      "6p",
+      "1p",
+      "3p",
+      "7p",
       "8p",
-      "9p",
-      "2z",
-      "5z",
-      "6z",
-      "7z"
+      "3s",
+      "5s"
     ],
-    "answer": "4m",
-    "dora": "5m",
-    "explanation": ""
+    "answer": "5s",
+    "dora": "4z",
+    "explanation": "",
+    "riichi": null,
+    "melds": [
+      {
+        "type": "pon",
+        "tiles": [
+          "7z",
+          "7z",
+          "7z"
+        ]
+      }
+    ],
+    "reviewed": true,
+    "problemType": "default",
+    "discardedTile": null,
+    "nakiChoices": []
   },
   {
     "id": 378,
@@ -9819,21 +11480,33 @@
       "1m",
       "1m",
       "3m",
-      "1p",
-      "1p",
-      "0p",
-      "0p",
-      "2z",
-      "2z",
-      "2z",
-      "2z",
-      "7z",
-      "7z",
-      "7z"
+      "3p",
+      "3p",
+      "5p",
+      "2s",
+      "3s",
+      "4s",
+      "6s",
+      "6s"
     ],
-    "answer": "1m",
-    "dora": null,
-    "explanation": ""
+    "answer": "5p",
+    "dora": "4z",
+    "explanation": "",
+    "riichi": null,
+    "melds": [
+      {
+        "type": "pon",
+        "tiles": [
+          "7z",
+          "7z",
+          "7z"
+        ]
+      }
+    ],
+    "reviewed": true,
+    "problemType": "default",
+    "discardedTile": null,
+    "nakiChoices": []
   },
   {
     "id": 379,

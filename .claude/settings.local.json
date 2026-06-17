@@ -38,14 +38,31 @@
       "Bash(git -C \"d:\\\\ClaudeCode\\\\麻雀何切るアプリ開発\" status)",
       "Bash(git -C \"d:\\\\ClaudeCode\\\\麻雀何切るアプリ開発\" log --oneline -8)",
       "Bash(git -C \"d:\\\\ClaudeCode\\\\麻雀何切るアプリ開発\" diff --stat)",
-      "Bash(git -C \"d:\\\\ClaudeCode\\\\麻雀何切るアプリ開発\" add src/App.css src/admin/AdminApp.jsx src/admin/ProblemEditor.jsx src/admin/admin.css src/components/ProblemView.jsx src/components/TileButton.jsx .claude/settings.local.json)"
+      "Bash(git -C \"d:\\\\ClaudeCode\\\\麻雀何切るアプリ開発\" add src/App.css src/admin/AdminApp.jsx src/admin/ProblemEditor.jsx src/admin/admin.css src/components/ProblemView.jsx src/components/TileButton.jsx .claude/settings.local.json)",
+      "Bash(git -C 'd:\\\\ClaudeCode\\\\麻雀何切るアプリ開発' commit -m ' *)",
+      "Bash(git -C \"d:\\\\ClaudeCode\\\\麻雀何切るアプリ開発\" add src/data/problems.json)",
+      "Bash(git -C \"d:\\\\ClaudeCode\\\\麻雀何切るアプリ開発\" log --oneline -5)",
+      "Bash(git -C \"d:\\\\ClaudeCode\\\\麻雀何切るアプリ開発\" push origin master)",
+      "Bash(ls \"C:\\\\Users\\\\ksjaz15\\\\.claude\\\\skills\\\\\" 2>/dev/null || echo \"skillsディレクトリなし\")",
+      "Read(//c/Users/ksjaz15/.claude/skills\" 2>/dev/**)",
+      "Bash(ls /c/Users/ksjaz15/.claude/skills/ 2>/dev/null || echo \"skillsディレクトリなし\")",
+      "Read(//c/Users/ksjaz15/.claude/**)",
+      "Bash(mkdir -p /c/Users/ksjaz15/.claude/commands)",
+      "Bash(find /c/Users/ksjaz15/AppData/Local/Temp/claude/bundled-skills/ -name \"SKILL.md\" 2>/dev/null | head -5)",
+      "Read(//c/Users/ksjaz15/AppData/Local/Temp/claude/bundled-skills//**)",
+      "Read(//c/Users/ksjaz15/AppData/Local/Temp/claude/**)",
+      "Bash(find /c/Users/ksjaz15/AppData/Local/ -name \"SKILL.md\" 2>/dev/null | head -10)",
+      "Read(//c/Users/ksjaz15/AppData/Local//**)",
+      "Bash(find /c/Users/ksjaz15/AppData/Roaming/ -name \"SKILL.md\" 2>/dev/null | head -10)",
+      "Read(//c/Users/ksjaz15/AppData/Roaming//**)"
     ],
     "additionalDirectories": [
       "d:\\ClaudeCode\\�������؂�A�v���J��\\src",
       "d:\\ClaudeCode\\�������؂�A�v���J��\\public\\samplequestions",
       "d:\\ClaudeCode\\�������؂�A�v���J��",
       "d:\\ClaudeCode\\�������؂�A�v���J��\\.claude",
-      "d:\\ClaudeCode\\�������؂�A�v���J��\\samplequestions"
+      "d:\\ClaudeCode\\�������؂�A�v���J��\\samplequestions",
+      "C:\\Users\\ksjaz15\\.claude"
     ]
   }
 }

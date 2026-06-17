@@ -542,6 +542,63 @@
   color: #aaa;
 }
 
+/* ===== 暗槓ボタン ===== */
+.ankan-options {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.ankan-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px 6px 10px;
+  border: 2px solid #555;
+  border-radius: 8px;
+  background: #1a1a2e;
+  color: #f5c842;
+  font-size: 0.9rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+}
+
+.ankan-btn:hover:not(:disabled) {
+  border-color: #f5c842;
+  box-shadow: 0 0 8px rgba(245, 200, 66, 0.4);
+}
+
+.ankan-btn:disabled {
+  cursor: default;
+}
+
+.ankan-btn img {
+  width: 34px;
+  height: 49px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 4px;
+}
+
+.ankan-btn--correct {
+  border-color: #22c55e;
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+
+.ankan-btn--wrong {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.ankan-btn--disabled {
+  border-color: #333;
+  opacity: 0.4;
+}
+
 /* ===== リーチ判断：手牌表示（読み取り専用） ===== */
 .tile-display-readonly {
   display: flex;
