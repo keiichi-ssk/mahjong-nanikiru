@@ -2,7 +2,7 @@ const MAJOR_CATEGORIES = [
   { label: 'テンパイの技術',    min: 1,  max: 3  },
   { label: '1シャンテンの技術', min: 4,  max: 11 },
   { label: '2シャンテンの技術', min: 12, max: 16 },
-  { label: '3シャンテンの技術', min: 17, max: 17 },
+  { label: '3シャンテン以上の選択', min: 17, max: 17 },
   { label: '鳴きの技術',        min: 18, max: 24 },
 ];
 
