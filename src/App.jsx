@@ -38,11 +38,19 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
     supabase.from('problems').select('*').order('id')
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        if (error) {
+          setLoading(false);
+          return;
+        }
         setProblems((data || []).map(fromDb));
         setLoading(false);
       });
+    return () => { cancelled = true; };
   }, [session]);
 
   const categories = [...new Set(problems.map(p => p.section))].sort(
