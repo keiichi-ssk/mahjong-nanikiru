@@ -3,17 +3,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin: -24px -16px 28px;
+  margin: -24px -16px 24px;
   padding: 14px 20px;
   gap: 12px;
-  background: #3b4252;
-  border-bottom: 1px solid #434c5e;
+  background: linear-gradient(135deg, #1a73e8 0%, #1cb0f6 100%);
+  border-radius: 0 0 16px 16px;
+  box-shadow: 0 3px 12px rgba(26, 115, 232, 0.25);
 }
 
 .app-header-title {
   font-size: 1.1rem;
   font-weight: bold;
-  color: #eceff4;
+  color: #fff;
   white-space: nowrap;
 }
 
@@ -29,12 +30,12 @@
   height: 32px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #4c566a;
+  border: 2px solid rgba(255,255,255,0.6);
 }
 
 .user-name {
   font-size: 0.85rem;
-  color: #8896a8;
+  color: rgba(255, 255, 255, 0.85);
   max-width: 140px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -42,35 +43,38 @@
 }
 
 .btn-login {
-  background: #5e81ac;
+  background: #fff;
   border: none;
   border-radius: 8px;
   padding: 7px 14px;
   font-size: 0.85rem;
   font-weight: bold;
-  color: #eceff4;
+  color: #1a73e8;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: opacity 0.15s, box-shadow 0.15s;
   white-space: nowrap;
 }
 
-.btn-login:hover { background: #6d90bb; }
+.btn-login:hover {
+  opacity: 0.92;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
 
 .btn-logout {
-  background: none;
-  border: 1px solid #4c566a;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.5);
   border-radius: 6px;
   padding: 5px 12px;
   font-size: 0.8rem;
-  color: #8896a8;
+  color: rgba(255,255,255,0.9);
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
+  transition: background 0.15s, border-color 0.15s;
   white-space: nowrap;
 }
 
 .btn-logout:hover {
-  border-color: #bf616a;
-  color: #bf616a;
+  background: rgba(255,255,255,0.25);
+  border-color: #fff;
 }
 
 /* ===== カテゴリー一覧 ===== */
@@ -96,7 +100,7 @@
 
 .random-toggle-label {
   font-size: 0.9rem;
-  color: #8896a8;
+  color: #6b6b6b;
 }
 
 .random-toggle {
@@ -105,7 +109,7 @@
   height: 26px;
   border-radius: 13px;
   border: none;
-  background: #4c566a;
+  background: #d0d0d0;
   cursor: pointer;
   transition: background 0.2s;
   padding: 0;
@@ -113,7 +117,7 @@
 }
 
 .random-toggle--on {
-  background: #5e81ac;
+  background: #1cb0f6;
 }
 
 .random-toggle-thumb {
@@ -123,9 +127,9 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: #eceff4;
+  background: #fff;
   transition: left 0.2s;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
 }
 
 .random-toggle--on .random-toggle-thumb {
@@ -137,15 +141,14 @@
 }
 
 .book-label {
-  font-size: 1.2rem;
+  font-size: 1.3rem;
   font-weight: bold;
-  color: #ebcb8b;
+  color: #6b46c1;
   text-align: left;
   margin: 0 0 16px 0;
   padding: 8px 16px;
-  background: rgba(235, 203, 139, 0.08);
-  border-bottom: 1px solid #434c5e;
-  border-left: 3px solid #d4aa60;
+  background: rgba(107, 70, 193, 0.06);
+  border-bottom: 2px solid #7c5cbf;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -158,11 +161,11 @@
 }
 
 .book-label--selectable:hover {
-  background: rgba(235, 203, 139, 0.14);
+  background: rgba(107, 70, 193, 0.1);
 }
 
 .book-label--checked {
-  background: rgba(235, 203, 139, 0.16);
+  background: rgba(107, 70, 193, 0.12);
 }
 
 .major-category-group {
@@ -170,14 +173,14 @@
 }
 
 .major-category-label {
-  font-size: 0.95rem;
+  font-size: 1.0rem;
   font-weight: bold;
-  color: #a3d48e;
+  color: #0d7a6a;
   text-align: left;
   margin: 0 0 12px 0;
   padding: 5px 12px;
-  border-left: 3px solid #7db860;
-  background: rgba(163, 190, 140, 0.08);
+  border-left: 4px solid #0d9488;
+  background: rgba(13, 148, 136, 0.07);
   border-radius: 0 6px 6px 0;
   display: flex;
   align-items: center;
@@ -191,61 +194,62 @@
 }
 
 .major-category-label--selectable:hover {
-  background: rgba(163, 190, 140, 0.15);
+  background: rgba(13, 148, 136, 0.13);
 }
 
 .major-category-label--checked {
-  background: rgba(163, 190, 140, 0.18);
+  background: rgba(13, 148, 136, 0.16);
 }
 
 .select-badge {
   font-size: 0.75rem;
   font-weight: normal;
-  color: #6a7585;
+  color: #9b9b9b;
   padding: 2px 8px;
-  border: 1px solid #434c5e;
+  border: 1px solid #d0d0d0;
   border-radius: 10px;
   flex-shrink: 0;
 }
 
 .select-badge--active {
-  color: #88c0d0;
-  border-color: #5e81ac;
+  color: #1cb0f6;
+  border-color: #1cb0f6;
 }
 
 .category-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 12px;
+  gap: 16px;
 }
 
 .category-card {
-  background: #3b4252;
-  border: 1px solid #434c5e;
-  border-radius: 10px;
-  padding: 18px 12px;
+  background: #ffffff;
+  border: 2px solid #e5e5e5;
+  border-radius: 12px;
+  padding: 20px 12px;
   cursor: pointer;
-  transition: border-color 0.2s, transform 0.15s, background 0.2s;
+  transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 .category-card:hover:not(:disabled) {
-  border-color: #81a1c1;
+  border-color: #1cb0f6;
   transform: translateY(-2px);
-  background: #424c60;
+  box-shadow: 0 4px 12px rgba(28, 176, 246, 0.18);
 }
 
 .category-card--disabled {
-  opacity: 0.35;
+  opacity: 0.4;
   cursor: default;
 }
 
 .category-card--checked {
-  border-color: #81a1c1;
-  background: #3a4a5c;
+  border-color: #1cb0f6;
+  background: #e8f7fe;
   position: relative;
 }
 
@@ -254,19 +258,19 @@
   top: 6px;
   right: 8px;
   font-size: 0.8rem;
-  color: #88c0d0;
+  color: #1cb0f6;
   font-weight: bold;
 }
 
 .category-name {
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: bold;
-  color: #eceff4;
+  color: #9a5d1a;
 }
 
 .category-count {
-  font-size: 0.78rem;
-  color: #6a7585;
+  font-size: 0.8rem;
+  color: #6b6b6b;
 }
 
 .category-progress {
@@ -280,22 +284,22 @@
 
 .category-progress-bar {
   width: 100%;
-  height: 4px;
-  background: #434c5e;
-  border-radius: 2px;
+  height: 5px;
+  background: #e5e5e5;
+  border-radius: 3px;
   overflow: hidden;
 }
 
 .category-progress-fill {
   height: 100%;
-  background: #a3be8c;
-  border-radius: 2px;
+  background: #58cc02;
+  border-radius: 3px;
   transition: width 0.4s ease;
 }
 
 .category-progress-text {
   font-size: 0.7rem;
-  color: #a3be8c;
+  color: #58cc02;
 }
 
 /* ===== 出題開始スティッキーバー ===== */
@@ -303,7 +307,7 @@
   position: sticky;
   bottom: 0;
   padding: 12px 16px;
-  background: linear-gradient(transparent, #2e3440 30%);
+  background: linear-gradient(transparent, #e8f0fe 30%);
   display: flex;
   justify-content: center;
   z-index: 100;
@@ -311,25 +315,26 @@
 }
 
 .btn-start {
-  background: #5e81ac;
+  background: #1cb0f6;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 14px 40px;
   font-size: 1.1rem;
   font-weight: bold;
-  color: #eceff4;
+  color: #fff;
   cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
-  box-shadow: 0 4px 14px rgba(94, 129, 172, 0.4);
+  transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+  box-shadow: 0 4px 14px rgba(28, 176, 246, 0.35);
 }
 
 .btn-start:hover:not(:disabled) {
-  background: #6d90bb;
+  background: #0a9fdc;
   transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(28, 176, 246, 0.45);
 }
 
 .btn-start:disabled {
-  opacity: 0.35;
+  opacity: 0.4;
   cursor: default;
 }
 
@@ -348,47 +353,48 @@
 .category-title {
   font-size: 1.4rem;
   font-weight: bold;
-  color: #eceff4;
+  color: #1a73e8;
   margin: 0;
 }
 
 .app-title {
   font-size: 2rem;
   font-weight: bold;
-  color: #eceff4;
+  color: #1a73e8;
   margin-bottom: 8px;
 }
 
 .problem-list-subtitle {
-  color: #6a7585;
+  color: #6b6b6b;
   margin-bottom: 32px;
 }
 
 .problem-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 12px;
+  gap: 16px;
 }
 
 .problem-card {
-  background: #3b4252;
-  border: 1px solid #434c5e;
-  border-radius: 10px;
+  background: #ffffff;
+  border: 2px solid #e5e5e5;
+  border-radius: 12px;
   padding: 24px 12px;
   cursor: pointer;
-  transition: border-color 0.2s, transform 0.15s, background 0.2s;
+  transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 .problem-card:hover {
-  border-color: #81a1c1;
+  border-color: #1cb0f6;
   transform: translateY(-2px);
-  background: #424c60;
+  box-shadow: 0 4px 12px rgba(28, 176, 246, 0.18);
 }
 
 .problem-number {
   font-size: 1rem;
   font-weight: bold;
-  color: #81a1c1;
+  color: #1a73e8;
 }
 
 /* ===== 問題画面 ===== */
@@ -406,8 +412,8 @@
 
 .btn-back {
   background: none;
-  border: 1px solid #434c5e;
-  color: #8896a8;
+  border: 1px solid #d0d0d0;
+  color: #6b6b6b;
   padding: 6px 14px;
   border-radius: 8px;
   cursor: pointer;
@@ -416,18 +422,18 @@
 }
 
 .btn-back:hover {
-  border-color: #81a1c1;
-  color: #88c0d0;
+  border-color: #1cb0f6;
+  color: #1cb0f6;
 }
 
 .problem-counter {
-  color: #6a7585;
+  color: #6b6b6b;
   font-size: 0.9rem;
 }
 
 .problem-question {
   font-size: 1.5rem;
-  color: #d8dee9;
+  color: #1a73e8;
   text-align: center;
   font-weight: bold;
 }
@@ -442,7 +448,7 @@
 
 .problem-situation {
   font-size: 0.85rem;
-  color: #6a7585;
+  color: #6b6b6b;
   letter-spacing: 0.05em;
   white-space: nowrap;
 }
@@ -481,11 +487,12 @@
 
 /* ===== 問題画像 ===== */
 .problem-image-wrapper {
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
-  background: #3b4252;
-  border: 1px solid #434c5e;
+  background: #ffffff;
+  border: 2px solid #e5e5e5;
   text-align: center;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 .problem-image {
@@ -500,7 +507,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #4c566a;
+  color: #b0b0b0;
   font-size: 0.9rem;
 }
 
@@ -526,7 +533,7 @@
   align-items: flex-end;
   gap: 8px;
   flex-shrink: 0;
-  border-left: 1px solid #434c5e;
+  border-left: 2px solid #e0e0e0;
   padding-left: 12px;
 }
 
@@ -539,7 +546,7 @@
 
 .meld-type-badge {
   font-size: 0.65rem;
-  color: #6a7585;
+  color: #6b6b6b;
   white-space: nowrap;
 }
 
@@ -582,18 +589,18 @@
 .meld-tile--back {
   width: 36px;
   height: 49px;
-  background: #434c5e;
-  border: 1px solid #4c566a;
+  background: #d0d0d0;
+  border: 2px solid #b0b0b0;
   border-radius: 4px;
 }
 
 .tile-button {
   background: #fff;
-  border: 2px solid #b8c0cc;
+  border: 3px solid #d0d0d0;
   border-radius: 6px;
   padding: 0;
   cursor: pointer;
-  transition: border-color 0.15s, transform 0.1s, opacity 0.2s;
+  transition: border-color 0.15s, transform 0.1s, opacity 0.2s, box-shadow 0.15s;
   width: 40px;
   height: 55px;
   display: flex;
@@ -602,8 +609,9 @@
 }
 
 .tile-button:hover:not(:disabled) {
-  border-color: #81a1c1;
+  border-color: #1cb0f6;
   transform: translateY(-4px);
+  box-shadow: 0 4px 10px rgba(28, 176, 246, 0.25);
 }
 
 .tile-button:disabled {
@@ -611,29 +619,29 @@
 }
 
 .tile-button--correct {
-  border-color: #a3be8c;
-  box-shadow: 0 0 8px rgba(163, 190, 140, 0.5);
+  border-color: #58cc02;
+  box-shadow: 0 0 10px rgba(88, 204, 2, 0.5);
 }
 
 .tile-button--wrong {
-  border-color: #bf616a;
-  box-shadow: 0 0 8px rgba(191, 97, 106, 0.45);
-  opacity: 0.65;
+  border-color: #ff4b4b;
+  box-shadow: 0 0 10px rgba(255, 75, 75, 0.5);
+  opacity: 0.6;
 }
 
 .tile-button--disabled {
-  opacity: 0.35;
+  opacity: 0.4;
 }
 
 .tile-button--selected {
-  border-color: #81a1c1;
-  box-shadow: 0 0 8px rgba(129, 161, 193, 0.5);
+  border-color: #1cb0f6;
+  box-shadow: 0 0 10px rgba(28, 176, 246, 0.5);
   transform: translateY(-4px);
 }
 
 .tile-button--missed {
-  border-color: #d08770;
-  box-shadow: 0 0 8px rgba(208, 135, 112, 0.45);
+  border-color: #ff9600;
+  box-shadow: 0 0 10px rgba(255, 150, 0, 0.5);
 }
 
 .tile-image {
@@ -650,7 +658,7 @@
 
 /* ===== 回答パネル ===== */
 .answer-panel {
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 20px;
   display: flex;
   flex-direction: column;
@@ -658,13 +666,13 @@
 }
 
 .answer-panel--correct {
-  background: rgba(163, 190, 140, 0.1);
-  border: 1px solid #6a8c5a;
+  background: rgba(88, 204, 2, 0.08);
+  border: 2px solid #58cc02;
 }
 
 .answer-panel--wrong {
-  background: rgba(191, 97, 106, 0.1);
-  border: 1px solid #8a4a50;
+  background: rgba(255, 75, 75, 0.08);
+  border: 2px solid #ff4b4b;
 }
 
 .answer-result {
@@ -672,8 +680,8 @@
   font-weight: bold;
 }
 
-.answer-panel--correct .answer-result { color: #a3be8c; }
-.answer-panel--wrong .answer-result { color: #bf616a; }
+.answer-panel--correct .answer-result { color: #58cc02; }
+.answer-panel--wrong .answer-result { color: #ff4b4b; }
 
 .answer-tile {
   display: flex;
@@ -683,7 +691,7 @@
 
 .answer-label {
   font-size: 1rem;
-  color: #8896a8;
+  color: #6b6b6b;
 }
 
 .answer-tile-image {
@@ -698,12 +706,12 @@
 .answer-tile-name {
   font-size: 1.1rem;
   font-weight: bold;
-  color: #88c0d0;
+  color: #1a73e8;
 }
 
 .answer-explanation {
-  line-height: 1.8;
-  color: #c0c8d4;
+  line-height: 1.7;
+  color: #3c3c3c;
   font-size: 0.95rem;
 }
 
@@ -719,8 +727,8 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  background: #3b4252;
-  border: 1px solid #434c5e;
+  background: #eaf5ff;
+  border: 1px solid #c5e4ff;
   border-radius: 10px;
   padding: 10px 16px;
   margin-bottom: 8px;
@@ -728,7 +736,7 @@
 
 .discarded-tile-label {
   font-size: 0.85rem;
-  color: #6a7585;
+  color: #6b6b6b;
   font-weight: bold;
   white-space: nowrap;
 }
@@ -745,7 +753,7 @@
 
 .discarded-tile-name {
   font-size: 0.9rem;
-  color: #88c0d0;
+  color: #1a73e8;
   font-weight: bold;
 }
 
@@ -760,45 +768,49 @@
 .naki-timing-choice-btn {
   width: 100%;
   padding: 14px 20px;
-  background: #3b4252;
-  border: 1px solid #434c5e;
+  background: #ffffff;
+  border: 2px solid #e5e5e5;
   border-radius: 10px;
-  color: #c8d0dc;
+  color: #3c3c3c;
   font-size: 1rem;
   cursor: pointer;
   text-align: center;
-  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  transition: border-color 0.15s, background 0.15s, color 0.15s, box-shadow 0.15s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 .naki-timing-choice-btn:hover {
-  border-color: #81a1c1;
-  color: #88c0d0;
-  background: #3a4a5c;
+  border-color: #1cb0f6;
+  color: #1cb0f6;
+  background: #eaf5ff;
+  box-shadow: 0 2px 8px rgba(28, 176, 246, 0.18);
 }
 
 /* ===== 鳴き選択 ===== */
 .naki-choice-instruction {
   font-size: 0.9rem;
-  color: #6a7585;
+  color: #6b6b6b;
   margin: 8px 0 12px;
 }
+
 
 .naki-choice-submit-btn {
   display: block;
   width: 100%;
   padding: 12px;
-  background: #5e81ac;
+  background: #1cb0f6;
   border: none;
   border-radius: 10px;
-  color: #eceff4;
+  color: #fff;
   font-size: 1rem;
   font-weight: bold;
   cursor: pointer;
-  transition: background 0.15s;
+  transition: opacity 0.15s, box-shadow 0.15s;
   margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(28, 176, 246, 0.3);
 }
 
-.naki-choice-submit-btn:hover { background: #6d90bb; }
+.naki-choice-submit-btn:hover { opacity: 0.88; }
 
 /* ===== ドラ表示（手牌右端インライン） ===== */
 .dora-inline {
@@ -806,20 +818,20 @@
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  border-left: 1px solid #434c5e;
+  border-left: 2px solid #e0e0e0;
   padding-left: 12px;
   flex-shrink: 0;
 }
 
 .dora-inline .dora-label {
   font-size: 0.7rem;
-  color: #6a7585;
+  color: #6b6b6b;
   white-space: nowrap;
 }
 
 .dora-label {
   font-size: 0.85rem;
-  color: #6a7585;
+  color: #6b6b6b;
   white-space: nowrap;
 }
 
@@ -836,7 +848,7 @@
 .dora-tile-name {
   font-size: 0.95rem;
   font-weight: bold;
-  color: #88c0d0;
+  color: #1a73e8;
 }
 
 /* ===== リーチトグル ===== */
@@ -851,9 +863,9 @@
   align-self: flex-end;
   padding: 8px 28px;
   border-radius: 8px;
-  border: 1px solid #434c5e;
-  background: #3b4252;
-  color: #6a7585;
+  border: 2px solid #d0d0d0;
+  background: #f7f7f7;
+  color: #6b6b6b;
   font-size: 0.95rem;
   font-weight: bold;
   cursor: pointer;
@@ -861,15 +873,15 @@
 }
 
 .riichi-toggle:hover:not(:disabled) {
-  border-color: #bf616a;
-  color: #bf616a;
+  border-color: #ff4b4b;
+  color: #ff4b4b;
 }
 
 .riichi-toggle--on {
-  background: #6e3a3e;
-  border-color: #bf616a;
-  color: #e5d0d0;
-  box-shadow: 0 0 10px rgba(191, 97, 106, 0.3);
+  background: #ff4b4b;
+  border-color: #ff4b4b;
+  color: #fff;
+  box-shadow: 0 0 12px rgba(255, 75, 75, 0.45);
 }
 
 .riichi-toggle:disabled {
@@ -878,7 +890,7 @@
 
 .answer-riichi {
   font-size: 1rem;
-  color: #6a7585;
+  color: #6b6b6b;
 }
 
 /* ===== 暗槓ボタン ===== */
@@ -894,19 +906,20 @@
   align-items: center;
   gap: 6px;
   padding: 6px 14px 6px 10px;
-  border: 1px solid #434c5e;
+  border: 2px solid #d0d0d0;
   border-radius: 8px;
-  background: #3b4252;
-  color: #81a1c1;
+  background: #ffffff;
+  color: #1a73e8;
   font-size: 0.9rem;
   font-weight: bold;
   cursor: pointer;
-  transition: border-color 0.15s, background 0.15s;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 .ankan-btn:hover:not(:disabled) {
-  border-color: #81a1c1;
-  background: #3a4a5c;
+  border-color: #1cb0f6;
+  box-shadow: 0 0 8px rgba(28, 176, 246, 0.3);
 }
 
 .ankan-btn:disabled {
@@ -922,20 +935,20 @@
 }
 
 .ankan-btn--correct {
-  border-color: #6a8c5a;
-  background: rgba(163, 190, 140, 0.12);
-  color: #a3be8c;
+  border-color: #58cc02;
+  background: rgba(88, 204, 2, 0.1);
+  color: #58cc02;
 }
 
 .ankan-btn--wrong {
-  border-color: #8a4a50;
-  background: rgba(191, 97, 106, 0.12);
-  color: #bf616a;
+  border-color: #ff4b4b;
+  background: rgba(255, 75, 75, 0.1);
+  color: #ff4b4b;
 }
 
 .ankan-btn--disabled {
-  border-color: #3b4252;
-  opacity: 0.35;
+  border-color: #e0e0e0;
+  opacity: 0.4;
 }
 
 /* ===== リーチ判断：手牌表示（読み取り専用） ===== */
@@ -975,11 +988,11 @@
   max-width: 200px;
   padding: 20px 0;
   border-radius: 12px;
-  border: 2px solid;
+  border: 3px solid;
   font-size: 1.4rem;
   font-weight: bold;
   cursor: pointer;
-  transition: transform 0.1s, box-shadow 0.15s;
+  transition: transform 0.1s, box-shadow 0.15s, opacity 0.15s;
 }
 
 .riichi-choice-btn:hover {
@@ -991,34 +1004,34 @@
 }
 
 .riichi-choice-btn--riichi {
-  background: rgba(191, 97, 106, 0.1);
-  border-color: #bf616a;
-  color: #bf616a;
+  background: rgba(255, 75, 75, 0.07);
+  border-color: #ff4b4b;
+  color: #ff4b4b;
 }
 
 .riichi-choice-btn--riichi:hover {
-  background: rgba(191, 97, 106, 0.2);
-  box-shadow: 0 4px 14px rgba(191, 97, 106, 0.25);
+  background: rgba(255, 75, 75, 0.18);
+  box-shadow: 0 4px 16px rgba(255, 75, 75, 0.3);
 }
 
 .riichi-choice-btn--dama {
-  background: rgba(129, 161, 193, 0.1);
-  border-color: #81a1c1;
-  color: #81a1c1;
+  background: rgba(28, 176, 246, 0.07);
+  border-color: #1cb0f6;
+  color: #1cb0f6;
 }
 
 .riichi-choice-btn--dama:hover {
-  background: rgba(129, 161, 193, 0.2);
-  box-shadow: 0 4px 14px rgba(129, 161, 193, 0.25);
+  background: rgba(28, 176, 246, 0.18);
+  box-shadow: 0 4px 16px rgba(28, 176, 246, 0.3);
 }
 
 /* ===== 準備中表示 ===== */
 .pending-notice {
   text-align: center;
-  color: #5a6375;
+  color: #9b9b9b;
   font-size: 0.95rem;
   padding: 24px;
-  border: 1px dashed #434c5e;
+  border: 1px dashed #d0d0d0;
   border-radius: 8px;
   margin: 8px 0;
 }
@@ -1032,31 +1045,32 @@
 
 .btn-nav {
   flex: 1;
-  background: #3b4252;
-  border: 1px solid #434c5e;
-  color: #8896a8;
+  background: #ffffff;
+  border: 2px solid #e5e5e5;
+  color: #6b6b6b;
   padding: 10px 20px;
   border-radius: 8px;
   cursor: pointer;
   font-size: 0.95rem;
-  transition: border-color 0.2s, color 0.2s, background 0.2s;
+  transition: border-color 0.2s, color 0.2s, box-shadow 0.2s;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 
 .btn-nav:hover:not(:disabled) {
-  border-color: #81a1c1;
-  color: #88c0d0;
-  background: #424c60;
+  border-color: #1cb0f6;
+  color: #1cb0f6;
+  box-shadow: 0 2px 8px rgba(28, 176, 246, 0.18);
 }
 
 .btn-nav:disabled {
-  opacity: 0.25;
+  opacity: 0.3;
   cursor: default;
 }
 
 /* ===== スマホ対応 (max-width: 600px) ===== */
 @media (max-width: 600px) {
   .app-header {
-    margin: -14px -10px 22px;
+    margin: -14px -10px 20px;
     padding: 12px 14px;
   }
 
@@ -1065,7 +1079,7 @@
   /* カテゴリ一覧 */
   .category-grid {
     grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    gap: 8px;
+    gap: 10px;
   }
 
   .app-title {
@@ -1116,7 +1130,7 @@
 
   .melds-area {
     border-left: none;
-    border-top: 1px solid #434c5e;
+    border-top: 2px solid #e0e0e0;
     padding-left: 0;
     padding-top: 8px;
     width: 100%;

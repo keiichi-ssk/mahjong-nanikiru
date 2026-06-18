@@ -40,7 +40,7 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
 
   return (
     <div className="category-list">
-      <h1 className="app-title">麻雀 何切る問題集</h1>
+
       <div className="toggle-rows">
         <div className="random-toggle-row">
           <span className="random-toggle-label">ランダム出題</span>

@@ -13,7 +13,7 @@
 .app-header-title {
   font-size: 1.1rem;
   font-weight: bold;
-  color: #eceff4;
+  color: #88c0d0;
   white-space: nowrap;
 }
 
@@ -139,13 +139,13 @@
 .book-label {
   font-size: 1.2rem;
   font-weight: bold;
-  color: #ebcb8b;
+  color: #88c0d0;
   text-align: left;
   margin: 0 0 16px 0;
   padding: 8px 16px;
-  background: rgba(235, 203, 139, 0.08);
+  background: rgba(136, 192, 208, 0.08);
   border-bottom: 1px solid #434c5e;
-  border-left: 3px solid #d4aa60;
+  border-left: 3px solid #81a1c1;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -158,11 +158,11 @@
 }
 
 .book-label--selectable:hover {
-  background: rgba(235, 203, 139, 0.14);
+  background: rgba(136, 192, 208, 0.14);
 }
 
 .book-label--checked {
-  background: rgba(235, 203, 139, 0.16);
+  background: rgba(136, 192, 208, 0.16);
 }
 
 .major-category-group {
@@ -172,12 +172,12 @@
 .major-category-label {
   font-size: 0.95rem;
   font-weight: bold;
-  color: #a3d48e;
+  color: #81a1c1;
   text-align: left;
   margin: 0 0 12px 0;
   padding: 5px 12px;
-  border-left: 3px solid #7db860;
-  background: rgba(163, 190, 140, 0.08);
+  border-left: 3px solid #81a1c1;
+  background: rgba(129, 161, 193, 0.07);
   border-radius: 0 6px 6px 0;
   display: flex;
   align-items: center;
@@ -191,11 +191,11 @@
 }
 
 .major-category-label--selectable:hover {
-  background: rgba(163, 190, 140, 0.15);
+  background: rgba(129, 161, 193, 0.14);
 }
 
 .major-category-label--checked {
-  background: rgba(163, 190, 140, 0.18);
+  background: rgba(129, 161, 193, 0.18);
 }
 
 .select-badge {
@@ -261,7 +261,7 @@
 .category-name {
   font-size: 0.95rem;
   font-weight: bold;
-  color: #eceff4;
+  color: #d8dee9;
 }
 
 .category-count {
@@ -348,14 +348,14 @@
 .category-title {
   font-size: 1.4rem;
   font-weight: bold;
-  color: #eceff4;
+  color: #88c0d0;
   margin: 0;
 }
 
 .app-title {
   font-size: 2rem;
   font-weight: bold;
-  color: #eceff4;
+  color: #88c0d0;
   margin-bottom: 8px;
 }
 
