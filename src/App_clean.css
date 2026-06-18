@@ -431,12 +431,7 @@
   font-size: 0.9rem;
 }
 
-.problem-question {
-  font-size: 1.5rem;
-  color: #1a73e8;
-  text-align: center;
-  font-weight: bold;
-}
+
 
 .problem-info-row {
   display: flex;
@@ -517,6 +512,7 @@
   align-items: flex-end;
   gap: 12px;
   overflow-x: auto;
+  padding-top: 6px;
   padding-bottom: 4px;
 }
 
@@ -595,7 +591,7 @@
 }
 
 .tile-button {
-  background: #fff;
+  background: linear-gradient(160deg, #ffffff 0%, #f2f1ee 100%);
   border: 3px solid #d0d0d0;
   border-radius: 6px;
   padding: 0;
@@ -606,12 +602,16 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.06),
+    1px 2px 0 #b06820,
+    2px 4px 6px rgba(0, 0, 0, 0.15);
 }
 
 .tile-button:hover:not(:disabled) {
   border-color: #1cb0f6;
   transform: translateY(-4px);
-  box-shadow: 0 4px 10px rgba(28, 176, 246, 0.25);
 }
 
 .tile-button:disabled {
@@ -619,13 +619,19 @@
 }
 
 .tile-button--correct {
-  border-color: #58cc02;
-  box-shadow: 0 0 10px rgba(88, 204, 2, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.06),
+    1px 2px 0 #b06820,
+    2px 4px 6px rgba(0, 0, 0, 0.15);
 }
 
 .tile-button--wrong {
-  border-color: #ff4b4b;
-  box-shadow: 0 0 10px rgba(255, 75, 75, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.06),
+    1px 2px 0 #b06820,
+    2px 4px 6px rgba(0, 0, 0, 0.15);
   opacity: 0.6;
 }
 
@@ -635,13 +641,22 @@
 
 .tile-button--selected {
   border-color: #1cb0f6;
-  box-shadow: 0 0 10px rgba(28, 176, 246, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.06),
+    1px 2px 0 #b06820,
+    2px 4px 6px rgba(0, 0, 0, 0.15),
+    0 0 10px rgba(28, 176, 246, 0.5);
   transform: translateY(-4px);
 }
 
 .tile-button--missed {
   border-color: #ff9600;
-  box-shadow: 0 0 10px rgba(255, 150, 0, 0.5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.06),
+    1px 2px 0 #b06820,
+    0 0 10px rgba(255, 150, 0, 0.5);
 }
 
 .tile-image {
@@ -958,20 +973,28 @@
   gap: 4px;
   align-items: flex-end;
   overflow-x: auto;
+  padding-top: 6px;
   padding-bottom: 4px;
 }
 
 .tile-readonly {
   flex-shrink: 0;
+  display: inline-flex;
+  background: linear-gradient(160deg, #ffffff 0%, #f2f1ee 100%);
+  border: 1px solid #d0d0d0;
+  border-radius: 6px;
+  padding: 3px;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.06),
+    1px 2px 0 #b06820,
+    2px 4px 6px rgba(0, 0, 0, 0.15);
 }
 
 .tile-readonly img {
   width: 40px;
   height: 55px;
   object-fit: contain;
-  background: #fff;
-  border-radius: 6px;
-  padding: 3px;
   display: block;
 }
 
@@ -1084,11 +1107,6 @@
 
   .app-title {
     font-size: 1.4rem;
-  }
-
-  /* 問題タイトル */
-  .problem-question {
-    font-size: 1.2rem;
   }
 
   /* 手牌：折り返して複数行に */

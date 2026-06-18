@@ -222,7 +222,9 @@ function NakiChoiceView({ problem, onAnswer }) {
           <div className="answer-tile">
             <span className="answer-label">正解：</span>
             {sortedChoices.filter(c => c.correct).map(c => (
-              <img key={c.tile} src={getTileImageUrl(c.tile)} alt={getTileLabel(c.tile)} className="answer-tile-image" />
+              <div key={c.tile} className="tile-readonly">
+                <img src={getTileImageUrl(c.tile)} alt={getTileLabel(c.tile)} />
+              </div>
             ))}
             {correctTiles.size === 0 && <span className="answer-tile-name">なし（鳴かない）</span>}
           </div>
@@ -315,15 +317,6 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
         <span className="problem-counter">問題 {index + 1} / {total}</span>
       </div>
 
-      <h2 className="problem-question">
-        {isRiichiCategory
-          ? 'リーチ or ダマ？'
-          : problemType === 'naki-timing'
-            ? 'いつ鳴く？'
-            : problemType === 'naki-choice'
-              ? '何が出たら鳴く？'
-              : '何を切る？'}
-      </h2>
       {(() => {
         const situationText = getSituationText(p.section);
         const doraIndicator = getDoraIndicator(p.dora);
@@ -453,20 +446,16 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
                   {answerIsKan ? (
                     <>
                       <span className="answer-tile-name">暗槓（</span>
-                      <img
-                        src={getTileImageUrl(answerKanTile)}
-                        alt={getTileLabel(answerKanTile)}
-                        className="answer-tile-image"
-                      />
+                      <div className="tile-readonly">
+                        <img src={getTileImageUrl(answerKanTile)} alt={getTileLabel(answerKanTile)} />
+                      </div>
                       <span className="answer-tile-name">{getTileLabel(answerKanTile)}）</span>
                     </>
                   ) : (
                     <>
-                      <img
-                        src={getTileImageUrl(p.answer)}
-                        alt={getTileLabel(p.answer)}
-                        className="answer-tile-image"
-                      />
+                      <div className="tile-readonly">
+                        <img src={getTileImageUrl(p.answer)} alt={getTileLabel(p.answer)} />
+                      </div>
                       <span className="answer-tile-name">{getTileLabel(p.answer)}</span>
                     </>
                   )}
