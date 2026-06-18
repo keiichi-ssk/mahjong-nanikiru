@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import ProblemEditor from './ProblemEditor'
 
+const ADMIN_EMAIL = 'raguneru1423@gmail.com'
+
 function categoryLabel(name) {
   return name.replace(/^\d+_/, '')
 }
@@ -34,15 +36,29 @@ function toDb(p) {
 }
 
 export default function AdminApp() {
+  const [session, setSession]         = useState(null)
+  const [authLoading, setAuthLoading] = useState(true)
   const [problems, setProblems]       = useState([])
   const [selectedCat, setSelectedCat] = useState(null)
   const [selectedId, setSelectedId]   = useState(null)
   const [saveStatus, setSaveStatus]   = useState('')
 
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setAuthLoading(false)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
+
+  useEffect(() => {
+    if (session?.user?.email !== ADMIN_EMAIL) return
     supabase.from('problems').select('*').order('id')
       .then(({ data }) => setProblems((data || []).map(fromDb)))
-  }, [])
+  }, [session])
 
   const categories = [...new Set(problems.map(p => p.section))].sort(
     (a, b) => parseInt(a) - parseInt(b)
@@ -121,6 +137,45 @@ export default function AdminApp() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [handlePrev, handleNext, selectedId])
 
+  // ===== 認証ガード =====
+  if (authLoading) {
+    return <div className="admin-auth-screen">読み込み中...</div>
+  }
+
+  if (!session) {
+    return (
+      <div className="admin-auth-screen">
+        <h1 className="admin-auth-title">管理画面</h1>
+        <p className="admin-auth-desc">ログインが必要です</p>
+        <button
+          className="admin-auth-btn"
+          onClick={() => supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: { redirectTo: window.location.href },
+          })}
+        >
+          Googleでログイン
+        </button>
+      </div>
+    )
+  }
+
+  if (session.user.email !== ADMIN_EMAIL) {
+    return (
+      <div className="admin-auth-screen">
+        <h1 className="admin-auth-title">アクセス拒否</h1>
+        <p className="admin-auth-desc">{session.user.email} はアクセス権限がありません</p>
+        <button
+          className="admin-auth-btn admin-auth-btn--secondary"
+          onClick={() => supabase.auth.signOut()}
+        >
+          ログアウト
+        </button>
+      </div>
+    )
+  }
+
+  // ===== 管理画面本体 =====
   return (
     <div className="admin-layout">
       <aside className="admin-sidebar">

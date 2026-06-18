@@ -1,3 +1,54 @@
+/* ===== 認証画面 ===== */
+.admin-auth-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 20px;
+  background: #0a0f1e;
+  color: #ddd;
+}
+
+.admin-auth-title {
+  font-size: 1.6rem;
+  color: #f5c842;
+  margin: 0;
+}
+
+.admin-auth-desc {
+  font-size: 0.95rem;
+  color: #aaa;
+  margin: 0;
+}
+
+.admin-auth-btn {
+  background: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 28px;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #333;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.admin-auth-btn:hover { opacity: 0.85; }
+
+.admin-auth-btn--secondary {
+  background: none;
+  border: 1px solid #555;
+  color: #aaa;
+  font-weight: normal;
+}
+
+.admin-auth-btn--secondary:hover {
+  border-color: #e74c3c;
+  color: #e74c3c;
+  opacity: 1;
+}
+
 /* ===== レイアウト ===== */
 .admin-layout {
   display: flex;
