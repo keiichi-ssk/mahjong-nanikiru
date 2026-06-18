@@ -28,6 +28,13 @@ export function getMajorCategory(section) {
   return 'その他';
 }
 
+export function getSituationText(section) {
+  const n = sectionNumber(section);
+  if (n >= 1 && n <= 11) return '東場 南家 7〜9巡目';
+  if (n >= 12 && n <= 17) return '東場 南家 4〜6巡目';
+  return null;
+}
+
 export function groupByBook(categories) {
   return BOOKS.map(({ label: bookLabel, majorCategories }) => {
     const majorGroups = majorCategories

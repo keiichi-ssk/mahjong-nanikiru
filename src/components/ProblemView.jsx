@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import TileButton from './TileButton';
-import { getTileLabel, getTileImageUrl, randomSuitMap, remapProblem } from '../utils/tileUtils';
+import { getTileLabel, getTileImageUrl, randomSuitMap, remapProblem, getDoraIndicator } from '../utils/tileUtils';
+import { getSituationText } from '../utils/categoryUtils';
 
 const MELD_TYPE_LABELS = { chi: 'チー', pon: 'ポン', kan: '大明槓', kakan: '加槓', ankan: '暗槓' };
 
@@ -56,7 +57,21 @@ function MeldDisplay({ meld }) {
   );
 }
 
-function HandDisplay({ tiles, melds, dora }) {
+function DoraIndicatorDisplay({ tile }) {
+  return (
+    <div className="dora-indicator">
+      <div className="dora-indicator-back" />
+      <div className="dora-indicator-back" />
+      <img src={getTileImageUrl(tile)} alt={getTileLabel(tile)} className="dora-indicator-tile" />
+      <div className="dora-indicator-back" />
+      <div className="dora-indicator-back" />
+      <div className="dora-indicator-back" />
+      <div className="dora-indicator-back" />
+    </div>
+  );
+}
+
+function HandDisplay({ tiles, melds }) {
   const hasMetlds = Array.isArray(melds) && melds.length > 0;
   if (!tiles || tiles.length === 0) return null;
   return (
@@ -73,12 +88,6 @@ function HandDisplay({ tiles, melds, dora }) {
           {melds.map((meld, i) => (
             <MeldDisplay key={i} meld={meld} />
           ))}
-        </div>
-      )}
-      {dora && (
-        <div className="dora-inline">
-          <span className="dora-label">ドラ</span>
-          <img src={getTileImageUrl(dora)} alt={getTileLabel(dora)} className="dora-tile-image" />
         </div>
       )}
     </div>
@@ -111,7 +120,7 @@ function NakiTimingView({ problem, onAnswer }) {
         </div>
       )}
 
-      <HandDisplay tiles={problem.tiles} melds={problem.melds} dora={problem.dora} />
+      <HandDisplay tiles={problem.tiles} melds={problem.melds} />
 
       {!answered ? (
         <div className="naki-timing-btns">
@@ -183,7 +192,7 @@ function NakiChoiceView({ problem, onAnswer }) {
 
   return (
     <>
-      <HandDisplay tiles={problem.tiles} melds={problem.melds} dora={problem.dora} />
+      <HandDisplay tiles={problem.tiles} melds={problem.melds} />
 
       <p className="naki-choice-instruction">鳴く牌をすべて選んでください（複数選択可）</p>
 
@@ -315,6 +324,17 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
               ? '何が出たら鳴く？'
               : '何を切る？'}
       </h2>
+      {(() => {
+        const situationText = getSituationText(p.section);
+        const doraIndicator = getDoraIndicator(p.dora);
+        if (!situationText && !doraIndicator) return null;
+        return (
+          <div className="problem-info-row">
+            <span className="problem-situation">{situationText}</span>
+            {doraIndicator && <DoraIndicatorDisplay tile={doraIndicator} />}
+          </div>
+        );
+      })()}
 
       {/* ===== 鳴きタイミング ===== */}
       {problemType === 'naki-timing' && (
@@ -343,12 +363,6 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
                   {p.melds.map((meld, i) => (
                     <MeldDisplay key={i} meld={meld} />
                   ))}
-                </div>
-              )}
-              {p.dora && (
-                <div className="dora-inline">
-                  <span className="dora-label">ドラ</span>
-                  <img src={getTileImageUrl(p.dora)} alt={getTileLabel(p.dora)} className="dora-tile-image" />
                 </div>
               )}
             </div>
@@ -399,12 +413,6 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
                     {p.melds.map((meld, i) => (
                       <MeldDisplay key={i} meld={meld} />
                     ))}
-                  </div>
-                )}
-                {p.dora && (
-                  <div className="dora-inline">
-                    <span className="dora-label">ドラ</span>
-                    <img src={getTileImageUrl(p.dora)} alt={getTileLabel(p.dora)} className="dora-tile-image" />
                   </div>
                 )}
               </div>

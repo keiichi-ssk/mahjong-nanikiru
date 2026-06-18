@@ -10,6 +10,7 @@ const TILE_NAME_MAP = {
   '6s': 'Sou6', '7s': 'Sou7', '8s': 'Sou8', '9s': 'Sou9',
   '1z': 'Ton', '2z': 'Nan', '3z': 'Shaa', '4z': 'Pei',
   '5z': 'Haku', '6z': 'Hatsu', '7z': 'Chun',
+  'back': 'Back',
 };
 
 const TILE_LABEL_MAP = {
@@ -30,6 +31,21 @@ export function getTileImageUrl(tile) {
 
 export function getTileLabel(tile) {
   return TILE_LABEL_MAP[tile] ?? tile;
+}
+
+// ドラ → ドラ表示牌（1つ前の牌）を逆算
+export function getDoraIndicator(doraTile) {
+  if (!doraTile) return null;
+  const suit = doraTile.slice(-1);
+  const n = doraTile[0] === '0' ? 5 : parseInt(doraTile[0], 10);
+  if (suit === 'm' || suit === 'p' || suit === 's') {
+    return `${n === 1 ? 9 : n - 1}${suit}`;
+  }
+  if (suit === 'z') {
+    if (n <= 4) return `${n === 1 ? 4 : n - 1}z`; // 風牌
+    return `${n === 5 ? 7 : n - 1}z`;              // 三元牌
+  }
+  return null;
 }
 
 // ===== 数牌種類ランダム入れ替え =====
