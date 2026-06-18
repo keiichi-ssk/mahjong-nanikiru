@@ -74,12 +74,20 @@
   text-align: center;
 }
 
+.toggle-rows {
+  margin-bottom: 24px;
+}
+
 .random-toggle-row {
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
-  margin-bottom: 24px;
+  margin-bottom: 10px;
+}
+
+.toggle-rows .random-toggle-row:last-child {
+  margin-bottom: 0;
 }
 
 .random-toggle-label {
@@ -132,6 +140,23 @@
   padding: 8px 16px;
   background: rgba(245, 200, 66, 0.1);
   border-bottom: 2px solid #f5c842;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.book-label--selectable {
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.book-label--selectable:hover {
+  background: rgba(245, 200, 66, 0.18);
+}
+
+.book-label--checked {
+  background: rgba(245, 200, 66, 0.22);
 }
 
 .major-category-group {
@@ -148,6 +173,38 @@
   border-left: 4px solid #e94560;
   background: rgba(233, 69, 96, 0.08);
   border-radius: 0 6px 6px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.major-category-label--selectable {
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s;
+}
+
+.major-category-label--selectable:hover {
+  background: rgba(233, 69, 96, 0.16);
+}
+
+.major-category-label--checked {
+  background: rgba(233, 69, 96, 0.2);
+}
+
+.select-badge {
+  font-size: 0.75rem;
+  font-weight: normal;
+  color: #aaa;
+  padding: 2px 8px;
+  border: 1px solid #555;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.select-badge--active {
+  color: #4a9eff;
+  border-color: #4a9eff;
 }
 
 .category-grid {
@@ -177,6 +234,21 @@
 .category-card--disabled {
   opacity: 0.4;
   cursor: default;
+}
+
+.category-card--checked {
+  border-color: #4a9eff;
+  background: #0e2a4a;
+  position: relative;
+}
+
+.card-check {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: 0.8rem;
+  color: #4a9eff;
+  font-weight: bold;
 }
 
 .category-name {
@@ -217,6 +289,41 @@
 .category-progress-text {
   font-size: 0.7rem;
   color: #7ec8a0;
+}
+
+/* ===== 出題開始スティッキーバー ===== */
+.start-button-bar {
+  position: sticky;
+  bottom: 0;
+  padding: 12px 16px;
+  background: linear-gradient(transparent, #0a0a1a 30%);
+  display: flex;
+  justify-content: center;
+  z-index: 100;
+  margin-top: 16px;
+}
+
+.btn-start {
+  background: #4a9eff;
+  border: none;
+  border-radius: 8px;
+  padding: 14px 40px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  box-shadow: 0 4px 16px rgba(74, 158, 255, 0.4);
+}
+
+.btn-start:hover:not(:disabled) {
+  background: #2a7ee0;
+  transform: translateY(-1px);
+}
+
+.btn-start:disabled {
+  opacity: 0.4;
+  cursor: default;
 }
 
 /* ===== 問題一覧 ===== */

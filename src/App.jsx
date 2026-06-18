@@ -33,10 +33,12 @@ async function signInWithGoogle() {
 export default function App() {
   const [problems, setProblems] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playingKey, setPlayingKey] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [orderedProblems, setOrderedProblems] = useState([]);
   const [randomMode, setRandomMode] = useState(false);
+  const [mistakesOnlyMode, setMistakesOnlyMode] = useState(false);
   const [session, setSession] = useState(null);
   const [results, setResults] = useState({});
 
@@ -87,15 +89,19 @@ export default function App() {
     (a, b) => parseInt(a) - parseInt(b)
   );
 
-  function startCategory(cat) {
-    const catProblems = problems.filter((p) => p.section === cat);
+  function startSelected(sections) {
+    let catProblems = problems.filter(p => sections.has(p.section));
+    if (mistakesOnlyMode) {
+      catProblems = catProblems.filter(p => results[p.id] !== true);
+    }
     setOrderedProblems(randomMode ? shuffled(catProblems) : catProblems);
-    setSelectedCategory(cat);
+    setIsPlaying(true);
+    setPlayingKey(k => k + 1);
     setCurrentIndex(0);
   }
 
   function backToCategories() {
-    setSelectedCategory(null);
+    setIsPlaying(false);
     setOrderedProblems([]);
     setCurrentIndex(0);
   }
@@ -104,21 +110,24 @@ export default function App() {
     if (loading) {
       return <div style={{ padding: 32, textAlign: 'center' }}>読み込み中...</div>;
     }
-    if (selectedCategory === null) {
+    if (!isPlaying) {
       return (
         <CategoryList
           categories={categories}
           problems={problems}
           randomMode={randomMode}
           onToggleRandom={() => setRandomMode(m => !m)}
-          onSelect={startCategory}
+          mistakesOnlyMode={mistakesOnlyMode}
+          onToggleMistakesOnly={() => setMistakesOnlyMode(m => !m)}
+          onStart={startSelected}
           results={results}
+          session={session}
         />
       );
     }
     return (
       <ProblemView
-        key={`${selectedCategory}-${currentIndex}`}
+        key={`${playingKey}-${currentIndex}`}
         problem={orderedProblems[currentIndex]}
         index={currentIndex}
         total={orderedProblems.length}
