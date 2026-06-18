@@ -1,8 +1,36 @@
 import { useState, useEffect, useCallback } from 'react'
+import { supabase } from '../lib/supabase'
 import ProblemEditor from './ProblemEditor'
 
 function categoryLabel(name) {
   return name.replace(/^\d+_/, '')
+}
+
+function fromDb(p) {
+  return {
+    ...p,
+    problemType:   p.problem_type,
+    discardedTile: p.discarded_tile,
+    nakiChoices:   p.naki_choices,
+  }
+}
+
+function toDb(p) {
+  return {
+    id:             p.id,
+    section:        p.section,
+    image:          p.image ?? '',
+    tiles:          p.tiles ?? [],
+    answer:         p.answer ?? '',
+    dora:           p.dora ?? '',
+    riichi:         p.riichi ?? null,
+    explanation:    p.explanation ?? '',
+    reviewed:       p.reviewed ?? false,
+    melds:          p.melds ?? [],
+    problem_type:   p.problemType ?? 'default',
+    discarded_tile: p.discardedTile ?? null,
+    naki_choices:   p.nakiChoices ?? [],
+  }
 }
 
 export default function AdminApp() {
@@ -12,9 +40,8 @@ export default function AdminApp() {
   const [saveStatus, setSaveStatus]   = useState('')
 
   useEffect(() => {
-    fetch('/api/problems')
-      .then(r => r.json())
-      .then(setProblems)
+    supabase.from('problems').select('*').order('id')
+      .then(({ data }) => setProblems((data || []).map(fromDb)))
   }, [])
 
   const categories = [...new Set(problems.map(p => p.section))].sort(
@@ -25,32 +52,26 @@ export default function AdminApp() {
   const catIdx = catProblems.findIndex(p => p.id === selectedId)
   const currentProblem = catIdx >= 0 ? catProblems[catIdx] : null
 
-  async function saveToServer(next) {
+  async function saveOne(updated) {
     setSaveStatus('保存中...')
-    try {
-      await fetch('/api/problems', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(next, null, 2),
-      })
-      setSaveStatus('保存しました ✓')
-    } catch {
+    const { error } = await supabase.from('problems').upsert(toDb(updated))
+    if (error) {
       setSaveStatus('保存失敗 ✗')
+    } else {
+      setSaveStatus('保存しました ✓')
     }
     setTimeout(() => setSaveStatus(''), 2000)
   }
 
   async function handleSave(updated) {
-    const next = problems.map(p => (p.id === updated.id ? updated : p))
-    setProblems(next)
-    await saveToServer(next)
+    setProblems(problems.map(p => (p.id === updated.id ? updated : p)))
+    await saveOne(updated)
   }
 
   async function handleSaveAndNext(updated) {
     const withReviewed = { ...updated, reviewed: true }
-    const next = problems.map(p => (p.id === withReviewed.id ? withReviewed : p))
-    setProblems(next)
-    await saveToServer(next)
+    setProblems(problems.map(p => (p.id === withReviewed.id ? withReviewed : p)))
+    await saveOne(withReviewed)
     if (catIdx < catProblems.length - 1) {
       setSelectedId(catProblems[catIdx + 1].id)
     }
@@ -60,24 +81,25 @@ export default function AdminApp() {
     if (!selectedCat) return
     const maxId = problems.reduce((m, p) => Math.max(m, p.id), 0)
     const newProblem = {
-      id: maxId + 1,
-      section: selectedCat,
-      image: '',
-      tiles: [],
-      answer: '',
-      dora: null,
-      riichi: null,
-      melds: [],
-      explanation: '',
-      reviewed: false,
-      problemType: 'default',
+      id:            maxId + 1,
+      section:       selectedCat,
+      image:         '',
+      tiles:         [],
+      answer:        '',
+      dora:          null,
+      riichi:        null,
+      melds:         [],
+      explanation:   '',
+      reviewed:      false,
+      problemType:   'default',
       discardedTile: null,
-      nakiChoices: [],
+      nakiChoices:   [],
     }
-    const next = [...problems, newProblem]
-    setProblems(next)
-    await saveToServer(next)
-    setSelectedId(newProblem.id)
+    const { error } = await supabase.from('problems').insert(toDb(newProblem))
+    if (!error) {
+      setProblems([...problems, newProblem])
+      setSelectedId(newProblem.id)
+    }
   }
 
   const handlePrev = useCallback(() => {

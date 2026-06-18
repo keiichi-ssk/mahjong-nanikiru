@@ -12,6 +12,8 @@
     "generate:resume": "node scripts/generate-problems.mjs --resume"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.108.2",
+    "dotenv": "^17.4.2",
     "react": "^19.2.6",
     "react-dom": "^19.2.6"
   },
