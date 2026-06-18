@@ -86,10 +86,16 @@ function HandDisplay({ tiles, melds, dora }) {
 }
 
 // ===== パターン1: 鳴きタイミング =====
-function NakiTimingView({ problem }) {
+function NakiTimingView({ problem, onAnswer }) {
   const [selected, setSelected] = useState(null);
   const answered = selected !== null;
   const isCorrect = selected === problem.answer;
+
+  function handleSelect(value) {
+    if (answered) return;
+    setSelected(value);
+    onAnswer?.(value === problem.answer);
+  }
 
   return (
     <>
@@ -113,7 +119,7 @@ function NakiTimingView({ problem }) {
             <button
               key={opt.value}
               className="naki-timing-choice-btn"
-              onClick={() => setSelected(opt.value)}
+              onClick={() => handleSelect(opt.value)}
             >
               {opt.label}
             </button>
@@ -147,7 +153,7 @@ function sortChoices(choices) {
 }
 
 // ===== パターン2: 鳴き選択 =====
-function NakiChoiceView({ problem }) {
+function NakiChoiceView({ problem, onAnswer }) {
   const sortedChoices = sortChoices(problem.nakiChoices ?? []);
   const [selected, setSelected] = useState(new Set());
   const [answered, setAnswered] = useState(false);
@@ -193,7 +199,12 @@ function NakiChoiceView({ problem }) {
       </div>
 
       {!answered ? (
-        <button className="naki-choice-submit-btn" onClick={() => setAnswered(true)}>
+        <button className="naki-choice-submit-btn" onClick={() => {
+          const correct = selected.size === correctTiles.size &&
+            [...selected].every(t => correctTiles.has(t));
+          setAnswered(true);
+          onAnswer?.(correct);
+        }}>
           答え合わせ
         </button>
       ) : (
@@ -214,7 +225,7 @@ function NakiChoiceView({ problem }) {
 }
 
 // ===== メイン =====
-export default function ProblemView({ problem, index, total, onBack, onPrev, onNext }) {
+export default function ProblemView({ problem, index, total, onBack, onPrev, onNext, onAnswer }) {
   const [selected, setSelected] = useState(null);
   const [selectedRiichi, setSelectedRiichi] = useState(null);
   const [suitMap, setSuitMap] = useState(() => randomSuitMap());
@@ -245,6 +256,12 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
   const isCorrect = isRiichiCategory
     ? selectedRiichi === p.riichi
     : selected === p.answer && (!needsRiichi || selectedRiichi === p.riichi);
+
+  useEffect(() => {
+    if (answered && problemType === 'default') {
+      onAnswer?.(problem.id, isCorrect);
+    }
+  }, [answered]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleSelect(tile) {
     if (!answered) setSelected(tile);
@@ -285,7 +302,7 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
   return (
     <div className="problem-view">
       <div className="problem-header">
-        <button className="btn-back" onClick={onBack}>← 一覧へ</button>
+        <button className="btn-back" onClick={onBack}>← カテゴリへ</button>
         <span className="problem-counter">問題 {index + 1} / {total}</span>
       </div>
 
@@ -299,29 +316,14 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
               : '何を切る？'}
       </h2>
 
-      <div className="problem-image-wrapper">
-        <img
-          src={p.image}
-          alt={`問題${p.id}`}
-          className="problem-image"
-          onError={(e) => {
-            e.target.style.display = 'none';
-            e.target.nextElementSibling.style.display = 'flex';
-          }}
-        />
-        <div className="problem-image-placeholder" style={{ display: 'none' }}>
-          <span>画像未登録 (問題 {p.id})</span>
-        </div>
-      </div>
-
       {/* ===== 鳴きタイミング ===== */}
       {problemType === 'naki-timing' && (
-        <NakiTimingView problem={p} />
+        <NakiTimingView problem={p} onAnswer={isCorrect => onAnswer?.(problem.id, isCorrect)} />
       )}
 
       {/* ===== 鳴き選択 ===== */}
       {problemType === 'naki-choice' && (
-        <NakiChoiceView problem={p} />
+        <NakiChoiceView problem={p} onAnswer={isCorrect => onAnswer?.(problem.id, isCorrect)} />
       )}
 
       {/* ===== リーチ判断カテゴリ ===== */}

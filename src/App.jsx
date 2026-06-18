@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from './lib/supabase';
 import CategoryList from './components/CategoryList';
-import ProblemList from './components/ProblemList';
 import ProblemView from './components/ProblemView';
 import './App.css';
 
@@ -12,6 +11,15 @@ function fromDb(p) {
     discardedTile: p.discarded_tile,
     nakiChoices:   p.naki_choices,
   }
+}
+
+function shuffled(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
 async function signInWithGoogle() {
@@ -26,8 +34,11 @@ export default function App() {
   const [problems, setProblems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [currentIndex, setCurrentIndex] = useState(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [orderedProblems, setOrderedProblems] = useState([]);
+  const [randomMode, setRandomMode] = useState(false);
   const [session, setSession] = useState(null);
+  const [results, setResults] = useState({});
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
@@ -38,15 +49,34 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (!session) { setResults({}); return; }
+    supabase
+      .from('user_results')
+      .select('problem_id, is_correct')
+      .eq('user_id', session.user.id)
+      .then(({ data }) => {
+        const map = {};
+        (data || []).forEach(r => { map[r.problem_id] = r.is_correct; });
+        setResults(map);
+      });
+  }, [session]);
+
+  async function handleAnswer(problemId, isCorrect) {
+    if (!session) return;
+    setResults(prev => ({ ...prev, [problemId]: isCorrect }));
+    await supabase.from('user_results').upsert(
+      { user_id: session.user.id, problem_id: problemId, is_correct: isCorrect, answered_at: new Date().toISOString() },
+      { onConflict: 'user_id,problem_id' }
+    );
+  }
+
+  useEffect(() => {
     let cancelled = false;
     setLoading(true);
     supabase.from('problems').select('*').order('id')
       .then(({ data, error }) => {
         if (cancelled) return;
-        if (error) {
-          setLoading(false);
-          return;
-        }
+        if (error) { setLoading(false); return; }
         setProblems((data || []).map(fromDb));
         setLoading(false);
       });
@@ -57,9 +87,18 @@ export default function App() {
     (a, b) => parseInt(a) - parseInt(b)
   );
 
-  const categoryProblems = selectedCategory
-    ? problems.filter((p) => p.section === selectedCategory)
-    : [];
+  function startCategory(cat) {
+    const catProblems = problems.filter((p) => p.section === cat);
+    setOrderedProblems(randomMode ? shuffled(catProblems) : catProblems);
+    setSelectedCategory(cat);
+    setCurrentIndex(0);
+  }
+
+  function backToCategories() {
+    setSelectedCategory(null);
+    setOrderedProblems([]);
+    setCurrentIndex(0);
+  }
 
   function renderContent() {
     if (loading) {
@@ -70,29 +109,23 @@ export default function App() {
         <CategoryList
           categories={categories}
           problems={problems}
-          onSelect={(cat) => setSelectedCategory(cat)}
-        />
-      );
-    }
-    if (currentIndex === null) {
-      return (
-        <ProblemList
-          category={selectedCategory}
-          problems={categoryProblems}
-          onSelect={(index) => setCurrentIndex(index)}
-          onBack={() => setSelectedCategory(null)}
+          randomMode={randomMode}
+          onToggleRandom={() => setRandomMode(m => !m)}
+          onSelect={startCategory}
+          results={results}
         />
       );
     }
     return (
       <ProblemView
-        key={currentIndex}
-        problem={categoryProblems[currentIndex]}
+        key={`${selectedCategory}-${currentIndex}`}
+        problem={orderedProblems[currentIndex]}
         index={currentIndex}
-        total={categoryProblems.length}
-        onBack={() => setCurrentIndex(null)}
+        total={orderedProblems.length}
+        onBack={backToCategories}
         onPrev={() => setCurrentIndex((i) => i - 1)}
         onNext={() => setCurrentIndex((i) => i + 1)}
+        onAnswer={handleAnswer}
       />
     );
   }
