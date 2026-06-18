@@ -37,8 +37,8 @@ export default function App() {
   const [playingKey, setPlayingKey] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [orderedProblems, setOrderedProblems] = useState([]);
-  const [randomMode, setRandomMode] = useState(false);
-  const [mistakesOnlyMode, setMistakesOnlyMode] = useState(false);
+  const [randomMode, setRandomMode] = useState(true);
+  const [mistakesOnlyMode, setMistakesOnlyMode] = useState(true);
   const [session, setSession] = useState(null);
   const [results, setResults] = useState({});
 
