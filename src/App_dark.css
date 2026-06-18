@@ -956,7 +956,7 @@
 .tile-display-readonly {
   display: flex;
   flex-wrap: nowrap;
-  gap: 4px;
+  gap: 6px;
   align-items: flex-end;
   overflow-x: auto;
   padding-top: 6px;
@@ -966,10 +966,14 @@
 .tile-readonly {
   flex-shrink: 0;
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 55px;
   background: linear-gradient(160deg, #ffffff 0%, #f0efec 100%);
   border: 1px solid #b8c0cc;
   border-radius: 6px;
-  padding: 3px;
+  padding: 1px;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.95),
     inset 0 -1px 0 rgba(0, 0, 0, 0.08),
@@ -978,8 +982,8 @@
 }
 
 .tile-readonly img {
-  width: 40px;
-  height: 55px;
+  width: 34px;
+  height: 49px;
   object-fit: contain;
   display: block;
 }
@@ -1121,8 +1125,8 @@
   }
 
   .tile-readonly img {
-    width: 40px;
-    height: 55px;
+    width: 34px;
+    height: 49px;
   }
 
   /* 手牌＋鳴き牌エリア */
