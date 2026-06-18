@@ -74,6 +74,22 @@
   text-align: center;
 }
 
+.major-category-group {
+  margin-bottom: 32px;
+}
+
+.major-category-label {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #e94560;
+  text-align: left;
+  margin: 0 0 12px 0;
+  padding: 6px 12px;
+  border-left: 4px solid #e94560;
+  background: rgba(233, 69, 96, 0.08);
+  border-radius: 0 6px 6px 0;
+}
+
 .category-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
