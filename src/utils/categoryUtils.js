@@ -1,9 +1,14 @@
-const MAJOR_CATEGORIES = [
-  { label: 'テンパイの技術',    min: 1,  max: 3  },
-  { label: '1シャンテンの技術', min: 4,  max: 11 },
-  { label: '2シャンテンの技術', min: 12, max: 16 },
-  { label: '3シャンテン以上の選択', min: 17, max: 17 },
-  { label: '鳴きの技術',        min: 18, max: 24 },
+const BOOKS = [
+  {
+    label: '現代麻雀技術論',
+    majorCategories: [
+      { label: 'テンパイの技術',       min: 1,  max: 3  },
+      { label: '1シャンテンの技術',    min: 4,  max: 11 },
+      { label: '2シャンテンの技術',    min: 12, max: 16 },
+      { label: '3シャンテン以上の選択', min: 17, max: 17 },
+      { label: '鳴きの技術',           min: 18, max: 24 },
+    ],
+  },
 ];
 
 export function sectionNumber(section) {
@@ -16,14 +21,21 @@ export function sectionLabel(section) {
 
 export function getMajorCategory(section) {
   const n = sectionNumber(section);
-  return MAJOR_CATEGORIES.find(({ min, max }) => n >= min && n <= max)?.label ?? 'その他';
+  for (const book of BOOKS) {
+    const found = book.majorCategories.find(({ min, max }) => n >= min && n <= max);
+    if (found) return found.label;
+  }
+  return 'その他';
 }
 
-export function groupByMajorCategory(categories) {
-  const groups = [];
-  for (const { label } of MAJOR_CATEGORIES) {
-    const sections = categories.filter((c) => getMajorCategory(c) === label);
-    if (sections.length > 0) groups.push({ label, sections });
-  }
-  return groups;
+export function groupByBook(categories) {
+  return BOOKS.map(({ label: bookLabel, majorCategories }) => {
+    const majorGroups = majorCategories
+      .map(({ label: majorLabel }) => ({
+        label: majorLabel,
+        sections: categories.filter((c) => getMajorCategory(c) === majorLabel),
+      }))
+      .filter(({ sections }) => sections.length > 0);
+    return { label: bookLabel, majorGroups };
+  }).filter(({ majorGroups }) => majorGroups.length > 0);
 }

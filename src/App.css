@@ -74,17 +74,32 @@
   text-align: center;
 }
 
+.book-group {
+  margin-bottom: 40px;
+}
+
+.book-label {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #f5c842;
+  text-align: left;
+  margin: 0 0 16px 0;
+  padding: 8px 16px;
+  background: rgba(245, 200, 66, 0.1);
+  border-bottom: 2px solid #f5c842;
+}
+
 .major-category-group {
-  margin-bottom: 32px;
+  margin-bottom: 28px;
 }
 
 .major-category-label {
-  font-size: 1.1rem;
+  font-size: 1.0rem;
   font-weight: bold;
   color: #e94560;
   text-align: left;
   margin: 0 0 12px 0;
-  padding: 6px 12px;
+  padding: 5px 12px;
   border-left: 4px solid #e94560;
   background: rgba(233, 69, 96, 0.08);
   border-radius: 0 6px 6px 0;
