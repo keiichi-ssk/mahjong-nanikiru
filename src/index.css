@@ -4,12 +4,15 @@
   padding: 0;
 }
 
+html {
+  overflow-y: scroll;
+}
+
 body {
   font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
   background: #2e3440;
   color: #d8dee9;
   min-height: 100vh;
-  scrollbar-gutter: stable;
 }
 
 #root {
