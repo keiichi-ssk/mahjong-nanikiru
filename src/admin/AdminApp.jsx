@@ -2,8 +2,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import ProblemEditor from './ProblemEditor'
 
-const ADMIN_EMAIL = 'raguneru1423@gmail.com'
-
 function categoryLabel(name) {
   return name.replace(/^\d+_/, '')
 }
@@ -55,7 +53,7 @@ export default function AdminApp() {
   }, [])
 
   useEffect(() => {
-    if (session?.user?.email !== ADMIN_EMAIL) return
+    if (!session) return
     supabase.from('problems').select('*').order('id')
       .then(({ data }) => setProblems((data || []).map(fromDb)))
   }, [session])
@@ -155,21 +153,6 @@ export default function AdminApp() {
           })}
         >
           Googleでログイン
-        </button>
-      </div>
-    )
-  }
-
-  if (session.user.email !== ADMIN_EMAIL) {
-    return (
-      <div className="admin-auth-screen">
-        <h1 className="admin-auth-title">アクセス拒否</h1>
-        <p className="admin-auth-desc">{session.user.email} はアクセス権限がありません</p>
-        <button
-          className="admin-auth-btn admin-auth-btn--secondary"
-          onClick={() => supabase.auth.signOut()}
-        >
-          ログアウト
         </button>
       </div>
     )
