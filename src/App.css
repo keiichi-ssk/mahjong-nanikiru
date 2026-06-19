@@ -73,81 +73,6 @@
   color: #bf616a;
 }
 
-/* ===== 書籍（大カテゴリ）選択 ===== */
-.book-select-view {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.book-select-subtitle {
-  font-size: 0.9rem;
-  color: #6a7585;
-  margin: 0;
-}
-
-.book-select-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.book-select-card {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: #3b4252;
-  border: 1px solid #434c5e;
-  border-radius: 12px;
-  padding: 20px 20px;
-  cursor: pointer;
-  text-align: left;
-  transition: border-color 0.2s, background 0.2s, transform 0.15s;
-}
-
-.book-select-card:hover {
-  border-color: #81a1c1;
-  background: #424c60;
-  transform: translateY(-2px);
-}
-
-.book-select-name {
-  flex: 1;
-  font-size: 1.05rem;
-  font-weight: bold;
-  color: #eceff4;
-}
-
-.book-select-meta {
-  font-size: 0.85rem;
-  color: #6a7585;
-  flex-shrink: 0;
-}
-
-.book-select-arrow {
-  font-size: 1.4rem;
-  color: #4c566a;
-  flex-shrink: 0;
-  line-height: 1;
-}
-
-/* ===== カテゴリ一覧に戻るボタン ===== */
-.btn-back-books {
-  align-self: flex-start;
-  background: none;
-  border: none;
-  color: #6a7585;
-  font-size: 0.9rem;
-  cursor: pointer;
-  padding: 4px 0;
-  margin-bottom: 4px;
-  transition: color 0.15s;
-}
-
-.btn-back-books:hover {
-  color: #88c0d0;
-}
-
 /* ===== カテゴリー一覧 ===== */
 .category-list {
   text-align: center;
@@ -226,8 +151,23 @@
   justify-content: space-between;
 }
 
-.book-label--selectable {
+.book-label-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
   cursor: pointer;
+  user-select: none;
+}
+
+.book-label-chevron {
+  font-size: 1rem;
+  color: #d4aa60;
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+.book-label--selectable {
   user-select: none;
   transition: background 0.15s;
 }

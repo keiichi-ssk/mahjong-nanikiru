@@ -1,10 +1,19 @@
 import { useState } from 'react';
 import { groupByBook, sectionLabel } from '../utils/categoryUtils';
 
-export default function CategoryList({ categories, problems, selectedBook, onBackToBooks, randomMode, onToggleRandom, mistakesOnlyMode, onToggleMistakesOnly, onStart, results = {}, session }) {
-  const allBooks = groupByBook(categories);
-  const books = selectedBook ? allBooks.filter(b => b.label === selectedBook) : allBooks;
+export default function CategoryList({ categories, problems, randomMode, onToggleRandom, mistakesOnlyMode, onToggleMistakesOnly, onStart, results = {}, session }) {
+  const books = groupByBook(categories);
   const [checkedSections, setCheckedSections] = useState(new Set());
+  const [openBooks, setOpenBooks] = useState(() => new Set(books.map(b => b.label)));
+
+  function toggleBook(bookLabel) {
+    setOpenBooks(prev => {
+      const next = new Set(prev);
+      if (next.has(bookLabel)) next.delete(bookLabel);
+      else next.add(bookLabel);
+      return next;
+    });
+  }
 
   function toggleSection(cat) {
     setCheckedSections(prev => {
@@ -42,12 +51,6 @@ export default function CategoryList({ categories, problems, selectedBook, onBac
   return (
     <div className="category-list">
 
-      {onBackToBooks && (
-        <button className="btn-back-books" onClick={onBackToBooks}>
-          ← カテゴリ一覧に戻る
-        </button>
-      )}
-
       <div className="toggle-rows">
         <div className="random-toggle-row">
           <span className="random-toggle-label">ランダム出題</span>
@@ -79,16 +82,28 @@ export default function CategoryList({ categories, problems, selectedBook, onBac
         const bookSections = majorGroups.flatMap(g => g.sections);
         const bookAvailable = availableSections(bookSections);
         const bookAllChecked = bookAvailable.length > 0 && bookAvailable.every(s => checkedSections.has(s));
+        const isOpen = openBooks.has(bookLabel);
         return (
           <div key={bookLabel} className="book-group">
             <h2
               className={`book-label book-label--selectable${bookAllChecked ? ' book-label--checked' : ''}`}
-              onClick={() => bookAvailable.length > 0 && toggleGroup(bookAvailable)}
             >
-              <span>{bookLabel}</span>
-              <span className={`select-badge${bookAllChecked ? ' select-badge--active' : ''}`}>{bookAllChecked ? '全解除' : '全選択'}</span>
+              <span
+                className="book-label-toggle"
+                onClick={() => toggleBook(bookLabel)}
+              >
+                <span className="book-label-chevron">{isOpen ? '▾' : '▸'}</span>
+                {bookLabel}
+              </span>
+              <span
+                className={`select-badge${bookAllChecked ? ' select-badge--active' : ''}`}
+                onClick={() => bookAvailable.length > 0 && toggleGroup(bookAvailable)}
+              >
+                {bookAllChecked ? '全解除' : '全選択'}
+              </span>
             </h2>
-            {majorGroups.map(({ label: majorLabel, sections }) => {
+
+            {isOpen && majorGroups.map(({ label: majorLabel, sections }) => {
               const majorAvailable = availableSections(sections);
               const majorAllChecked = majorAvailable.length > 0 && majorAvailable.every(s => checkedSections.has(s));
               return (
