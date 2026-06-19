@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { groupByBook, sectionLabel } from '../utils/categoryUtils';
 
-export default function CategoryList({ categories, problems, randomMode, onToggleRandom, mistakesOnlyMode, onToggleMistakesOnly, onStart, results = {}, session }) {
-  const books = groupByBook(categories);
+export default function CategoryList({ categories, problems, selectedBook, onBackToBooks, randomMode, onToggleRandom, mistakesOnlyMode, onToggleMistakesOnly, onStart, results = {}, session }) {
+  const allBooks = groupByBook(categories);
+  const books = selectedBook ? allBooks.filter(b => b.label === selectedBook) : allBooks;
   const [checkedSections, setCheckedSections] = useState(new Set());
 
   function toggleSection(cat) {
@@ -40,6 +41,12 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
 
   return (
     <div className="category-list">
+
+      {onBackToBooks && (
+        <button className="btn-back-books" onClick={onBackToBooks}>
+          ← カテゴリ一覧に戻る
+        </button>
+      )}
 
       <div className="toggle-rows">
         <div className="random-toggle-row">

@@ -1,4 +1,4 @@
-const BOOKS = [
+export const BOOKS = [
   {
     label: '現代麻雀技術論',
     majorCategories: [
@@ -17,6 +17,16 @@ export function sectionNumber(section) {
 
 export function sectionLabel(section) {
   return section.replace(/^\d+_/, '');
+}
+
+export function getBookLabel(section) {
+  const n = sectionNumber(section);
+  for (const book of BOOKS) {
+    if (book.majorCategories.some(({ min, max }) => n >= min && n <= max)) {
+      return book.label;
+    }
+  }
+  return 'その他';
 }
 
 export function getMajorCategory(section) {

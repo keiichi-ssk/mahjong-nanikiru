@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from './lib/supabase';
+import BookSelectView from './components/BookSelectView';
 import CategoryList from './components/CategoryList';
 import ProblemView from './components/ProblemView';
 import './App.css';
@@ -37,6 +38,7 @@ export default function App() {
   const [playingKey, setPlayingKey] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [orderedProblems, setOrderedProblems] = useState([]);
+  const [selectedBook, setSelectedBook] = useState(null);
   const [randomMode, setRandomMode] = useState(() => localStorage.getItem('randomMode') !== 'false');
   const [mistakesOnlyMode, setMistakesOnlyMode] = useState(() => localStorage.getItem('mistakesOnlyMode') !== 'false');
   const restoredRef = useRef(false);
@@ -131,15 +133,30 @@ export default function App() {
     sessionStorage.removeItem('currentIndex');
   }
 
+  function backToBooks() {
+    backToCategories();
+    setSelectedBook(null);
+  }
+
   function renderContent() {
     if (loading) {
       return <div style={{ padding: 32, textAlign: 'center' }}>読み込み中...</div>;
     }
-    if (!isPlaying) {
+    if (!isPlaying && !selectedBook) {
+      return (
+        <BookSelectView
+          problems={problems}
+          onSelectBook={setSelectedBook}
+        />
+      );
+    }
+    if (!isPlaying && selectedBook) {
       return (
         <CategoryList
           categories={categories}
           problems={problems}
+          selectedBook={selectedBook}
+          onBackToBooks={backToBooks}
           randomMode={randomMode}
           onToggleRandom={() => setRandomMode(m => { localStorage.setItem('randomMode', String(!m)); return !m; })}
           mistakesOnlyMode={mistakesOnlyMode}
