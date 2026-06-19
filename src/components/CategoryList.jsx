@@ -126,7 +126,7 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
                         onClick={() => available && toggleSection(cat)}
                         disabled={!available}
                       >
-                        {isChecked && <span className="card-check">✓</span>}
+                        <span className="card-check">{isChecked ? '✓' : ''}</span>
                         <span className="category-name">{sectionLabel(cat)}</span>
                         <span className="category-count">
                           {totalCount === 0

@@ -722,8 +722,12 @@
 }
 
 .explanation-tile-img {
-  width: 24px;
-  height: auto;
+  width: 22px;
+  height: 30px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 3px;
+  padding: 1px;
   vertical-align: middle;
   margin: 0 2px;
 }

@@ -38,7 +38,7 @@ export default function App() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [orderedProblems, setOrderedProblems] = useState([]);
   const [randomMode, setRandomMode] = useState(() => localStorage.getItem('randomMode') !== 'false');
-  const [mistakesOnlyMode, setMistakesOnlyMode] = useState(() => localStorage.getItem('mistakesOnlyMode') !== 'false');
+  const [mistakesOnlyMode, setMistakesOnlyMode] = useState(() => localStorage.getItem('mistakesOnlyMode') === 'true');
   const restoredRef = useRef(false);
   const [session, setSession] = useState(null);
   const [results, setResults] = useState({});
@@ -55,11 +55,12 @@ export default function App() {
     if (!session) { setResults({}); return; }
     supabase
       .from('user_results')
-      .select('problem_id, is_correct')
+      .select('problem_id, correct')
       .eq('user_id', session.user.id)
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) { console.error('[results fetch]', error); return; }
         const map = {};
-        (data || []).forEach(r => { map[r.problem_id] = r.is_correct; });
+        (data || []).forEach(r => { map[r.problem_id] = r.correct; });
         setResults(map);
       });
   }, [session]);
@@ -67,10 +68,13 @@ export default function App() {
   async function handleAnswer(problemId, isCorrect) {
     if (!session) return;
     setResults(prev => ({ ...prev, [problemId]: isCorrect }));
-    await supabase.from('user_results').upsert(
-      { user_id: session.user.id, problem_id: problemId, is_correct: isCorrect, answered_at: new Date().toISOString() },
-      { onConflict: 'user_id,problem_id' }
-    );
+    const { error } = await supabase
+      .from('user_results')
+      .upsert(
+        { user_id: session.user.id, problem_id: problemId, correct: isCorrect },
+        { onConflict: 'user_id,problem_id' }
+      );
+    if (error) console.error('[handleAnswer]', error);
   }
 
   useEffect(() => {

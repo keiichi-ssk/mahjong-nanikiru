@@ -269,9 +269,9 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
     : selected === p.answer && (!needsRiichi || selectedRiichi === p.riichi);
 
   useEffect(() => {
-    if (answered && problemType === 'default') {
-      onAnswer?.(problem.id, isCorrect);
-    }
+    if (!answered) return;
+    if (problemType === 'naki-timing' || problemType === 'naki-choice') return;
+    onAnswer?.(problem.id, isCorrect);
   }, [answered]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleSelect(tile) {

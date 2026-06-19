@@ -295,27 +295,28 @@
 }
 
 .category-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 .category-card {
   background: #3b4252;
   border: 1px solid #434c5e;
-  border-radius: 10px;
-  padding: 18px 12px;
+  border-radius: 8px;
+  padding: 10px 14px;
   cursor: pointer;
-  transition: border-color 0.2s, transform 0.15s, background 0.2s;
+  transition: border-color 0.2s, background 0.2s;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
+  text-align: left;
+  min-height: 46px;
 }
 
 .category-card:hover:not(:disabled) {
   border-color: #81a1c1;
-  transform: translateY(-2px);
   background: #424c60;
 }
 
@@ -327,40 +328,44 @@
 .category-card--checked {
   border-color: #81a1c1;
   background: #3a4a5c;
-  position: relative;
 }
 
 .card-check {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: #88c0d0;
   font-weight: bold;
+  flex-shrink: 0;
+  width: 14px;
 }
 
 .category-name {
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   font-weight: bold;
   color: #eceff4;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .category-count {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: #6a7585;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .category-progress {
-  width: 100%;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 4px;
-  margin-top: 4px;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .category-progress-bar {
-  width: 100%;
+  width: 52px;
   height: 4px;
   background: #434c5e;
   border-radius: 2px;
@@ -377,6 +382,7 @@
 .category-progress-text {
   font-size: 0.7rem;
   color: #a3be8c;
+  white-space: nowrap;
 }
 
 /* ===== 出題開始スティッキーバー ===== */
@@ -803,8 +809,12 @@
 }
 
 .explanation-tile-img {
-  width: 24px;
-  height: auto;
+  width: 22px;
+  height: 30px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 3px;
+  padding: 1px;
   vertical-align: middle;
   margin: 0 2px;
 }
@@ -1171,8 +1181,7 @@
 
   /* カテゴリ一覧 */
   .category-grid {
-    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-    gap: 8px;
+    gap: 6px;
   }
 
   .app-title {
