@@ -4,7 +4,7 @@ import { groupByBook, sectionLabel } from '../utils/categoryUtils';
 export default function CategoryList({ categories, problems, randomMode, onToggleRandom, mistakesOnlyMode, onToggleMistakesOnly, onStart, results = {}, session }) {
   const books = groupByBook(categories);
   const [checkedSections, setCheckedSections] = useState(new Set());
-  const [activeBook, setActiveBook] = useState(null);
+  const [activeBook, setActiveBook] = useState(() => books[0]?.label ?? '');
 
   function toggleSection(cat) {
     setCheckedSections(prev => {
@@ -39,118 +39,63 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
     return true;
   }).length;
 
-  const activeBookData = books.find(b => b.label === activeBook);
+  const activeBookData = books.find(b => b.label === activeBook) ?? books[0];
 
-  // ===== 書籍選択画面 =====
-  if (!activeBook) {
-    return (
-      <div className="category-list">
-        <div className="toggle-rows">
+  return (
+    <div className="category-list">
+
+      <div className="toggle-rows">
+        <div className="random-toggle-row">
+          <span className="random-toggle-label">ランダム出題</span>
+          <button
+            className={`random-toggle${randomMode ? ' random-toggle--on' : ''}`}
+            onClick={onToggleRandom}
+            role="switch"
+            aria-checked={randomMode}
+          >
+            <span className="random-toggle-thumb" />
+          </button>
+        </div>
+        {session && (
           <div className="random-toggle-row">
-            <span className="random-toggle-label">ランダム出題</span>
+            <span className="random-toggle-label">未回答・間違えた問題のみ</span>
             <button
-              className={`random-toggle${randomMode ? ' random-toggle--on' : ''}`}
-              onClick={onToggleRandom}
+              className={`random-toggle${mistakesOnlyMode ? ' random-toggle--on' : ''}`}
+              onClick={onToggleMistakesOnly}
               role="switch"
-              aria-checked={randomMode}
+              aria-checked={mistakesOnlyMode}
             >
               <span className="random-toggle-thumb" />
             </button>
           </div>
-          {session && (
-            <div className="random-toggle-row">
-              <span className="random-toggle-label">未回答・間違えた問題のみ</span>
-              <button
-                className={`random-toggle${mistakesOnlyMode ? ' random-toggle--on' : ''}`}
-                onClick={onToggleMistakesOnly}
-                role="switch"
-                aria-checked={mistakesOnlyMode}
-              >
-                <span className="random-toggle-thumb" />
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div className="book-select-list">
-          {books.map(({ label: bookLabel, majorGroups }) => {
-            const allSections = majorGroups.flatMap(g => g.sections);
-            const totalCount = problems.filter(p => allSections.includes(p.section)).length;
-            const selectedCount = allSections.filter(s => checkedSections.has(s)).length;
-            const correctCount = problems.filter(p => allSections.includes(p.section) && results[p.id] === true).length;
-            const answeredCount = problems.filter(p => allSections.includes(p.section) && results[p.id] !== undefined).length;
-            const hasProblems = totalCount > 0;
-            const progressPct = totalCount > 0 ? (correctCount / totalCount) * 100 : 0;
-
-            return (
-              <button
-                key={bookLabel}
-                className={`book-select-card${!hasProblems ? ' book-select-card--pending' : ''}${selectedCount > 0 ? ' book-select-card--selected' : ''}`}
-                onClick={() => setActiveBook(bookLabel)}
-              >
-                <div className="book-select-card-header">
-                  <span className="book-select-card-title">{bookLabel}</span>
-                  {selectedCount > 0 && (
-                    <span className="book-select-badge">{selectedCount}章選択中</span>
-                  )}
-                </div>
-
-                {hasProblems ? (
-                  <>
-                    <div className="book-select-card-meta">
-                      全{majorGroups.length}章 · {totalCount}問
-                    </div>
-                    {answeredCount > 0 && (
-                      <div className="book-select-progress">
-                        <div className="book-select-progress-bar">
-                          <div
-                            className="book-select-progress-fill"
-                            style={{ width: `${progressPct}%` }}
-                          />
-                        </div>
-                        <span className="book-select-progress-text">{correctCount}/{totalCount}問正解</span>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="book-select-card-meta book-select-card-meta--pending">準備中</div>
-                )}
-
-                <span className="book-select-card-arrow">›</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {checkedSections.size > 0 && (
-          <div className="start-button-bar">
-            <button
-              className="btn-start"
-              onClick={() => onStart(checkedSections)}
-              disabled={totalSelectedProblems === 0}
-            >
-              出題開始（{totalSelectedProblems}問）
-            </button>
-          </div>
         )}
       </div>
-    );
-  }
 
-  // ===== カテゴリ選択画面 =====
-  return (
-    <div className="category-list">
-      <div className="book-nav-header">
-        <button className="btn-book-back" onClick={() => setActiveBook(null)}>
-          ‹ 書籍一覧
-        </button>
-        <span className="book-nav-title">{activeBook}</span>
+      <div className="book-tabs">
+        {books.map(({ label: bookLabel, majorGroups }) => {
+          const bookSections = majorGroups.flatMap(g => g.sections);
+          const selectedCount = bookSections.filter(s => checkedSections.has(s)).length;
+          return (
+            <button
+              key={bookLabel}
+              className={`book-tab${activeBook === bookLabel ? ' book-tab--active' : ''}`}
+              onClick={() => setActiveBook(bookLabel)}
+            >
+              {bookLabel}
+              {selectedCount > 0 && (
+                <span className="book-tab-badge">{selectedCount}</span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      {!activeBookData || activeBookData.majorGroups.length === 0 ? (
+      {activeBookData && activeBookData.majorGroups.length === 0 && (
         <div className="pending-notice">この書籍の問題は準備中です</div>
-      ) : (
-        <div className="book-content">
+      )}
+
+      {activeBookData && activeBookData.majorGroups.length > 0 && (
+        <div key={activeBook} className="book-content">
           {activeBookData.majorGroups.map(({ label: majorLabel, sections }) => {
             const majorAvailable = availableSections(sections);
             const majorAllChecked = majorAvailable.length > 0 && majorAvailable.every(s => checkedSections.has(s));
