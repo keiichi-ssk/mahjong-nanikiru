@@ -132,7 +132,156 @@
   left: 25px;
 }
 
-/* ===== 書籍タブ ===== */
+/* ===== 書籍選択カード（案A） ===== */
+.book-select-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.book-select-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px 44px 18px 20px;
+  background: #3b4252;
+  border: 1px solid #434c5e;
+  border-radius: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s, transform 0.1s;
+}
+
+.book-select-card:hover {
+  border-color: #81a1c1;
+  background: #424c60;
+  transform: translateY(-1px);
+}
+
+.book-select-card--selected {
+  border-color: #5e81ac;
+  background: #3a4a5c;
+}
+
+.book-select-card--pending {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.book-select-card--pending:hover {
+  border-color: #434c5e;
+  background: #3b4252;
+  transform: none;
+}
+
+.book-select-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.book-select-card-title {
+  font-size: 1.05rem;
+  font-weight: bold;
+  color: #ebcb8b;
+}
+
+.book-select-badge {
+  font-size: 0.72rem;
+  font-weight: bold;
+  padding: 2px 8px;
+  background: #5e81ac;
+  color: #eceff4;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.book-select-card-meta {
+  font-size: 0.82rem;
+  color: #6a7585;
+}
+
+.book-select-card-meta--pending {
+  color: #5a6375;
+  font-style: italic;
+}
+
+.book-select-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.book-select-progress-bar {
+  flex: 1;
+  height: 4px;
+  background: #434c5e;
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.book-select-progress-fill {
+  height: 100%;
+  background: #a3be8c;
+  border-radius: 2px;
+  transition: width 0.4s ease;
+}
+
+.book-select-progress-text {
+  font-size: 0.72rem;
+  color: #a3be8c;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.book-select-card-arrow {
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.4rem;
+  color: #4c566a;
+  line-height: 1;
+}
+
+/* ===== カテゴリ選択ヘッダー（案A） ===== */
+.book-nav-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.btn-book-back {
+  background: none;
+  border: 1px solid #434c5e;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.9rem;
+  color: #8896a8;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s, color 0.15s;
+  flex-shrink: 0;
+}
+
+.btn-book-back:hover {
+  border-color: #81a1c1;
+  color: #88c0d0;
+}
+
+.book-nav-title {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #ebcb8b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== 書籍タブ（案B） ===== */
 .book-tabs {
   display: flex;
   gap: 6px;
