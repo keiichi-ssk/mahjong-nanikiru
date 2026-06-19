@@ -266,7 +266,7 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
 
   const isCorrect = isRiichiJudgment
     ? selectedRiichi === p.riichi
-    : selected === p.answer && (!needsRiichi || selectedRiichi === p.riichi);
+    : selected === p.answer && (!needsRiichi || (selectedRiichi ?? false) === p.riichi);
 
   useEffect(() => {
     if (!answered) return;
