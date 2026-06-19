@@ -85,6 +85,7 @@ export default function ProblemEditor({
   const [melds,         setMelds]         = useState(problem.melds ?? [])
   const [explanation,   setExplanation]   = useState(problem.explanation ?? '')
   const [reviewed,      setReviewed]      = useState(problem.reviewed ?? false)
+  const [disabled,      setDisabled]      = useState(problem.disabled ?? false)
   const [addingMeld,    setAddingMeld]    = useState(null)
   const [problemType,   setProblemType]   = useState(problem.problemType   ?? 'default')
   const [discardedTile, setDiscardedTile] = useState(problem.discardedTile ?? null)
@@ -168,10 +169,11 @@ export default function ProblemEditor({
     melds,
     explanation,
     reviewed,
+    disabled,
     problemType,
     discardedTile: discardedTile || null,
     nakiChoices,
-  }), [problem, tiles, answer, dora, riichi, melds, explanation, reviewed, problemType, discardedTile, nakiChoices])
+  }), [problem, tiles, answer, dora, riichi, melds, explanation, reviewed, disabled, problemType, discardedTile, nakiChoices])
 
   const handleSave = useCallback(() => {
     onSave(buildSaveData())
@@ -217,6 +219,14 @@ export default function ProblemEditor({
             onChange={e => setReviewed(e.target.checked)}
           />
           修正済み
+        </label>
+        <label className="reviewed-check" style={{ color: disabled ? '#e74c3c' : undefined }}>
+          <input
+            type="checkbox"
+            checked={disabled}
+            onChange={e => setDisabled(e.target.checked)}
+          />
+          非表示
         </label>
       </div>
 

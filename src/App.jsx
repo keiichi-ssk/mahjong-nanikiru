@@ -84,7 +84,7 @@ export default function App() {
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error) { setLoading(false); return; }
-        setProblems((data || []).map(fromDb));
+        setProblems((data || []).map(fromDb).filter(p => !p.disabled));
         setLoading(false);
       });
     return () => { cancelled = true; };

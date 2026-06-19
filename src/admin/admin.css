@@ -698,6 +698,17 @@
   flex-shrink: 0;
 }
 
+/* ===== 非表示バッジ（サイドバー） ===== */
+.admin-disabled-badge {
+  font-size: 0.68rem;
+  color: #e74c3c;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+.admin-problem-btn--disabled {
+  opacity: 0.5;
+}
+
 /* ===== 保存ボタンエリア ===== */
 .editor-save-area {
   display: flex;

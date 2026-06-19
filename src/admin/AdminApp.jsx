@@ -26,6 +26,7 @@ function toDb(p) {
     riichi:         p.riichi ?? null,
     explanation:    p.explanation ?? '',
     reviewed:       p.reviewed ?? false,
+    disabled:       p.disabled ?? false,
     melds:          p.melds ?? [],
     problem_type:   p.problemType ?? 'default',
     discarded_tile: p.discardedTile ?? null,
@@ -105,6 +106,7 @@ export default function AdminApp() {
       melds:         [],
       explanation:   '',
       reviewed:      false,
+      disabled:      false,
       problemType:   'default',
       discardedTile: null,
       nakiChoices:   [],
@@ -185,10 +187,11 @@ export default function AdminApp() {
                     {catProblems.map((p, i) => (
                       <button
                         key={p.id}
-                        className={`admin-problem-btn${selectedId === p.id ? ' admin-problem-btn--active' : ''}`}
+                        className={`admin-problem-btn${selectedId === p.id ? ' admin-problem-btn--active' : ''}${p.disabled ? ' admin-problem-btn--disabled' : ''}`}
                         onClick={() => setSelectedId(p.id)}
                       >
                         <span>問題 {i + 1}</span>
+                        {p.disabled && <span className="admin-disabled-badge">非表示</span>}
                         {p.reviewed && <span className="admin-reviewed-badge">✓</span>}
                       </button>
                     ))}
