@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from './lib/supabase';
 import CategoryList from './components/CategoryList';
 import ProblemView from './components/ProblemView';
@@ -37,8 +37,9 @@ export default function App() {
   const [playingKey, setPlayingKey] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [orderedProblems, setOrderedProblems] = useState([]);
-  const [randomMode, setRandomMode] = useState(true);
-  const [mistakesOnlyMode, setMistakesOnlyMode] = useState(true);
+  const [randomMode, setRandomMode] = useState(() => localStorage.getItem('randomMode') !== 'false');
+  const [mistakesOnlyMode, setMistakesOnlyMode] = useState(() => localStorage.getItem('mistakesOnlyMode') !== 'false');
+  const restoredRef = useRef(false);
   const [session, setSession] = useState(null);
   const [results, setResults] = useState({});
 
@@ -85,6 +86,23 @@ export default function App() {
     return () => { cancelled = true; };
   }, [session]);
 
+  useEffect(() => {
+    if (loading || problems.length === 0 || restoredRef.current) return;
+    restoredRef.current = true;
+    try {
+      if (sessionStorage.getItem('isPlaying') !== 'true') return;
+      const savedIds = JSON.parse(sessionStorage.getItem('orderedIds') ?? '[]');
+      const savedIndex = parseInt(sessionStorage.getItem('currentIndex') ?? '0');
+      const restored = savedIds.map(id => problems.find(p => p.id === id)).filter(Boolean);
+      if (restored.length > 0) {
+        setOrderedProblems(restored);
+        setCurrentIndex(savedIndex);
+        setIsPlaying(true);
+        setPlayingKey(k => k + 1);
+      }
+    } catch { /* sessionStorage 読み込み失敗時は無視 */ }
+  }, [loading, problems]);
+
   const categories = [...new Set(problems.map(p => p.section))].sort(
     (a, b) => parseInt(a) - parseInt(b)
   );
@@ -94,16 +112,23 @@ export default function App() {
     if (mistakesOnlyMode) {
       catProblems = catProblems.filter(p => results[p.id] !== true);
     }
-    setOrderedProblems(randomMode ? shuffled(catProblems) : catProblems);
+    const ordered = randomMode ? shuffled(catProblems) : catProblems;
+    setOrderedProblems(ordered);
     setIsPlaying(true);
     setPlayingKey(k => k + 1);
     setCurrentIndex(0);
+    sessionStorage.setItem('isPlaying', 'true');
+    sessionStorage.setItem('orderedIds', JSON.stringify(ordered.map(p => p.id)));
+    sessionStorage.setItem('currentIndex', '0');
   }
 
   function backToCategories() {
     setIsPlaying(false);
     setOrderedProblems([]);
     setCurrentIndex(0);
+    sessionStorage.removeItem('isPlaying');
+    sessionStorage.removeItem('orderedIds');
+    sessionStorage.removeItem('currentIndex');
   }
 
   function renderContent() {
@@ -116,9 +141,9 @@ export default function App() {
           categories={categories}
           problems={problems}
           randomMode={randomMode}
-          onToggleRandom={() => setRandomMode(m => !m)}
+          onToggleRandom={() => setRandomMode(m => { localStorage.setItem('randomMode', String(!m)); return !m; })}
           mistakesOnlyMode={mistakesOnlyMode}
-          onToggleMistakesOnly={() => setMistakesOnlyMode(m => !m)}
+          onToggleMistakesOnly={() => setMistakesOnlyMode(m => { localStorage.setItem('mistakesOnlyMode', String(!m)); return !m; })}
           onStart={startSelected}
           results={results}
           session={session}
@@ -132,8 +157,8 @@ export default function App() {
         index={currentIndex}
         total={orderedProblems.length}
         onBack={backToCategories}
-        onPrev={() => setCurrentIndex((i) => i - 1)}
-        onNext={() => setCurrentIndex((i) => i + 1)}
+        onPrev={() => setCurrentIndex((i) => { sessionStorage.setItem('currentIndex', String(i - 1)); return i - 1; })}
+        onNext={() => setCurrentIndex((i) => { sessionStorage.setItem('currentIndex', String(i + 1)); return i + 1; })}
         onAnswer={handleAnswer}
       />
     );

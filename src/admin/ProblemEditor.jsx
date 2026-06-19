@@ -225,9 +225,10 @@ export default function ProblemEditor({
         <div className="editor-section-label">問題タイプ</div>
         <div className="problem-type-selector">
           {[
-            { value: 'default',     label: '通常（何切る）' },
-            { value: 'naki-timing', label: '鳴きタイミング' },
-            { value: 'naki-choice', label: '鳴き選択' },
+            { value: 'default',          label: '通常（何切る）' },
+            { value: 'riichi-judgment',  label: 'リーチ判断' },
+            { value: 'naki-timing',      label: '鳴きタイミング' },
+            { value: 'naki-choice',      label: '鳴き選択' },
           ].map(opt => (
             <button
               key={opt.value}
@@ -477,6 +478,26 @@ export default function ProblemEditor({
               className={`riichi-setting-btn ${riichi === null  ? 'riichi-setting-btn--active' : ''}`}
               onClick={() => setRiichi(null)}
             >設定なし</button>
+          </div>
+        </section>
+      )}
+
+      {/* 正解設定：リーチ判断 */}
+      {problemType === 'riichi-judgment' && (
+        <section className="editor-section">
+          <div className="editor-section-label">正解（リーチ or ダマ）</div>
+          <div className="problem-type-selector">
+            <button
+              className={`problem-type-btn${riichi === true  ? ' problem-type-btn--active' : ''}`}
+              onClick={() => setRiichi(true)}
+            >リーチ</button>
+            <button
+              className={`problem-type-btn${riichi === false ? ' problem-type-btn--active' : ''}`}
+              onClick={() => setRiichi(false)}
+            >ダマ</button>
+          </div>
+          <div className="editor-current">
+            現在の正解: <strong>{riichi === true ? 'リーチ' : riichi === false ? 'ダマ' : '未設定'}</strong>
           </div>
         </section>
       )}

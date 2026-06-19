@@ -250,8 +250,8 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
   const p = useMemo(() => remapProblem(problem, suitMap), [problem, suitMap]);
 
   const problemType   = p.problemType ?? 'default';
-  const isRiichiCategory = p.section === '1_リーチ判断';
-  const needsRiichi = !isRiichiCategory && p.riichi !== null && p.riichi !== undefined;
+  const isRiichiJudgment = problemType === 'riichi-judgment' || (problemType === 'default' && p.section === '1_リーチ判断');
+  const needsRiichi = !isRiichiJudgment && p.riichi !== null && p.riichi !== undefined;
   const answered = selected !== null;
   const hasMetlds = Array.isArray(p.melds) && p.melds.length > 0;
 
@@ -264,7 +264,7 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
     return Object.keys(counts).filter(tile => counts[tile] === 4);
   }, [p.tiles]);
 
-  const isCorrect = isRiichiCategory
+  const isCorrect = isRiichiJudgment
     ? selectedRiichi === p.riichi
     : selected === p.answer && (!needsRiichi || selectedRiichi === p.riichi);
 
@@ -339,8 +339,8 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
         <NakiChoiceView problem={p} onAnswer={isCorrect => onAnswer?.(problem.id, isCorrect)} />
       )}
 
-      {/* ===== リーチ判断カテゴリ ===== */}
-      {problemType === 'default' && isRiichiCategory && (
+      {/* ===== リーチ判断 ===== */}
+      {isRiichiJudgment && (
         <>
           {p.tiles && p.tiles.length > 0 && (
             <div className="hand-and-melds">
@@ -386,7 +386,7 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
       )}
 
       {/* ===== 通常の何切るカテゴリ ===== */}
-      {problemType === 'default' && !isRiichiCategory && (
+      {problemType === 'default' && !isRiichiJudgment && (
         p.tiles && p.tiles.length > 0 ? (
           <>
             <div className="tile-selector-row">

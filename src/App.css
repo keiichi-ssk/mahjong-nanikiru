@@ -862,7 +862,7 @@
 }
 
 .riichi-toggle {
-  align-self: flex-end;
+  align-self: flex-start;
   padding: 8px 28px;
   border-radius: 8px;
   border: 1px solid #434c5e;
@@ -998,11 +998,11 @@
 
 .riichi-choice-btn {
   flex: 1;
-  max-width: 200px;
-  padding: 20px 0;
-  border-radius: 12px;
+  max-width: 120px;
+  padding: 10px 0;
+  border-radius: 8px;
   border: 2px solid;
-  font-size: 1.4rem;
+  font-size: 1rem;
   font-weight: bold;
   cursor: pointer;
   transition: transform 0.1s, box-shadow 0.15s;
