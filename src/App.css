@@ -132,6 +132,72 @@
   left: 25px;
 }
 
+/* ===== 書籍タブ ===== */
+.book-tabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin-bottom: 20px;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.book-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.book-tab {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border: 1px solid #434c5e;
+  border-radius: 8px;
+  background: #3b4252;
+  color: #8896a8;
+  font-size: 0.9rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.book-tab:hover {
+  border-color: #81a1c1;
+  color: #c8d0dc;
+}
+
+.book-tab--active {
+  background: #3a4a5c;
+  border-color: #5e81ac;
+  color: #88c0d0;
+}
+
+.book-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  background: #5e81ac;
+  color: #eceff4;
+  border-radius: 9px;
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
+.book-content {
+  animation: fadeIn 0.15s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 .book-group {
   margin-bottom: 40px;
 }

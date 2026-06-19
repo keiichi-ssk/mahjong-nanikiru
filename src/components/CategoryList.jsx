@@ -4,16 +4,7 @@ import { groupByBook, sectionLabel } from '../utils/categoryUtils';
 export default function CategoryList({ categories, problems, randomMode, onToggleRandom, mistakesOnlyMode, onToggleMistakesOnly, onStart, results = {}, session }) {
   const books = groupByBook(categories);
   const [checkedSections, setCheckedSections] = useState(new Set());
-  const [openBooks, setOpenBooks] = useState(() => new Set(books.map(b => b.label)));
-
-  function toggleBook(bookLabel) {
-    setOpenBooks(prev => {
-      const next = new Set(prev);
-      if (next.has(bookLabel)) next.delete(bookLabel);
-      else next.add(bookLabel);
-      return next;
-    });
-  }
+  const [activeBook, setActiveBook] = useState(() => books[0]?.label ?? '');
 
   function toggleSection(cat) {
     setCheckedSections(prev => {
@@ -48,6 +39,8 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
     return true;
   }).length;
 
+  const activeBookData = books.find(b => b.label === activeBook) ?? books[0];
+
   return (
     <div className="category-list">
 
@@ -78,93 +71,92 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
         )}
       </div>
 
-      {books.map(({ label: bookLabel, majorGroups }) => {
-        const bookSections = majorGroups.flatMap(g => g.sections);
-        const bookAvailable = availableSections(bookSections);
-        const bookAllChecked = bookAvailable.length > 0 && bookAvailable.every(s => checkedSections.has(s));
-        const isOpen = openBooks.has(bookLabel);
-        return (
-          <div key={bookLabel} className="book-group">
-            <h2
-              className={`book-label book-label--selectable${bookAllChecked ? ' book-label--checked' : ''}`}
+      <div className="book-tabs">
+        {books.map(({ label: bookLabel, majorGroups }) => {
+          const bookSections = majorGroups.flatMap(g => g.sections);
+          const selectedCount = bookSections.filter(s => checkedSections.has(s)).length;
+          return (
+            <button
+              key={bookLabel}
+              className={`book-tab${activeBook === bookLabel ? ' book-tab--active' : ''}`}
+              onClick={() => setActiveBook(bookLabel)}
             >
-              <span
-                className="book-label-toggle"
-                onClick={() => toggleBook(bookLabel)}
-              >
-                <span className="book-label-chevron">{isOpen ? '▾' : '▸'}</span>
-                {bookLabel}
-              </span>
-              <span
-                className={`select-badge${bookAllChecked ? ' select-badge--active' : ''}`}
-                onClick={() => bookAvailable.length > 0 && toggleGroup(bookAvailable)}
-              >
-                {bookAllChecked ? '全解除' : '全選択'}
-              </span>
-            </h2>
+              {bookLabel}
+              {selectedCount > 0 && (
+                <span className="book-tab-badge">{selectedCount}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
 
-            {isOpen && majorGroups.map(({ label: majorLabel, sections }) => {
-              const majorAvailable = availableSections(sections);
-              const majorAllChecked = majorAvailable.length > 0 && majorAvailable.every(s => checkedSections.has(s));
-              return (
-                <div key={majorLabel} className="major-category-group">
-                  <h3
-                    className={`major-category-label major-category-label--selectable${majorAllChecked ? ' major-category-label--checked' : ''}`}
-                    onClick={() => majorAvailable.length > 0 && toggleGroup(majorAvailable)}
-                  >
-                    <span>{majorLabel}</span>
-                    <span className={`select-badge${majorAllChecked ? ' select-badge--active' : ''}`}>{majorAllChecked ? '全解除' : '全選択'}</span>
-                  </h3>
-                  <div className="category-grid">
-                    {sections.map((cat) => {
-                      const catProblems = problems.filter((p) => p.section === cat);
-                      const totalCount = catProblems.length;
-                      const filteredCount = mistakesOnlyMode
-                        ? catProblems.filter(p => results[p.id] !== true).length
-                        : totalCount;
-                      const available = filteredCount > 0;
-                      const isChecked = checkedSections.has(cat);
-                      const answeredCount = catProblems.filter(p => results[p.id] !== undefined).length;
-                      const correctCount = catProblems.filter(p => results[p.id] === true).length;
-                      return (
-                        <button
-                          key={cat}
-                          className={`category-card${available ? '' : ' category-card--disabled'}${isChecked ? ' category-card--checked' : ''}`}
-                          onClick={() => available && toggleSection(cat)}
-                          disabled={!available}
-                        >
-                          {isChecked && <span className="card-check">✓</span>}
-                          <span className="category-name">{sectionLabel(cat)}</span>
-                          <span className="category-count">
-                            {totalCount === 0
-                              ? '準備中'
-                              : mistakesOnlyMode
-                                ? `${filteredCount}問（未回答・不正解）`
-                                : `${totalCount}問`}
-                          </span>
-                          {!mistakesOnlyMode && totalCount > 0 && answeredCount > 0 && (
-                            <div className="category-progress">
-                              <div className="category-progress-bar">
-                                <div
-                                  className="category-progress-fill"
-                                  style={{ width: `${(correctCount / totalCount) * 100}%` }}
-                                />
-                              </div>
-                              <span className="category-progress-text">
-                                {correctCount}/{totalCount}問正解
-                              </span>
+      {activeBookData && activeBookData.majorGroups.length === 0 && (
+        <div className="pending-notice">この書籍の問題は準備中です</div>
+      )}
+
+      {activeBookData && activeBookData.majorGroups.length > 0 && (
+        <div key={activeBook} className="book-content">
+          {activeBookData.majorGroups.map(({ label: majorLabel, sections }) => {
+            const majorAvailable = availableSections(sections);
+            const majorAllChecked = majorAvailable.length > 0 && majorAvailable.every(s => checkedSections.has(s));
+            return (
+              <div key={majorLabel} className="major-category-group">
+                <h3
+                  className={`major-category-label major-category-label--selectable${majorAllChecked ? ' major-category-label--checked' : ''}`}
+                  onClick={() => majorAvailable.length > 0 && toggleGroup(majorAvailable)}
+                >
+                  <span>{majorLabel}</span>
+                  <span className={`select-badge${majorAllChecked ? ' select-badge--active' : ''}`}>{majorAllChecked ? '全解除' : '全選択'}</span>
+                </h3>
+                <div className="category-grid">
+                  {sections.map((cat) => {
+                    const catProblems = problems.filter((p) => p.section === cat);
+                    const totalCount = catProblems.length;
+                    const filteredCount = mistakesOnlyMode
+                      ? catProblems.filter(p => results[p.id] !== true).length
+                      : totalCount;
+                    const available = filteredCount > 0;
+                    const isChecked = checkedSections.has(cat);
+                    const answeredCount = catProblems.filter(p => results[p.id] !== undefined).length;
+                    const correctCount = catProblems.filter(p => results[p.id] === true).length;
+                    return (
+                      <button
+                        key={cat}
+                        className={`category-card${available ? '' : ' category-card--disabled'}${isChecked ? ' category-card--checked' : ''}`}
+                        onClick={() => available && toggleSection(cat)}
+                        disabled={!available}
+                      >
+                        {isChecked && <span className="card-check">✓</span>}
+                        <span className="category-name">{sectionLabel(cat)}</span>
+                        <span className="category-count">
+                          {totalCount === 0
+                            ? '準備中'
+                            : mistakesOnlyMode
+                              ? `${filteredCount}問（未回答・不正解）`
+                              : `${totalCount}問`}
+                        </span>
+                        {!mistakesOnlyMode && totalCount > 0 && answeredCount > 0 && (
+                          <div className="category-progress">
+                            <div className="category-progress-bar">
+                              <div
+                                className="category-progress-fill"
+                                style={{ width: `${(correctCount / totalCount) * 100}%` }}
+                              />
                             </div>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
+                            <span className="category-progress-text">
+                              {correctCount}/{totalCount}問正解
+                            </span>
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
-        );
-      })}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {checkedSections.size > 0 && (
         <div className="start-button-bar">

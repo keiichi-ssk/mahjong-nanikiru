@@ -9,6 +9,14 @@ export const BOOKS = [
       { label: '鳴きの技術',           min: 18, max: 24 },
     ],
   },
+  {
+    label: '新科学する麻雀',
+    majorCategories: [
+      { label: '基本戦略',     min: 25, max: 29 },
+      { label: '手組みの技術', min: 30, max: 36 },
+      { label: '押し引き',     min: 37, max: 43 },
+    ],
+  },
 ];
 
 export function sectionNumber(section) {
@@ -54,5 +62,5 @@ export function groupByBook(categories) {
       }))
       .filter(({ sections }) => sections.length > 0);
     return { label: bookLabel, majorGroups };
-  }).filter(({ majorGroups }) => majorGroups.length > 0);
+  });
 }
