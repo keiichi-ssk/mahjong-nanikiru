@@ -73,6 +73,30 @@
   color: #bf616a;
 }
 
+/* ===== アクセス拒否画面 ===== */
+.access-denied {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 80px 24px;
+  text-align: center;
+}
+
+.access-denied-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #eceff4;
+  margin: 0;
+}
+
+.access-denied-sub {
+  font-size: 0.9rem;
+  color: #6a7585;
+  margin: 0;
+}
+
 /* ===== カテゴリー一覧 ===== */
 .category-list {
   text-align: center;
@@ -282,9 +306,9 @@
 .select-badge {
   font-size: 0.75rem;
   font-weight: normal;
-  color: #6a7585;
+  color: #8896a8;
   padding: 2px 8px;
-  border: 1px solid #434c5e;
+  border: 1px solid #4c566a;
   border-radius: 10px;
   flex-shrink: 0;
 }
@@ -315,7 +339,7 @@
   min-height: 46px;
 }
 
-.category-card:hover:not(:disabled) {
+.category-card:hover:not(.category-card--disabled) {
   border-color: #81a1c1;
   background: #424c60;
 }
@@ -383,6 +407,75 @@
   font-size: 0.7rem;
   color: #a3be8c;
   white-space: nowrap;
+}
+
+/* ===== 正誤リセットボタン ===== */
+.btn-reset-section {
+  background: none;
+  border: 1px solid #4c566a;
+  border-radius: 5px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  color: #8896a8;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.5;
+}
+
+.btn-reset-section:hover {
+  border-color: #bf616a;
+  color: #bf616a;
+  background: rgba(191, 97, 106, 0.08);
+}
+
+.major-category-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-reset-major {
+  background: none;
+  border: 1px solid #4c566a;
+  border-radius: 5px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  color: #8896a8;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+
+.btn-reset-major:hover {
+  border-color: #bf616a;
+  color: #bf616a;
+  background: rgba(191, 97, 106, 0.08);
+}
+
+.book-reset-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 14px;
+}
+
+.btn-reset-book {
+  background: none;
+  border: 1px solid #4c566a;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  color: #8896a8;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+
+.btn-reset-book:hover {
+  border-color: #bf616a;
+  color: #bf616a;
+  background: rgba(191, 97, 106, 0.08);
 }
 
 /* ===== 出題開始スティッキーバー ===== */

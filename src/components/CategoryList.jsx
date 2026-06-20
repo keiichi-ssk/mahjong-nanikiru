@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { groupByBook, sectionLabel } from '../utils/categoryUtils';
 
-export default function CategoryList({ categories, problems, randomMode, onToggleRandom, mistakesOnlyMode, onToggleMistakesOnly, onStart, results = {}, session }) {
+export default function CategoryList({ categories, problems, randomMode, onToggleRandom, mistakesOnlyMode, onToggleMistakesOnly, onStart, results = {}, session, onResetResults }) {
   const books = groupByBook(categories);
   const [checkedSections, setCheckedSections] = useState(new Set());
   const [activeBook, setActiveBook] = useState(() => books[0]?.label ?? '');
@@ -40,6 +40,28 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
   }).length;
 
   const activeBookData = books.find(b => b.label === activeBook) ?? books[0];
+
+  function resetSection(cat, catProblems) {
+    if (!window.confirm(`「${sectionLabel(cat)}」の正誤をリセットしますか？`)) return;
+    onResetResults(catProblems.map(p => p.id));
+  }
+
+  function resetMajor(majorLabel, sections) {
+    if (!window.confirm(`「${majorLabel}」の正誤をリセットしますか？`)) return;
+    const ids = sections.flatMap(s => problems.filter(p => p.section === s)).map(p => p.id);
+    onResetResults(ids);
+  }
+
+  function resetBook(bookLabel) {
+    if (!window.confirm(`「${bookLabel}」全体の正誤をリセットしますか？`)) return;
+    const bookData = books.find(b => b.label === bookLabel);
+    if (!bookData) return;
+    const ids = bookData.majorGroups
+      .flatMap(g => g.sections)
+      .flatMap(s => problems.filter(p => p.section === s))
+      .map(p => p.id);
+    onResetResults(ids);
+  }
 
   return (
     <div className="category-list">
@@ -96,9 +118,25 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
 
       {activeBookData && activeBookData.majorGroups.length > 0 && (
         <div key={activeBook} className="book-content">
+          {session && onResetResults && (() => {
+            const bookProblems = activeBookData.majorGroups
+              .flatMap(g => g.sections)
+              .flatMap(s => problems.filter(p => p.section === s));
+            const answeredInBook = bookProblems.filter(p => results[p.id] !== undefined).length;
+            return answeredInBook > 0 ? (
+              <div className="book-reset-bar">
+                <button className="btn-reset-book" onClick={() => resetBook(activeBook)}>
+                  「{activeBook}」の正誤をリセット
+                </button>
+              </div>
+            ) : null;
+          })()}
+
           {activeBookData.majorGroups.map(({ label: majorLabel, sections }) => {
             const majorAvailable = availableSections(sections);
             const majorAllChecked = majorAvailable.length > 0 && majorAvailable.every(s => checkedSections.has(s));
+            const majorProblems = sections.flatMap(s => problems.filter(p => p.section === s));
+            const answeredInMajor = majorProblems.filter(p => results[p.id] !== undefined).length;
             return (
               <div key={majorLabel} className="major-category-group">
                 <h3
@@ -106,7 +144,17 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
                   onClick={() => majorAvailable.length > 0 && toggleGroup(majorAvailable)}
                 >
                   <span>{majorLabel}</span>
-                  <span className={`select-badge${majorAllChecked ? ' select-badge--active' : ''}`}>{majorAllChecked ? '全解除' : '全選択'}</span>
+                  <div className="major-category-actions">
+                    {session && onResetResults && answeredInMajor > 0 && (
+                      <button
+                        className="btn-reset-major"
+                        onClick={(e) => { e.stopPropagation(); resetMajor(majorLabel, sections); }}
+                      >
+                        正誤をリセット
+                      </button>
+                    )}
+                    <span className={`select-badge${majorAllChecked ? ' select-badge--active' : ''}`}>{majorAllChecked ? '全解除' : '全選択'}</span>
+                  </div>
                 </h3>
                 <div className="category-grid">
                   {sections.map((cat) => {
@@ -120,11 +168,13 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
                     const answeredCount = catProblems.filter(p => results[p.id] !== undefined).length;
                     const correctCount = catProblems.filter(p => results[p.id] === true).length;
                     return (
-                      <button
+                      <div
                         key={cat}
                         className={`category-card${available ? '' : ' category-card--disabled'}${isChecked ? ' category-card--checked' : ''}`}
                         onClick={() => available && toggleSection(cat)}
-                        disabled={!available}
+                        role="button"
+                        tabIndex={available ? 0 : -1}
+                        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && available && toggleSection(cat)}
                       >
                         <span className="card-check">{isChecked ? '✓' : ''}</span>
                         <span className="category-name">{sectionLabel(cat)}</span>
@@ -148,7 +198,15 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
                             </span>
                           </div>
                         )}
-                      </button>
+                        {session && onResetResults && answeredCount > 0 && (
+                          <button
+                            className="btn-reset-section"
+                            onClick={(e) => { e.stopPropagation(); resetSection(cat, catProblems); }}
+                          >
+                            正誤をリセット
+                          </button>
+                        )}
+                      </div>
                     );
                   })}
                 </div>

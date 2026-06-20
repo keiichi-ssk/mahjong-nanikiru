@@ -41,6 +41,7 @@ export default function App() {
   const [mistakesOnlyMode, setMistakesOnlyMode] = useState(() => localStorage.getItem('mistakesOnlyMode') === 'true');
   const restoredRef = useRef(false);
   const [session, setSession] = useState(null);
+  const [isAllowed, setIsAllowed] = useState(null);
   const [results, setResults] = useState({});
 
   useEffect(() => {
@@ -50,6 +51,16 @@ export default function App() {
     });
     return () => subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    if (!session) { setIsAllowed(null); return; }
+    supabase
+      .from('allowed_users')
+      .select('email')
+      .eq('email', session.user.email)
+      .single()
+      .then(({ data }) => setIsAllowed(!!data));
+  }, [session]);
 
   useEffect(() => {
     if (!session) { setResults({}); return; }
@@ -75,6 +86,21 @@ export default function App() {
         { onConflict: 'user_id,problem_id' }
       );
     if (error) console.error('[handleAnswer]', error);
+  }
+
+  async function handleResetResults(problemIds) {
+    if (!session || !problemIds.length) return;
+    setResults(prev => {
+      const next = { ...prev };
+      problemIds.forEach(id => delete next[id]);
+      return next;
+    });
+    const { error } = await supabase
+      .from('user_results')
+      .delete()
+      .eq('user_id', session.user.id)
+      .in('problem_id', problemIds);
+    if (error) console.error('[handleResetResults]', error);
   }
 
   useEffect(() => {
@@ -136,6 +162,20 @@ export default function App() {
   }
 
   function renderContent() {
+    if (session && isAllowed === null) {
+      return <div style={{ padding: 32, textAlign: 'center' }}>読み込み中...</div>;
+    }
+    if (session && isAllowed === false) {
+      return (
+        <div className="access-denied">
+          <p className="access-denied-title">アクセス権がありません</p>
+          <p className="access-denied-sub">このアプリは限定公開です。</p>
+          <button className="btn-logout" onClick={() => supabase.auth.signOut()}>
+            ログアウト
+          </button>
+        </div>
+      );
+    }
     if (loading) {
       return <div style={{ padding: 32, textAlign: 'center' }}>読み込み中...</div>;
     }
@@ -151,6 +191,7 @@ export default function App() {
           onStart={startSelected}
           results={results}
           session={session}
+          onResetResults={handleResetResults}
         />
       );
     }
