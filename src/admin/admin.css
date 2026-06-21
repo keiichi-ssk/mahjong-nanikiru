@@ -1180,3 +1180,68 @@ kbd {
   border-color: #f5c842;
   color: #f5c842;
 }
+
+/* ===== IDジャンプ ===== */
+.admin-id-jump {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  border-bottom: 1px solid #1a2a4a;
+}
+
+.admin-id-jump-input {
+  flex: 1;
+  background: #0d1426;
+  color: #ddd;
+  border: 1px solid #1a2a4a;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 0.82rem;
+  min-width: 0;
+}
+
+.admin-id-jump-input:focus {
+  outline: none;
+  border-color: #5e81ac;
+}
+
+.admin-id-jump-btn {
+  background: #1a3a5c;
+  color: #aac;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.admin-id-jump-btn:hover { background: #5e81ac; color: #fff; }
+
+/* ===== 問題ラベル・ID表示 ===== */
+.admin-problem-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.admin-problem-id {
+  font-size: 0.72rem;
+  color: #5e81ac;
+  font-family: monospace;
+  flex-shrink: 0;
+}
+
+.admin-problem-btn--active .admin-problem-id {
+  color: #88aacc;
+}
+
+.admin-problem-badges {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}

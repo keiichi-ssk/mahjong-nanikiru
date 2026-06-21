@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { groupByBook, sectionLabel } from '../utils/categoryUtils';
 
-export default function CategoryList({ categories, problems, randomMode, onToggleRandom, mistakesOnlyMode, onToggleMistakesOnly, onStart, results = {}, session, onResetResults }) {
+export default function CategoryList({ categories, problems, randomMode, onToggleRandom, unansweredOnlyMode, onToggleUnansweredOnly, wrongOnlyMode, onToggleWrongOnly, onStart, results = {}, session, onResetResults }) {
   const books = groupByBook(categories);
   const [checkedSections, setCheckedSections] = useState(new Set());
   const [activeBook, setActiveBook] = useState(() => books[0]?.label ?? '');
@@ -25,19 +25,33 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
     });
   }
 
+  const filterActive = unansweredOnlyMode || wrongOnlyMode;
+
+  function isProblemIncluded(p) {
+    if (!filterActive) return true;
+    if (unansweredOnlyMode && results[p.id] === undefined) return true;
+    if (wrongOnlyMode && results[p.id] === false) return true;
+    return false;
+  }
+
   function availableSections(sections) {
     return sections.filter(cat => {
       const catProblems = problems.filter(p => p.section === cat);
-      if (mistakesOnlyMode) return catProblems.some(p => results[p.id] !== true);
+      if (filterActive) return catProblems.some(isProblemIncluded);
       return catProblems.length > 0;
     });
   }
 
   const totalSelectedProblems = problems.filter(p => {
     if (!checkedSections.has(p.section)) return false;
-    if (mistakesOnlyMode) return results[p.id] !== true;
-    return true;
+    return isProblemIncluded(p);
   }).length;
+
+  function filterLabel() {
+    if (unansweredOnlyMode && wrongOnlyMode) return '未回答・不正解';
+    if (unansweredOnlyMode) return '未回答';
+    return '不正解';
+  }
 
   const activeBookData = books.find(b => b.label === activeBook) ?? books[0];
 
@@ -79,17 +93,30 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
           </button>
         </div>
         {session && (
-          <div className="random-toggle-row">
-            <span className="random-toggle-label">未回答・間違えた問題のみ</span>
-            <button
-              className={`random-toggle${mistakesOnlyMode ? ' random-toggle--on' : ''}`}
-              onClick={onToggleMistakesOnly}
-              role="switch"
-              aria-checked={mistakesOnlyMode}
-            >
-              <span className="random-toggle-thumb" />
-            </button>
-          </div>
+          <>
+            <div className="random-toggle-row">
+              <span className="random-toggle-label">未回答の問題</span>
+              <button
+                className={`random-toggle${unansweredOnlyMode ? ' random-toggle--on' : ''}`}
+                onClick={onToggleUnansweredOnly}
+                role="switch"
+                aria-checked={unansweredOnlyMode}
+              >
+                <span className="random-toggle-thumb" />
+              </button>
+            </div>
+            <div className="random-toggle-row">
+              <span className="random-toggle-label">間違えた問題</span>
+              <button
+                className={`random-toggle${wrongOnlyMode ? ' random-toggle--on' : ''}`}
+                onClick={onToggleWrongOnly}
+                role="switch"
+                aria-checked={wrongOnlyMode}
+              >
+                <span className="random-toggle-thumb" />
+              </button>
+            </div>
+          </>
         )}
       </div>
 
@@ -160,10 +187,10 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
                   {sections.map((cat) => {
                     const catProblems = problems.filter((p) => p.section === cat);
                     const totalCount = catProblems.length;
-                    const filteredCount = mistakesOnlyMode
-                      ? catProblems.filter(p => results[p.id] !== true).length
+                    const filteredCount = filterActive
+                      ? catProblems.filter(isProblemIncluded).length
                       : totalCount;
-                    const available = filteredCount > 0;
+                    const available = filterActive ? filteredCount > 0 : totalCount > 0;
                     const isChecked = checkedSections.has(cat);
                     const answeredCount = catProblems.filter(p => results[p.id] !== undefined).length;
                     const correctCount = catProblems.filter(p => results[p.id] === true).length;
@@ -181,11 +208,11 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
                         <span className="category-count">
                           {totalCount === 0
                             ? '準備中'
-                            : mistakesOnlyMode
-                              ? `${filteredCount}問（未回答・不正解）`
+                            : filterActive
+                              ? `${filteredCount}問（${filterLabel()}）`
                               : `${totalCount}問`}
                         </span>
-                        {!mistakesOnlyMode && totalCount > 0 && answeredCount > 0 && (
+                        {!filterActive && totalCount > 0 && answeredCount > 0 && (
                           <div className="category-progress">
                             <div className="category-progress-bar">
                               <div

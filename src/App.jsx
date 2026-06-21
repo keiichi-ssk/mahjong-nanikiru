@@ -39,7 +39,8 @@ export default function App() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [orderedProblems, setOrderedProblems] = useState([]);
   const [randomMode, setRandomMode] = useState(() => localStorage.getItem('randomMode') !== 'false');
-  const [mistakesOnlyMode, setMistakesOnlyMode] = useState(() => localStorage.getItem('mistakesOnlyMode') === 'true');
+  const [unansweredOnlyMode, setUnansweredOnlyMode] = useState(() => localStorage.getItem('unansweredOnlyMode') === 'true');
+  const [wrongOnlyMode, setWrongOnlyMode] = useState(() => localStorage.getItem('wrongOnlyMode') === 'true');
   const restoredRef = useRef(false);
   const [session, setSession] = useState(null);
   const [isAllowed, setIsAllowed] = useState(null);
@@ -148,8 +149,12 @@ export default function App() {
 
   function startSelected(sections) {
     let catProblems = visibleProblems.filter(p => sections.has(p.section));
-    if (mistakesOnlyMode) {
-      catProblems = catProblems.filter(p => results[p.id] !== true);
+    if (unansweredOnlyMode || wrongOnlyMode) {
+      catProblems = catProblems.filter(p => {
+        if (unansweredOnlyMode && results[p.id] === undefined) return true;
+        if (wrongOnlyMode && results[p.id] === false) return true;
+        return false;
+      });
     }
     const ordered = randomMode ? shuffled(catProblems) : catProblems;
     setOrderedProblems(ordered);
@@ -195,8 +200,10 @@ export default function App() {
           problems={visibleProblems}
           randomMode={randomMode}
           onToggleRandom={() => setRandomMode(m => { localStorage.setItem('randomMode', String(!m)); return !m; })}
-          mistakesOnlyMode={mistakesOnlyMode}
-          onToggleMistakesOnly={() => setMistakesOnlyMode(m => { localStorage.setItem('mistakesOnlyMode', String(!m)); return !m; })}
+          unansweredOnlyMode={unansweredOnlyMode}
+          onToggleUnansweredOnly={() => setUnansweredOnlyMode(m => { localStorage.setItem('unansweredOnlyMode', String(!m)); return !m; })}
+          wrongOnlyMode={wrongOnlyMode}
+          onToggleWrongOnly={() => setWrongOnlyMode(m => { localStorage.setItem('wrongOnlyMode', String(!m)); return !m; })}
           onStart={startSelected}
           results={results}
           session={session}

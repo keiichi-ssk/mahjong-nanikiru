@@ -314,7 +314,10 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
     <div className="problem-view">
       <div className="problem-header">
         <button className="btn-back" onClick={onBack}>← カテゴリへ</button>
-        <span className="problem-counter">問題 {index + 1} / {total}</span>
+        <div className="problem-header-right">
+          <span className="problem-counter">問題 {index + 1} / {total}</span>
+          <span className="problem-id-label">#{problem.id}</span>
+        </div>
       </div>
 
       {(() => {

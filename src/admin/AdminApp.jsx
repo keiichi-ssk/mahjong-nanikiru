@@ -43,6 +43,7 @@ export default function AdminApp() {
   const [problems, setProblems]       = useState([])
   const [selectedCat, setSelectedCat] = useState(null)
   const [selectedId, setSelectedId]   = useState(null)
+  const [idJumpInput, setIdJumpInput] = useState('')
   const [saveStatus, setSaveStatus]   = useState('')
   const [activeTab, setActiveTab]     = useState('problems')
   const [allowedUsers, setAllowedUsers] = useState([])
@@ -244,6 +245,38 @@ export default function AdminApp() {
           >ユーザー管理</button>
         </div>
         {saveStatus && <div className="admin-save-status">{saveStatus}</div>}
+        <div className="admin-id-jump" style={{ display: activeTab === 'problems' ? undefined : 'none' }}>
+          <input
+            className="admin-id-jump-input"
+            type="number"
+            placeholder="IDで移動…"
+            value={idJumpInput}
+            onChange={e => setIdJumpInput(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                const id = parseInt(idJumpInput)
+                const target = problems.find(p => p.id === id)
+                if (target) {
+                  setSelectedCat(target.section)
+                  setSelectedId(target.id)
+                  setIdJumpInput('')
+                }
+              }
+            }}
+          />
+          <button
+            className="admin-id-jump-btn"
+            onClick={() => {
+              const id = parseInt(idJumpInput)
+              const target = problems.find(p => p.id === id)
+              if (target) {
+                setSelectedCat(target.section)
+                setSelectedId(target.id)
+                setIdJumpInput('')
+              }
+            }}
+          >移動</button>
+        </div>
         <div className="admin-cat-list" style={{ display: activeTab === 'problems' ? undefined : 'none' }}>
           {categories.map(cat => {
             const catTotal    = problems.filter(p => p.section === cat).length
@@ -268,9 +301,14 @@ export default function AdminApp() {
                         className={`admin-problem-btn${selectedId === p.id ? ' admin-problem-btn--active' : ''}${p.disabled ? ' admin-problem-btn--disabled' : ''}`}
                         onClick={() => setSelectedId(p.id)}
                       >
-                        <span>問題 {i + 1}</span>
-                        {p.disabled && <span className="admin-disabled-badge">非表示</span>}
-                        {p.reviewed && <span className="admin-reviewed-badge">✓</span>}
+                        <span className="admin-problem-label">
+                          <span className="admin-problem-id">#{p.id}</span>
+                          <span>問題 {i + 1}</span>
+                        </span>
+                        <span className="admin-problem-badges">
+                          {p.disabled && <span className="admin-disabled-badge">非表示</span>}
+                          {p.reviewed && <span className="admin-reviewed-badge">✓</span>}
+                        </span>
                       </button>
                     ))}
                     <button className="admin-add-problem-btn" onClick={handleAddProblem}>

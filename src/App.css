@@ -600,9 +600,22 @@
   color: #88c0d0;
 }
 
+.problem-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
 .problem-counter {
   color: #6a7585;
   font-size: 0.9rem;
+}
+
+.problem-id-label {
+  color: #7a8ea0;
+  font-size: 0.78rem;
+  font-family: monospace;
 }
 
 .problem-info-row {
