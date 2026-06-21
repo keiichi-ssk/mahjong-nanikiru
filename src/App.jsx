@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from './lib/supabase';
 import CategoryList from './components/CategoryList';
 import ProblemView from './components/ProblemView';
+import { getMajorCategory } from './utils/categoryUtils';
 import './App.css';
 
 function fromDb(p) {
@@ -42,6 +43,7 @@ export default function App() {
   const restoredRef = useRef(false);
   const [session, setSession] = useState(null);
   const [isAllowed, setIsAllowed] = useState(null);
+  const [allowedMajorCategories, setAllowedMajorCategories] = useState(null);
   const [results, setResults] = useState({});
 
   useEffect(() => {
@@ -53,13 +55,16 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!session) { setIsAllowed(null); return; }
+    if (!session) { setIsAllowed(null); setAllowedMajorCategories(null); return; }
     supabase
       .from('allowed_users')
-      .select('email')
+      .select('email, allowed_major_categories')
       .eq('email', session.user.email)
       .single()
-      .then(({ data }) => setIsAllowed(!!data));
+      .then(({ data }) => {
+        setIsAllowed(!!data);
+        setAllowedMajorCategories(data?.allowed_major_categories ?? null);
+      });
   }, [session]);
 
   useEffect(() => {
@@ -133,12 +138,16 @@ export default function App() {
     } catch { /* sessionStorage 読み込み失敗時は無視 */ }
   }, [loading, problems]);
 
-  const categories = [...new Set(problems.map(p => p.section))].sort(
+  const visibleProblems = allowedMajorCategories
+    ? problems.filter(p => allowedMajorCategories.includes(getMajorCategory(p.section)))
+    : problems;
+
+  const categories = [...new Set(visibleProblems.map(p => p.section))].sort(
     (a, b) => parseInt(a) - parseInt(b)
   );
 
   function startSelected(sections) {
-    let catProblems = problems.filter(p => sections.has(p.section));
+    let catProblems = visibleProblems.filter(p => sections.has(p.section));
     if (mistakesOnlyMode) {
       catProblems = catProblems.filter(p => results[p.id] !== true);
     }
@@ -183,7 +192,7 @@ export default function App() {
       return (
         <CategoryList
           categories={categories}
-          problems={problems}
+          problems={visibleProblems}
           randomMode={randomMode}
           onToggleRandom={() => setRandomMode(m => { localStorage.setItem('randomMode', String(!m)); return !m; })}
           mistakesOnlyMode={mistakesOnlyMode}

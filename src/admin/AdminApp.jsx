@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import ProblemEditor from './ProblemEditor'
+import { BOOKS } from '../utils/categoryUtils'
 
 function categoryLabel(name) {
   return name.replace(/^\d+_/, '')
@@ -34,6 +35,8 @@ function toDb(p) {
   }
 }
 
+const ALL_MAJOR_CATEGORIES = BOOKS.flatMap(b => b.majorCategories.map(c => ({ book: b.label, label: c.label })))
+
 export default function AdminApp() {
   const [session, setSession]         = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
@@ -41,6 +44,11 @@ export default function AdminApp() {
   const [selectedCat, setSelectedCat] = useState(null)
   const [selectedId, setSelectedId]   = useState(null)
   const [saveStatus, setSaveStatus]   = useState('')
+  const [activeTab, setActiveTab]     = useState('problems')
+  const [allowedUsers, setAllowedUsers] = useState([])
+  const [selectedUserEmail, setSelectedUserEmail] = useState(null)
+  const [userSaveStatus, setUserSaveStatus] = useState('')
+  const [newUserEmail, setNewUserEmail] = useState('')
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -58,6 +66,67 @@ export default function AdminApp() {
     supabase.from('problems').select('*').order('id')
       .then(({ data }) => setProblems((data || []).map(fromDb)))
   }, [session])
+
+  useEffect(() => {
+    if (!session || activeTab !== 'users') return
+    supabase.from('allowed_users').select('email, allowed_major_categories').order('email')
+      .then(({ data }) => setAllowedUsers(data || []))
+  }, [session, activeTab])
+
+  async function handleToggleUserCategory(email, categoryLabel, checked) {
+    const user = allowedUsers.find(u => u.email === email)
+    if (!user) return
+    const current = user.allowed_major_categories
+    const allLabels = ALL_MAJOR_CATEGORIES.map(c => c.label)
+    let next
+    if (checked) {
+      const base = current ?? []
+      next = [...base, categoryLabel]
+    } else {
+      const base = current ?? allLabels
+      next = base.filter(c => c !== categoryLabel)
+      if (next.length === 0) next = null
+    }
+    const { error } = await supabase
+      .from('allowed_users')
+      .update({ allowed_major_categories: next })
+      .eq('email', email)
+    if (error) {
+      console.error('[handleToggleUserCategory]', error)
+      setUserSaveStatus(`保存失敗: ${error.message}`)
+    } else {
+      setAllowedUsers(prev => prev.map(u => u.email === email ? { ...u, allowed_major_categories: next } : u))
+      setUserSaveStatus('保存しました ✓')
+    }
+    setTimeout(() => setUserSaveStatus(''), 2000)
+  }
+
+  async function handleAddUser() {
+    const email = newUserEmail.trim()
+    if (!email) return
+    const { error } = await supabase.from('allowed_users').insert({ email })
+    if (error) {
+      setUserSaveStatus('追加失敗 ✗')
+    } else {
+      setAllowedUsers(prev => [...prev, { email, allowed_major_categories: null }].sort((a, b) => a.email.localeCompare(b.email)))
+      setNewUserEmail('')
+      setUserSaveStatus(`${email} を追加しました ✓`)
+    }
+    setTimeout(() => setUserSaveStatus(''), 3000)
+  }
+
+  async function handleRemoveUser(email) {
+    if (!window.confirm(`${email} をアクセス許可リストから削除しますか？`)) return
+    const { error } = await supabase.from('allowed_users').delete().eq('email', email)
+    if (error) {
+      setUserSaveStatus('削除失敗 ✗')
+    } else {
+      setAllowedUsers(prev => prev.filter(u => u.email !== email))
+      if (selectedUserEmail === email) setSelectedUserEmail(null)
+      setUserSaveStatus(`${email} を削除しました ✓`)
+    }
+    setTimeout(() => setUserSaveStatus(''), 3000)
+  }
 
   const categories = [...new Set(problems.map(p => p.section))].sort(
     (a, b) => parseInt(a) - parseInt(b)
@@ -164,9 +233,18 @@ export default function AdminApp() {
   return (
     <div className="admin-layout">
       <aside className="admin-sidebar">
-        <h2 className="admin-sidebar-title">問題編集</h2>
+        <div className="admin-tab-bar">
+          <button
+            className={`admin-tab-btn${activeTab === 'problems' ? ' admin-tab-btn--active' : ''}`}
+            onClick={() => setActiveTab('problems')}
+          >問題編集</button>
+          <button
+            className={`admin-tab-btn${activeTab === 'users' ? ' admin-tab-btn--active' : ''}`}
+            onClick={() => setActiveTab('users')}
+          >ユーザー管理</button>
+        </div>
         {saveStatus && <div className="admin-save-status">{saveStatus}</div>}
-        <div className="admin-cat-list">
+        <div className="admin-cat-list" style={{ display: activeTab === 'problems' ? undefined : 'none' }}>
           {categories.map(cat => {
             const catTotal    = problems.filter(p => p.section === cat).length
             const catReviewed = problems.filter(p => p.section === cat && p.reviewed).length
@@ -204,10 +282,39 @@ export default function AdminApp() {
             )
           })}
         </div>
+
+        {activeTab === 'users' && (
+          <div className="admin-user-list">
+            {userSaveStatus && <div className="admin-save-status">{userSaveStatus}</div>}
+            <div className="admin-user-add-row">
+              <input
+                className="admin-user-email-input"
+                type="email"
+                placeholder="メールアドレス"
+                value={newUserEmail}
+                onChange={e => setNewUserEmail(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleAddUser()}
+              />
+              <button className="admin-user-add-btn" onClick={handleAddUser}>追加</button>
+            </div>
+            {allowedUsers.map(user => (
+              <button
+                key={user.email}
+                className={`admin-user-btn${selectedUserEmail === user.email ? ' admin-user-btn--active' : ''}`}
+                onClick={() => setSelectedUserEmail(user.email)}
+              >
+                <span className="admin-user-email">{user.email}</span>
+                <span className="admin-user-scope">
+                  {user.allowed_major_categories ? `${user.allowed_major_categories.length}カテゴリ限定` : '全カテゴリ'}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
       </aside>
 
       <main className="admin-main">
-        {currentProblem ? (
+        {activeTab === 'problems' && (currentProblem ? (
           <ProblemEditor
             key={currentProblem.id}
             problem={currentProblem}
@@ -224,7 +331,65 @@ export default function AdminApp() {
           <div className="admin-placeholder">
             左のリストからカテゴリーと問題を選んでください
           </div>
-        )}
+        ))}
+
+        {activeTab === 'users' && (() => {
+          const user = allowedUsers.find(u => u.email === selectedUserEmail)
+          if (!user) return (
+            <div className="admin-placeholder">
+              左のリストからユーザーを選んでください
+            </div>
+          )
+          const allowed = user.allowed_major_categories
+          return (
+            <div className="admin-user-editor">
+              <div className="admin-user-editor-header">
+                <h2 className="admin-user-editor-email">{user.email}</h2>
+                <button className="admin-user-remove-btn" onClick={() => handleRemoveUser(user.email)}>
+                  削除
+                </button>
+              </div>
+              <p className="admin-user-scope-note">
+                {allowed ? `${allowed.length}カテゴリ限定表示` : '全カテゴリ表示（制限なし）'}
+              </p>
+              <div className="admin-user-categories">
+                {BOOKS.map(book => (
+                  <div key={book.label} className="admin-user-book">
+                    <h3 className="admin-user-book-label">{book.label}</h3>
+                    {book.majorCategories.map(cat => {
+                      const isChecked = allowed ? allowed.includes(cat.label) : true
+                      return (
+                        <label key={cat.label} className="admin-user-cat-row">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={e => handleToggleUserCategory(user.email, cat.label, e.target.checked)}
+                          />
+                          <span>{cat.label}</span>
+                        </label>
+                      )
+                    })}
+                  </div>
+                ))}
+              </div>
+              <div className="admin-user-reset-row">
+                <button
+                  className="admin-user-reset-btn"
+                  onClick={async () => {
+                    const { error } = await supabase.from('allowed_users').update({ allowed_major_categories: null }).eq('email', user.email)
+                    if (!error) {
+                      setAllowedUsers(prev => prev.map(u => u.email === user.email ? { ...u, allowed_major_categories: null } : u))
+                      setUserSaveStatus('制限を解除しました ✓')
+                      setTimeout(() => setUserSaveStatus(''), 2000)
+                    }
+                  }}
+                >
+                  制限を解除（全カテゴリ表示に戻す）
+                </button>
+              </div>
+            </div>
+          )
+        })()}
       </main>
     </div>
   )
