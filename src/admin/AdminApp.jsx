@@ -279,9 +279,14 @@ export default function AdminApp() {
         </div>
         <div className="admin-cat-list" style={{ display: activeTab === 'problems' ? undefined : 'none' }}>
           {categories.map(cat => {
-            const catTotal    = problems.filter(p => p.section === cat).length
-            const catReviewed = problems.filter(p => p.section === cat && p.reviewed).length
+            const catItems    = problems.filter(p => p.section === cat)
+            const catTotal    = catItems.length
+            const catReviewed = catItems.filter(p => p.reviewed).length
             const allDone     = catReviewed === catTotal
+            const ids         = catItems.map(p => p.id)
+            const minId       = ids.length ? Math.min(...ids) : null
+            const maxId       = ids.length ? Math.max(...ids) : null
+            const idRange     = minId !== null ? (minId === maxId ? `#${minId}` : `#${minId}~#${maxId}`) : ''
             return (
               <div key={cat}>
                 <button
@@ -289,6 +294,7 @@ export default function AdminApp() {
                   onClick={() => { setSelectedCat(cat); setSelectedId(null) }}
                 >
                   <span className="admin-cat-label">{categoryLabel(cat)}</span>
+                  <span className="admin-cat-id-range">{idRange}</span>
                   <span className={`admin-cat-progress${allDone ? ' admin-cat-progress--done' : ''}`}>
                     {catReviewed}/{catTotal}
                   </span>

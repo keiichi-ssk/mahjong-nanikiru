@@ -117,6 +117,18 @@
 .admin-cat-btn:hover { background: #16213e; }
 .admin-cat-btn--active { color: #f5c842; background: #16213e; }
 
+.admin-cat-id-range {
+  font-size: 0.68rem;
+  color: #3a6a9a;
+  font-family: monospace;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.admin-cat-btn--active .admin-cat-id-range {
+  color: #5e9ad0;
+}
+
 .admin-cat-progress {
   font-size: 0.75rem;
   color: #555;
