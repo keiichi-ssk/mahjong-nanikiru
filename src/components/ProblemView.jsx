@@ -247,9 +247,13 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
     setSelectedRiichi(null);
   }, [problem.id]);
 
-  const p = useMemo(() => remapProblem(problem, suitMap), [problem, suitMap]);
+  // image-quiz はスーツ置換すると画像と牌が食い違うためそのまま使う
+  const p = useMemo(() => {
+    if ((problem.problemType ?? 'default') === 'image-quiz') return problem;
+    return remapProblem(problem, suitMap);
+  }, [problem, suitMap]);
 
-  const problemType   = p.problemType ?? 'default';
+  const problemType   = (p.problemType === 'image-quiz' || !p.problemType) ? 'default' : p.problemType;
   const isRiichiJudgment = problemType === 'riichi-judgment' || (problemType === 'default' && p.section === '1_リーチ判断');
   const needsRiichi = !isRiichiJudgment && p.riichi !== null && p.riichi !== undefined;
   const answered = selected !== null;
@@ -340,6 +344,13 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
       {/* ===== 鳴き選択 ===== */}
       {problemType === 'naki-choice' && (
         <NakiChoiceView problem={p} onAnswer={isCorrect => onAnswer?.(problem.id, isCorrect)} />
+      )}
+
+      {/* ===== 問題画像（全タイプ共通） ===== */}
+      {p.questionImageUrl && (
+        <div className="question-image-wrap">
+          <img src={p.questionImageUrl} alt="問題" className="question-image" />
+        </div>
       )}
 
       {/* ===== リーチ判断 ===== */}

@@ -8,9 +8,10 @@ import './App.css';
 function fromDb(p) {
   return {
     ...p,
-    problemType:   p.problem_type,
-    discardedTile: p.discarded_tile,
-    nakiChoices:   p.naki_choices,
+    problemType:      p.problem_type,
+    discardedTile:    p.discarded_tile,
+    nakiChoices:      p.naki_choices,
+    questionImageUrl: p.question_image_url ?? null,
   }
 }
 

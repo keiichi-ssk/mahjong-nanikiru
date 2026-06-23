@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { getTileImageUrl, getTileLabel } from '../utils/tileUtils'
+import { supabase } from '../lib/supabase'
 
 const TILE_GROUPS = [
   { label: '萬子', tiles: ['1m','2m','3m','4m','5m','0m','6m','7m','8m','9m'] },
@@ -90,9 +91,27 @@ export default function ProblemEditor({
   const [problemType,   setProblemType]   = useState(problem.problemType   ?? 'default')
   const [discardedTile, setDiscardedTile] = useState(problem.discardedTile ?? null)
   const [nakiChoices,   setNakiChoices]   = useState(problem.nakiChoices   ?? [])
-  const [tilesInput,    setTilesInput]    = useState('')
+  const [tilesInput,       setTilesInput]       = useState('')
+  const [questionImageUrl, setQuestionImageUrl] = useState(problem.questionImageUrl ?? null)
+  const [imageUploading,   setImageUploading]   = useState(false)
 
   const explanationRef = useRef(null)
+
+  async function handleImageUpload(file) {
+    if (!file) return
+    setImageUploading(true)
+    const ext = file.name.split('.').pop()
+    const filename = `${problem.id}.${ext}`
+    const { error } = await supabase.storage.from('question-images').upload(filename, file, { upsert: true })
+    if (error) {
+      alert(`アップロード失敗: ${error.message}`)
+      setImageUploading(false)
+      return
+    }
+    const { data } = supabase.storage.from('question-images').getPublicUrl(filename)
+    setQuestionImageUrl(data.publicUrl)
+    setImageUploading(false)
+  }
 
   function insertTileCode(tile) {
     const ta = explanationRef.current
@@ -171,9 +190,10 @@ export default function ProblemEditor({
     reviewed,
     disabled,
     problemType,
-    discardedTile: discardedTile || null,
+    discardedTile:    discardedTile || null,
     nakiChoices,
-  }), [problem, tiles, answer, dora, riichi, melds, explanation, reviewed, disabled, problemType, discardedTile, nakiChoices])
+    questionImageUrl: questionImageUrl || null,
+  }), [problem, tiles, answer, dora, riichi, melds, explanation, reviewed, disabled, problemType, discardedTile, nakiChoices, questionImageUrl])
 
   const handleSave = useCallback(() => {
     onSave(buildSaveData())
@@ -251,8 +271,40 @@ export default function ProblemEditor({
         </div>
       </section>
 
-      {/* 問題画像 */}
-      {problem.image && (
+      {/* 問題画像：Supabase Storageアップロード（全タイプ共通） */}
+      <section className="editor-section">
+        <div className="editor-section-label">問題画像（任意）</div>
+        {questionImageUrl && (
+          <div className="editor-image-wrap">
+            <img src={questionImageUrl} alt="問題" className="editor-image" />
+          </div>
+        )}
+        <div className="image-upload-row">
+          <label className="image-upload-label">
+            <input
+              type="file"
+              accept="image/*"
+              style={{ display: 'none' }}
+              onChange={e => handleImageUpload(e.target.files?.[0])}
+              disabled={imageUploading}
+            />
+            <span className={`image-upload-btn${imageUploading ? ' image-upload-btn--uploading' : ''}`}>
+              {imageUploading ? 'アップロード中...' : '画像を選択・アップロード'}
+            </span>
+          </label>
+          {questionImageUrl && (
+            <button className="dora-clear" onClick={() => setQuestionImageUrl(null)}>画像を削除</button>
+          )}
+        </div>
+        {questionImageUrl && (
+          <div className="editor-current" style={{ wordBreak: 'break-all', fontSize: 11 }}>
+            URL: {questionImageUrl}
+          </div>
+        )}
+      </section>
+
+      {/* 参照用画像（scan-tilesで生成した問題のみ） */}
+      {problemType !== 'image-quiz' && problem.image && (
         <div className="editor-image-wrap">
           <img src={problem.image} alt="問題" className="editor-image" />
         </div>
