@@ -1384,3 +1384,18 @@
     height: 55px;
   }
 }
+
+/* ===== 画像問題 ===== */
+.question-image-wrap {
+  width: 100%;
+  text-align: center;
+  margin: 8px 0 12px;
+}
+
+.question-image {
+  max-width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid #3a4a6a;
+}
