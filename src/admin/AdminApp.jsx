@@ -10,28 +10,30 @@ function categoryLabel(name) {
 function fromDb(p) {
   return {
     ...p,
-    problemType:   p.problem_type,
-    discardedTile: p.discarded_tile,
-    nakiChoices:   p.naki_choices,
+    problemType:      p.problem_type,
+    discardedTile:    p.discarded_tile,
+    nakiChoices:      p.naki_choices,
+    questionImageUrl: p.question_image_url ?? null,
   }
 }
 
 function toDb(p) {
   return {
-    id:             p.id,
-    section:        p.section,
-    image:          p.image ?? '',
-    tiles:          p.tiles ?? [],
-    answer:         p.answer ?? '',
-    dora:           p.dora ?? '',
-    riichi:         p.riichi ?? null,
-    explanation:    p.explanation ?? '',
-    reviewed:       p.reviewed ?? false,
-    disabled:       p.disabled ?? false,
-    melds:          p.melds ?? [],
-    problem_type:   p.problemType ?? 'default',
-    discarded_tile: p.discardedTile ?? null,
-    naki_choices:   p.nakiChoices ?? [],
+    id:                 p.id,
+    section:            p.section,
+    image:              p.image ?? '',
+    tiles:              p.tiles ?? [],
+    answer:             p.answer ?? '',
+    dora:               p.dora ?? '',
+    riichi:             p.riichi ?? null,
+    explanation:        p.explanation ?? '',
+    reviewed:           p.reviewed ?? false,
+    disabled:           p.disabled ?? false,
+    melds:              p.melds ?? [],
+    problem_type:       p.problemType ?? 'default',
+    discarded_tile:     p.discardedTile ?? null,
+    naki_choices:       p.nakiChoices ?? [],
+    question_image_url: p.questionImageUrl ?? null,
   }
 }
 
@@ -166,20 +168,21 @@ export default function AdminApp() {
     if (!selectedCat) return
     const maxId = problems.reduce((m, p) => Math.max(m, p.id), 0)
     const newProblem = {
-      id:            maxId + 1,
-      section:       selectedCat,
-      image:         '',
-      tiles:         [],
-      answer:        '',
-      dora:          null,
-      riichi:        null,
-      melds:         [],
-      explanation:   '',
-      reviewed:      false,
-      disabled:      false,
-      problemType:   'default',
-      discardedTile: null,
-      nakiChoices:   [],
+      id:               maxId + 1,
+      section:          selectedCat,
+      image:            '',
+      tiles:            [],
+      answer:           '',
+      dora:             null,
+      riichi:           null,
+      melds:            [],
+      explanation:      '',
+      reviewed:         false,
+      disabled:         false,
+      problemType:      'default',
+      discardedTile:    null,
+      nakiChoices:      [],
+      questionImageUrl: null,
     }
     const { error } = await supabase.from('problems').insert(toDb(newProblem))
     if (!error) {

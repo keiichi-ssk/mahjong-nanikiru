@@ -216,6 +216,8 @@ export default function ProblemEditor({
 
   const isAddingComplete = addingMeld && addingMeld.tiles.length === MELD_TILE_COUNT[addingMeld.type]
 
+  const [paletteTab, setPaletteTab] = useState('tiles')
+
   return (
     <div className="editor">
       {/* ナビゲーションバー */}
@@ -384,206 +386,104 @@ export default function ProblemEditor({
         </div>
       </section>
 
-      {/* 牌パレット */}
-      <section className="editor-section">
-        <div className="editor-section-label">牌パレット（クリックで手牌に追加）</div>
-        {TILE_GROUPS.map(group => (
-          <div key={group.label} className="palette-row">
-            <span className="palette-label">{group.label}</span>
-            <div className="palette-tiles">
-              {group.tiles.map(t => (
-                <TileImg key={t} tile={t} size={36} onClick={() => addTile(t)} className="palette-tile" />
-              ))}
-            </div>
-          </div>
-        ))}
-      </section>
+      {/* === パレット統合エリア === */}
+      <section className="editor-section editor-section--palette">
+        <div className="palette-tab-bar">
+          <button
+            className={`palette-tab-btn${paletteTab === 'tiles' ? ' palette-tab-btn--active' : ''}`}
+            onClick={() => { setAddingMeld(null); setPaletteTab('tiles') }}
+          >
+            手牌追加
+          </button>
+          <button
+            className={`palette-tab-btn${paletteTab === 'dora' ? ' palette-tab-btn--active' : ''}`}
+            onClick={() => { setAddingMeld(null); setPaletteTab('dora') }}
+          >
+            ドラ設定{dora ? `（${getTileLabel(dora)}）` : ''}
+          </button>
+          <button
+            className={`palette-tab-btn${paletteTab === 'answer' ? ' palette-tab-btn--active' : ''}`}
+            onClick={() => { setAddingMeld(null); setPaletteTab('answer') }}
+          >
+            正解設定
+          </button>
+        </div>
 
-      {/* 副露（鳴き）セクション */}
-      <section className="editor-section">
-        <div className="editor-section-label">副露（鳴き）</div>
-        {addingMeld ? (
-          <div className="meld-adding">
-            <div className="meld-adding-header">
-              <span className="meld-adding-title">
-                {MELD_LABELS[addingMeld.type]}：牌を選択
-                （{addingMeld.tiles.length} / {MELD_TILE_COUNT[addingMeld.type]}枚）
-              </span>
-              <button className="meld-cancel-btn" onClick={() => setAddingMeld(null)}>キャンセル</button>
-            </div>
-            <div className="meld-selected-tiles">
-              {addingMeld.tiles.map((t, i) => (
-                <TileImg key={i} tile={t} size={36} onClick={() => removeTileFromMeld(i)} className="editor-tile" />
-              ))}
-              {Array.from({ length: MELD_TILE_COUNT[addingMeld.type] - addingMeld.tiles.length }).map((_, i) => (
-                <div key={`empty-${i}`} className="meld-tile-slot" />
-              ))}
-            </div>
-            <div className="meld-palette">
-              {TILE_GROUPS.map(group => (
-                <div key={group.label} className="palette-row">
-                  <span className="palette-label">{group.label}</span>
-                  <div className="palette-tiles">
-                    {group.tiles.map(t => (
-                      <TileImg
-                        key={t} tile={t} size={32}
-                        onClick={() => addTileToMeld(t)}
-                        className={`palette-tile${isAddingComplete ? ' palette-tile--disabled' : ''}`}
-                      />
-                    ))}
-                  </div>
+        {/* 手牌追加タブ */}
+        {paletteTab === 'tiles' && (
+          <div className="palette-tab-content">
+            {!addingMeld && TILE_GROUPS.map(group => (
+              <div key={group.label} className="palette-row">
+                <span className="palette-label">{group.label}</span>
+                <div className="palette-tiles">
+                  {group.tiles.map(t => (
+                    <TileImg key={t} tile={t} size={36} onClick={() => addTile(t)} className="palette-tile" />
+                  ))}
                 </div>
-              ))}
-            </div>
-            <button
-              className={`meld-confirm-btn${isAddingComplete ? ' meld-confirm-btn--ready' : ''}`}
-              onClick={confirmMeld}
-              disabled={!isAddingComplete}
-            >
-              副露を追加
-            </button>
-          </div>
-        ) : (
-          <div className="meld-add-btns">
-            {MELD_TYPES.map(type => (
-              <button key={type} className="meld-add-btn" onClick={() => startAddMeld(type)}>
-                {MELD_LABELS[type]}
-              </button>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* ドラ牌 */}
-      <section className="editor-section">
-        <div className="editor-section-label">
-          ドラ牌
-          <button className="dora-clear" onClick={() => setDora(null)}>なし</button>
-        </div>
-        <div className="editor-current">
-          現在のドラ: <strong>{dora ? getTileLabel(dora) : 'なし'}</strong>
-        </div>
-        <div>
-          {TILE_GROUPS.map(group => (
-            <div key={group.label} className="palette-row">
-              <span className="palette-label">{group.label}</span>
-              <div className="palette-tiles">
-                {group.tiles.map(t => (
-                  <TileImg
-                    key={t}
-                    tile={t}
-                    size={36}
-                    onClick={() => setDora(t)}
-                    className={`palette-tile ${dora === t ? 'tile--answer' : ''}`}
-                  />
-                ))}
               </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* 正解設定：通常（何切る） */}
-      {problemType === 'default' && (
-        <section className="editor-section">
-          <div className="editor-section-label">正解牌（手牌からクリックで選択）</div>
-          <div className="editor-tiles">
-            {[...new Set(tiles)].map(t => (
-              <TileImg
-                key={t}
-                tile={t}
-                onClick={() => setAnswer(t)}
-                className={`editor-tile ${answer === t ? 'tile--answer' : ''}`}
-              />
             ))}
-          </div>
-          {(() => {
-            const counts = {}
-            tiles.forEach(t => { counts[t] = (counts[t] ?? 0) + 1 })
-            const quadTiles = Object.keys(counts).filter(t => counts[t] === 4)
-            if (quadTiles.length === 0) return null
-            return (
-              <div className="editor-ankan-options">
-                {quadTiles.map(t => (
-                  <button
-                    key={t}
-                    className={`editor-ankan-btn${answer === `ankan:${t}` ? ' editor-ankan-btn--active' : ''}`}
-                    onClick={() => setAnswer(`ankan:${t}`)}
-                  >
-                    カン
-                    <img src={getTileImageUrl(t)} alt={getTileLabel(t)} />
+
+            <div className="palette-tab-divider" />
+            <div className="editor-section-label">副露（鳴き）</div>
+            {addingMeld ? (
+              <div className="meld-adding">
+                <div className="meld-adding-header">
+                  <span className="meld-adding-title">
+                    {MELD_LABELS[addingMeld.type]}：牌を選択
+                    （{addingMeld.tiles.length} / {MELD_TILE_COUNT[addingMeld.type]}枚）
+                  </span>
+                  <button className="meld-cancel-btn" onClick={() => setAddingMeld(null)}>キャンセル</button>
+                </div>
+                <div className="meld-selected-tiles">
+                  {addingMeld.tiles.map((t, i) => (
+                    <TileImg key={i} tile={t} size={36} onClick={() => removeTileFromMeld(i)} className="editor-tile" />
+                  ))}
+                  {Array.from({ length: MELD_TILE_COUNT[addingMeld.type] - addingMeld.tiles.length }).map((_, i) => (
+                    <div key={`empty-${i}`} className="meld-tile-slot" />
+                  ))}
+                </div>
+                <div className="meld-palette">
+                  {TILE_GROUPS.map(group => (
+                    <div key={group.label} className="palette-row">
+                      <span className="palette-label">{group.label}</span>
+                      <div className="palette-tiles">
+                        {group.tiles.map(t => (
+                          <TileImg
+                            key={t} tile={t} size={32}
+                            onClick={() => addTileToMeld(t)}
+                            className={`palette-tile${isAddingComplete ? ' palette-tile--disabled' : ''}`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  className={`meld-confirm-btn${isAddingComplete ? ' meld-confirm-btn--ready' : ''}`}
+                  onClick={confirmMeld}
+                  disabled={!isAddingComplete}
+                >
+                  副露を追加
+                </button>
+              </div>
+            ) : (
+              <div className="meld-add-btns">
+                {MELD_TYPES.map(type => (
+                  <button key={type} className="meld-add-btn" onClick={() => startAddMeld(type)}>
+                    {MELD_LABELS[type]}
                   </button>
                 ))}
               </div>
-            )
-          })()}
-          <div className="editor-current">
-            現在の正解: <strong>
-              {answer
-                ? answer.startsWith('ankan:')
-                  ? `暗槓（${getTileLabel(answer.slice(6))}）`
-                  : getTileLabel(answer)
-                : '未設定'}
-            </strong>
+            )}
           </div>
-          <div className="riichi-setting">
-            <span className="riichi-setting-label">リーチ：</span>
-            <button
-              className={`riichi-setting-btn ${riichi === true  ? 'riichi-setting-btn--active' : ''}`}
-              onClick={() => setRiichi(true)}
-            >する</button>
-            <button
-              className={`riichi-setting-btn ${riichi === false ? 'riichi-setting-btn--active' : ''}`}
-              onClick={() => setRiichi(false)}
-            >しない</button>
-            <button
-              className={`riichi-setting-btn ${riichi === null  ? 'riichi-setting-btn--active' : ''}`}
-              onClick={() => setRiichi(null)}
-            >設定なし</button>
-          </div>
-        </section>
-      )}
+        )}
 
-      {/* 正解設定：リーチ判断 */}
-      {problemType === 'riichi-judgment' && (
-        <section className="editor-section">
-          <div className="editor-section-label">正解（リーチ or ダマ）</div>
-          <div className="problem-type-selector">
-            <button
-              className={`problem-type-btn${riichi === true  ? ' problem-type-btn--active' : ''}`}
-              onClick={() => setRiichi(true)}
-            >リーチ</button>
-            <button
-              className={`problem-type-btn${riichi === false ? ' problem-type-btn--active' : ''}`}
-              onClick={() => setRiichi(false)}
-            >ダマ</button>
-          </div>
-          <div className="editor-current">
-            現在の正解: <strong>{riichi === true ? 'リーチ' : riichi === false ? 'ダマ' : '未設定'}</strong>
-          </div>
-        </section>
-      )}
-
-      {/* 正解設定：鳴きタイミング */}
-      {problemType === 'naki-timing' && (
-        <>
-          {/* 出た牌設定 */}
-          <section className="editor-section">
-            <div className="editor-section-label">
-              出た牌（他家の打牌）
-              {discardedTile && (
-                <button className="dora-clear" onClick={() => setDiscardedTile(null)}>クリア</button>
-              )}
-            </div>
-            <div className="editor-current">
-              現在の出牌: <strong>{discardedTile ? getTileLabel(discardedTile) : '未設定'}</strong>
-              {discardedTile && (
-                <img
-                  src={getTileImageUrl(discardedTile)}
-                  alt={getTileLabel(discardedTile)}
-                  style={{ width: 32, verticalAlign: 'middle', marginLeft: 8 }}
-                />
-              )}
+        {/* ドラ設定タブ */}
+        {paletteTab === 'dora' && (
+          <div className="palette-tab-content">
+            <div className="palette-tab-status">
+              現在のドラ: <strong>{dora ? getTileLabel(dora) : 'なし'}</strong>
+              <button className="dora-clear" onClick={() => setDora(null)}>なし</button>
             </div>
             {TILE_GROUPS.map(group => (
               <div key={group.label} className="palette-row">
@@ -592,78 +492,196 @@ export default function ProblemEditor({
                   {group.tiles.map(t => (
                     <TileImg
                       key={t} tile={t} size={36}
-                      onClick={() => setDiscardedTile(t)}
-                      className={`palette-tile ${discardedTile === t ? 'tile--answer' : ''}`}
+                      onClick={() => setDora(t)}
+                      className={`palette-tile ${dora === t ? 'tile--answer' : ''}`}
                     />
                   ))}
                 </div>
               </div>
             ))}
-          </section>
+          </div>
+        )}
 
-          {/* 正解タイミング */}
-          <section className="editor-section">
-            <div className="editor-section-label">正解タイミング</div>
-            <div className="naki-timing-selector">
-              {NAKI_TIMING_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  className={`naki-timing-btn${answer === opt.value ? ' naki-timing-btn--active' : ''}`}
-                  onClick={() => setAnswer(opt.value)}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-            <div className="editor-current">
-              現在の正解: <strong>{NAKI_TIMING_OPTIONS.find(o => o.value === answer)?.label ?? '未設定'}</strong>
-            </div>
-          </section>
-        </>
-      )}
-
-      {/* 正解設定：鳴き選択 */}
-      {problemType === 'naki-choice' && (
-        <section className="editor-section">
-          <div className="editor-section-label">選択肢（何が出たら鳴くか）</div>
-          {nakiChoices.length > 0 && (
-            <div className="naki-choices-list">
-              {nakiChoices.map((c, i) => (
-                <div key={i} className="naki-choice-item">
-                  <TileImg tile={c.tile} size={32} onClick={() => {}} className="palette-tile" />
-                  <span className="naki-choice-tile-name">{getTileLabel(c.tile)}</span>
-                  <button
-                    className={`naki-choice-correct-btn${c.correct ? ' naki-choice-correct-btn--on' : ''}`}
-                    onClick={() => toggleNakiChoiceCorrect(i)}
-                  >
-                    {c.correct ? '正解' : '不正解'}
-                  </button>
-                  <button className="naki-choice-remove-btn" onClick={() => removeNakiChoice(i)}>×</button>
-                </div>
-              ))}
-            </div>
-          )}
-          {nakiChoices.length === 0 && <span className="editor-empty">牌パレットから選択肢を追加してください</span>}
-          <div className="editor-section-label" style={{ marginTop: 8 }}>牌パレット（クリックで選択肢に追加）</div>
-          {TILE_GROUPS.map(group => (
-            <div key={group.label} className="palette-row">
-              <span className="palette-label">{group.label}</span>
-              <div className="palette-tiles">
-                {group.tiles.map(t => {
-                  const added = nakiChoices.some(c => c.tile === t)
-                  return (
+        {/* 正解設定タブ */}
+        {paletteTab === 'answer' && (
+          <div className="palette-tab-content">
+            {/* 通常（何切る） */}
+            {problemType === 'default' && (
+              <>
+                <div className="editor-section-label">正解牌（手牌からクリックで選択）</div>
+                <div className="editor-tiles">
+                  {[...new Set(tiles)].map(t => (
                     <TileImg
-                      key={t} tile={t} size={36}
-                      onClick={() => addNakiChoice(t)}
-                      className={`palette-tile${added ? ' palette-tile--disabled' : ''}`}
+                      key={t} tile={t}
+                      onClick={() => setAnswer(t)}
+                      className={`editor-tile ${answer === t ? 'tile--answer' : ''}`}
                     />
+                  ))}
+                </div>
+                {(() => {
+                  const counts = {}
+                  tiles.forEach(t => { counts[t] = (counts[t] ?? 0) + 1 })
+                  const quadTiles = Object.keys(counts).filter(t => counts[t] === 4)
+                  if (quadTiles.length === 0) return null
+                  return (
+                    <div className="editor-ankan-options">
+                      {quadTiles.map(t => (
+                        <button
+                          key={t}
+                          className={`editor-ankan-btn${answer === `ankan:${t}` ? ' editor-ankan-btn--active' : ''}`}
+                          onClick={() => setAnswer(`ankan:${t}`)}
+                        >
+                          カン
+                          <img src={getTileImageUrl(t)} alt={getTileLabel(t)} />
+                        </button>
+                      ))}
+                    </div>
                   )
-                })}
-              </div>
-            </div>
-          ))}
-        </section>
-      )}
+                })()}
+                <div className="editor-current">
+                  現在の正解: <strong>
+                    {answer
+                      ? answer.startsWith('ankan:')
+                        ? `暗槓（${getTileLabel(answer.slice(6))}）`
+                        : getTileLabel(answer)
+                      : '未設定'}
+                  </strong>
+                </div>
+                <div className="riichi-setting">
+                  <span className="riichi-setting-label">リーチ：</span>
+                  <button
+                    className={`riichi-setting-btn ${riichi === true  ? 'riichi-setting-btn--active' : ''}`}
+                    onClick={() => setRiichi(true)}
+                  >する</button>
+                  <button
+                    className={`riichi-setting-btn ${riichi === false ? 'riichi-setting-btn--active' : ''}`}
+                    onClick={() => setRiichi(false)}
+                  >しない</button>
+                  <button
+                    className={`riichi-setting-btn ${riichi === null  ? 'riichi-setting-btn--active' : ''}`}
+                    onClick={() => setRiichi(null)}
+                  >設定なし</button>
+                </div>
+              </>
+            )}
+
+            {/* リーチ判断 */}
+            {problemType === 'riichi-judgment' && (
+              <>
+                <div className="editor-section-label">正解（リーチ or ダマ）</div>
+                <div className="problem-type-selector">
+                  <button
+                    className={`problem-type-btn${riichi === true  ? ' problem-type-btn--active' : ''}`}
+                    onClick={() => setRiichi(true)}
+                  >リーチ</button>
+                  <button
+                    className={`problem-type-btn${riichi === false ? ' problem-type-btn--active' : ''}`}
+                    onClick={() => setRiichi(false)}
+                  >ダマ</button>
+                </div>
+                <div className="editor-current">
+                  現在の正解: <strong>{riichi === true ? 'リーチ' : riichi === false ? 'ダマ' : '未設定'}</strong>
+                </div>
+              </>
+            )}
+
+            {/* 鳴きタイミング */}
+            {problemType === 'naki-timing' && (
+              <>
+                <div className="editor-section-label">
+                  出た牌（他家の打牌）
+                  {discardedTile && (
+                    <button className="dora-clear" onClick={() => setDiscardedTile(null)}>クリア</button>
+                  )}
+                </div>
+                <div className="editor-current">
+                  現在の出牌: <strong>{discardedTile ? getTileLabel(discardedTile) : '未設定'}</strong>
+                  {discardedTile && (
+                    <img
+                      src={getTileImageUrl(discardedTile)}
+                      alt={getTileLabel(discardedTile)}
+                      style={{ width: 32, verticalAlign: 'middle', marginLeft: 8 }}
+                    />
+                  )}
+                </div>
+                {TILE_GROUPS.map(group => (
+                  <div key={group.label} className="palette-row">
+                    <span className="palette-label">{group.label}</span>
+                    <div className="palette-tiles">
+                      {group.tiles.map(t => (
+                        <TileImg
+                          key={t} tile={t} size={36}
+                          onClick={() => setDiscardedTile(t)}
+                          className={`palette-tile ${discardedTile === t ? 'tile--answer' : ''}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+                <div className="palette-tab-divider" />
+                <div className="editor-section-label">正解タイミング</div>
+                <div className="naki-timing-selector">
+                  {NAKI_TIMING_OPTIONS.map(opt => (
+                    <button
+                      key={opt.value}
+                      className={`naki-timing-btn${answer === opt.value ? ' naki-timing-btn--active' : ''}`}
+                      onClick={() => setAnswer(opt.value)}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="editor-current">
+                  現在の正解: <strong>{NAKI_TIMING_OPTIONS.find(o => o.value === answer)?.label ?? '未設定'}</strong>
+                </div>
+              </>
+            )}
+
+            {/* 鳴き選択 */}
+            {problemType === 'naki-choice' && (
+              <>
+                <div className="editor-section-label">選択肢（何が出たら鳴くか）</div>
+                {nakiChoices.length > 0 && (
+                  <div className="naki-choices-list">
+                    {nakiChoices.map((c, i) => (
+                      <div key={i} className="naki-choice-item">
+                        <TileImg tile={c.tile} size={32} onClick={() => {}} className="palette-tile" />
+                        <span className="naki-choice-tile-name">{getTileLabel(c.tile)}</span>
+                        <button
+                          className={`naki-choice-correct-btn${c.correct ? ' naki-choice-correct-btn--on' : ''}`}
+                          onClick={() => toggleNakiChoiceCorrect(i)}
+                        >
+                          {c.correct ? '正解' : '不正解'}
+                        </button>
+                        <button className="naki-choice-remove-btn" onClick={() => removeNakiChoice(i)}>×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {nakiChoices.length === 0 && <span className="editor-empty">牌パレットから選択肢を追加してください</span>}
+                <div className="editor-section-label" style={{ marginTop: 8 }}>牌パレット（クリックで選択肢に追加）</div>
+                {TILE_GROUPS.map(group => (
+                  <div key={group.label} className="palette-row">
+                    <span className="palette-label">{group.label}</span>
+                    <div className="palette-tiles">
+                      {group.tiles.map(t => {
+                        const added = nakiChoices.some(c => c.tile === t)
+                        return (
+                          <TileImg
+                            key={t} tile={t} size={36}
+                            onClick={() => addNakiChoice(t)}
+                            className={`palette-tile${added ? ' palette-tile--disabled' : ''}`}
+                          />
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+          </div>
+        )}
+      </section>
 
       {/* 解説 */}
       <section className="editor-section">
