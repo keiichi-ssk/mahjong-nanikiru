@@ -34,6 +34,9 @@ function toDb(p) {
     discarded_tile:     p.discardedTile ?? null,
     naki_choices:       p.nakiChoices ?? [],
     question_image_url: p.questionImageUrl ?? null,
+    bakaze:             p.bakaze ?? null,
+    jikaze:             p.jikaze ?? null,
+    junme:              p.junme  ?? null,
   }
 }
 

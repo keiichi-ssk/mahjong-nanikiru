@@ -94,6 +94,9 @@ export default function ProblemEditor({
   const [tilesInput,       setTilesInput]       = useState('')
   const [questionImageUrl, setQuestionImageUrl] = useState(problem.questionImageUrl ?? null)
   const [imageUploading,   setImageUploading]   = useState(false)
+  const [bakaze,           setBakaze]           = useState(problem.bakaze ?? null)
+  const [jikaze,           setJikaze]           = useState(problem.jikaze ?? null)
+  const [junme,            setJunme]            = useState(problem.junme  ?? null)
 
   const explanationRef = useRef(null)
 
@@ -193,7 +196,10 @@ export default function ProblemEditor({
     discardedTile:    discardedTile || null,
     nakiChoices,
     questionImageUrl: questionImageUrl || null,
-  }), [problem, tiles, answer, dora, riichi, melds, explanation, reviewed, disabled, problemType, discardedTile, nakiChoices, questionImageUrl])
+    bakaze,
+    jikaze,
+    junme,
+  }), [problem, tiles, answer, dora, riichi, melds, explanation, reviewed, disabled, problemType, discardedTile, nakiChoices, questionImageUrl, bakaze, jikaze, junme])
 
   const handleSave = useCallback(() => {
     onSave(buildSaveData())
@@ -216,7 +222,7 @@ export default function ProblemEditor({
 
   const isAddingComplete = addingMeld && addingMeld.tiles.length === MELD_TILE_COUNT[addingMeld.type]
 
-  const [paletteTab, setPaletteTab] = useState('tiles')
+  const [paletteTab, setPaletteTab] = useState('jokyo')
 
   return (
     <div className="editor">
@@ -317,6 +323,36 @@ export default function ProblemEditor({
         <div className="editor-section-label">
           手牌（クリックで削除）<span className="tile-count">{tiles.length}枚</span>
         </div>
+        <div className="editor-hand-row">
+          <div className="editor-tiles">
+            {tiles.map((t, i) => (
+              <TileImg
+                key={i}
+                tile={t}
+                onClick={() => removeTile(i)}
+                className={`editor-tile ${answer === t ? 'tile--answer' : ''}`}
+              />
+            ))}
+            {tiles.length === 0 && <span className="editor-empty">牌を追加してください</span>}
+          </div>
+          {melds.length > 0 && (
+            <div className="editor-melds-inline">
+              {melds.map((meld, i) => (
+                <div key={i} className="editor-meld-inline-item">
+                  <span className="editor-meld-inline-label">{MELD_LABELS[meld.type]}</span>
+                  <MeldPreview meld={meld} />
+                  <button className="editor-meld-inline-remove" onClick={() => removeMeld(i)}>×</button>
+                </div>
+              ))}
+            </div>
+          )}
+          {dora && (
+            <div className="editor-dora-inline">
+              <span className="editor-dora-label">ドラ</span>
+              <img src={getTileImageUrl(dora)} alt={getTileLabel(dora)} width={32} height={Math.round(32 * 60 / 44)} />
+            </div>
+          )}
+        </div>
         <div className="tiles-text-input-row">
           <input
             type="text"
@@ -354,65 +390,11 @@ export default function ProblemEditor({
             全削除
           </button>
         </div>
-        <div className="editor-hand-row">
-          <div className="editor-tiles">
-            {tiles.map((t, i) => (
-              <TileImg
-                key={i}
-                tile={t}
-                onClick={() => removeTile(i)}
-                className={`editor-tile ${answer === t ? 'tile--answer' : ''}`}
-              />
-            ))}
-            {tiles.length === 0 && <span className="editor-empty">牌を追加してください</span>}
-          </div>
-          {melds.length > 0 && (
-            <div className="editor-melds-inline">
-              {melds.map((meld, i) => (
-                <div key={i} className="editor-meld-inline-item">
-                  <span className="editor-meld-inline-label">{MELD_LABELS[meld.type]}</span>
-                  <MeldPreview meld={meld} />
-                  <button className="editor-meld-inline-remove" onClick={() => removeMeld(i)}>×</button>
-                </div>
-              ))}
-            </div>
-          )}
-          {dora && (
-            <div className="editor-dora-inline">
-              <span className="editor-dora-label">ドラ</span>
-              <img src={getTileImageUrl(dora)} alt={getTileLabel(dora)} width={32} height={Math.round(32 * 60 / 44)} />
-            </div>
-          )}
-        </div>
-      </section>
 
-      {/* === パレット統合エリア === */}
-      <section className="editor-section editor-section--palette">
-        <div className="palette-tab-bar">
-          <button
-            className={`palette-tab-btn${paletteTab === 'tiles' ? ' palette-tab-btn--active' : ''}`}
-            onClick={() => { setAddingMeld(null); setPaletteTab('tiles') }}
-          >
-            手牌追加
-          </button>
-          <button
-            className={`palette-tab-btn${paletteTab === 'dora' ? ' palette-tab-btn--active' : ''}`}
-            onClick={() => { setAddingMeld(null); setPaletteTab('dora') }}
-          >
-            ドラ設定{dora ? `（${getTileLabel(dora)}）` : ''}
-          </button>
-          <button
-            className={`palette-tab-btn${paletteTab === 'answer' ? ' palette-tab-btn--active' : ''}`}
-            onClick={() => { setAddingMeld(null); setPaletteTab('answer') }}
-          >
-            正解設定
-          </button>
-        </div>
-
-        {/* 手牌追加タブ */}
-        {paletteTab === 'tiles' && (
-          <div className="palette-tab-content">
-            {!addingMeld && TILE_GROUPS.map(group => (
+        {/* 手牌追加パレット */}
+        {!addingMeld && (
+          <div className="hand-palette-rows">
+            {TILE_GROUPS.map(group => (
               <div key={group.label} className="palette-row">
                 <span className="palette-label">{group.label}</span>
                 <div className="palette-tiles">
@@ -422,65 +404,84 @@ export default function ProblemEditor({
                 </div>
               </div>
             ))}
-
-            <div className="palette-tab-divider" />
-            <div className="editor-section-label">副露（鳴き）</div>
-            {addingMeld ? (
-              <div className="meld-adding">
-                <div className="meld-adding-header">
-                  <span className="meld-adding-title">
-                    {MELD_LABELS[addingMeld.type]}：牌を選択
-                    （{addingMeld.tiles.length} / {MELD_TILE_COUNT[addingMeld.type]}枚）
-                  </span>
-                  <button className="meld-cancel-btn" onClick={() => setAddingMeld(null)}>キャンセル</button>
-                </div>
-                <div className="meld-selected-tiles">
-                  {addingMeld.tiles.map((t, i) => (
-                    <TileImg key={i} tile={t} size={36} onClick={() => removeTileFromMeld(i)} className="editor-tile" />
-                  ))}
-                  {Array.from({ length: MELD_TILE_COUNT[addingMeld.type] - addingMeld.tiles.length }).map((_, i) => (
-                    <div key={`empty-${i}`} className="meld-tile-slot" />
-                  ))}
-                </div>
-                <div className="meld-palette">
-                  {TILE_GROUPS.map(group => (
-                    <div key={group.label} className="palette-row">
-                      <span className="palette-label">{group.label}</span>
-                      <div className="palette-tiles">
-                        {group.tiles.map(t => (
-                          <TileImg
-                            key={t} tile={t} size={32}
-                            onClick={() => addTileToMeld(t)}
-                            className={`palette-tile${isAddingComplete ? ' palette-tile--disabled' : ''}`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <button
-                  className={`meld-confirm-btn${isAddingComplete ? ' meld-confirm-btn--ready' : ''}`}
-                  onClick={confirmMeld}
-                  disabled={!isAddingComplete}
-                >
-                  副露を追加
-                </button>
-              </div>
-            ) : (
-              <div className="meld-add-btns">
-                {MELD_TYPES.map(type => (
-                  <button key={type} className="meld-add-btn" onClick={() => startAddMeld(type)}>
-                    {MELD_LABELS[type]}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         )}
 
-        {/* ドラ設定タブ */}
-        {paletteTab === 'dora' && (
+        <div className="palette-tab-divider" />
+        <div className="editor-section-label">副露（鳴き）</div>
+        {addingMeld ? (
+          <div className="meld-adding">
+            <div className="meld-adding-header">
+              <span className="meld-adding-title">
+                {MELD_LABELS[addingMeld.type]}：牌を選択
+                （{addingMeld.tiles.length} / {MELD_TILE_COUNT[addingMeld.type]}枚）
+              </span>
+              <button className="meld-cancel-btn" onClick={() => setAddingMeld(null)}>キャンセル</button>
+            </div>
+            <div className="meld-selected-tiles">
+              {addingMeld.tiles.map((t, i) => (
+                <TileImg key={i} tile={t} size={36} onClick={() => removeTileFromMeld(i)} className="editor-tile" />
+              ))}
+              {Array.from({ length: MELD_TILE_COUNT[addingMeld.type] - addingMeld.tiles.length }).map((_, i) => (
+                <div key={`empty-${i}`} className="meld-tile-slot" />
+              ))}
+            </div>
+            <div className="meld-palette">
+              {TILE_GROUPS.map(group => (
+                <div key={group.label} className="palette-row">
+                  <span className="palette-label">{group.label}</span>
+                  <div className="palette-tiles">
+                    {group.tiles.map(t => (
+                      <TileImg
+                        key={t} tile={t} size={32}
+                        onClick={() => addTileToMeld(t)}
+                        className={`palette-tile${isAddingComplete ? ' palette-tile--disabled' : ''}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button
+              className={`meld-confirm-btn${isAddingComplete ? ' meld-confirm-btn--ready' : ''}`}
+              onClick={confirmMeld}
+              disabled={!isAddingComplete}
+            >
+              副露を追加
+            </button>
+          </div>
+        ) : (
+          <div className="meld-add-btns">
+            {MELD_TYPES.map(type => (
+              <button key={type} className="meld-add-btn" onClick={() => startAddMeld(type)}>
+                {MELD_LABELS[type]}
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* === パレット統合エリア === */}
+      <section className="editor-section editor-section--palette">
+        <div className="palette-tab-bar">
+          <button
+            className={`palette-tab-btn${paletteTab === 'jokyo' ? ' palette-tab-btn--active' : ''}`}
+            onClick={() => setPaletteTab('jokyo')}
+          >
+            状況設定
+          </button>
+          <button
+            className={`palette-tab-btn${paletteTab === 'answer' ? ' palette-tab-btn--active' : ''}`}
+            onClick={() => setPaletteTab('answer')}
+          >
+            正解設定
+          </button>
+        </div>
+
+        {/* 状況設定タブ */}
+        {paletteTab === 'jokyo' && (
           <div className="palette-tab-content">
+            <div className="editor-section-label">ドラ</div>
             <div className="palette-tab-status">
               現在のドラ: <strong>{dora ? getTileLabel(dora) : 'なし'}</strong>
               <button className="dora-clear" onClick={() => setDora(null)}>なし</button>
@@ -499,6 +500,61 @@ export default function ProblemEditor({
                 </div>
               </div>
             ))}
+
+            <div className="palette-tab-divider" />
+            <div className="editor-section-label">場風</div>
+            <div className="situation-selector">
+              <button
+                className={`situation-btn situation-btn--unset${bakaze === null ? ' situation-btn--active' : ''}`}
+                onClick={() => setBakaze(null)}
+              >
+                未設定
+              </button>
+              {['東', '南', '西'].map(wind => (
+                <button
+                  key={wind}
+                  className={`situation-btn${bakaze === wind ? ' situation-btn--active' : ''}`}
+                  onClick={() => setBakaze(wind)}
+                >
+                  {wind}場
+                </button>
+              ))}
+            </div>
+
+            <div className="palette-tab-divider" />
+            <div className="editor-section-label">自風</div>
+            <div className="situation-selector">
+              <button
+                className={`situation-btn situation-btn--unset${jikaze === null ? ' situation-btn--active' : ''}`}
+                onClick={() => setJikaze(null)}
+              >
+                未設定
+              </button>
+              {['東', '南', '西', '北'].map(wind => (
+                <button
+                  key={wind}
+                  className={`situation-btn${jikaze === wind ? ' situation-btn--active' : ''}`}
+                  onClick={() => setJikaze(wind)}
+                >
+                  {wind}
+                </button>
+              ))}
+            </div>
+
+            <div className="palette-tab-divider" />
+            <div className="editor-section-label">巡目</div>
+            <div className="situation-selector">
+              <select
+                className="junme-select"
+                value={junme ?? ''}
+                onChange={e => setJunme(e.target.value === '' ? null : Number(e.target.value))}
+              >
+                <option value="">未設定</option>
+                {Array.from({ length: 18 }, (_, i) => i + 1).map(n => (
+                  <option key={n} value={n}>{n}巡目</option>
+                ))}
+              </select>
+            </div>
           </div>
         )}
 

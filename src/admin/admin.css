@@ -1350,3 +1350,54 @@ kbd {
   color: #aaa;
   margin-bottom: 10px;
 }
+
+/* ===== 手牌セクション内パレット ===== */
+.hand-palette-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ===== 状況設定（場風・自風・巡目） ===== */
+.situation-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.situation-btn {
+  background: none;
+  border: 1px solid #2a3a5a;
+  color: #aaa;
+  padding: 6px 18px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.situation-btn:hover { border-color: #f5c842; color: #f5c842; }
+.situation-btn--active {
+  background: #f5c842;
+  border-color: #f5c842;
+  color: #000;
+  font-weight: bold;
+}
+.situation-btn--unset { font-size: 0.78rem; color: #666; border-color: #222; }
+.situation-btn--unset.situation-btn--active { background: #444; border-color: #666; color: #ccc; font-weight: normal; }
+
+.junme-select {
+  background: #0d1426;
+  color: #ddd;
+  border: 1px solid #2a3a5a;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.junme-select:focus { border-color: #f5c842; }
+.junme-select option { background: #0d1426; color: #ddd; }

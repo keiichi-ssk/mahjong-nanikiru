@@ -325,12 +325,19 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
       </div>
 
       {(() => {
-        const situationText = getSituationText(p.section);
+        const hasSituationFields = p.bakaze || p.jikaze || p.junme != null;
+        const situationText = hasSituationFields
+          ? [
+              p.bakaze ? `${p.bakaze}場` : null,
+              p.jikaze ? `${p.jikaze}家` : null,
+              p.junme  != null ? `${p.junme}巡目` : null,
+            ].filter(Boolean).join(' ')
+          : getSituationText(p.section);
         const doraIndicator = getDoraIndicator(p.dora);
         if (!situationText && !doraIndicator) return null;
         return (
           <div className="problem-info-row">
-            <span className="problem-situation">{situationText}</span>
+            {situationText && <span className="problem-situation">{situationText}</span>}
             {doraIndicator && <DoraIndicatorDisplay tile={doraIndicator} />}
           </div>
         );
