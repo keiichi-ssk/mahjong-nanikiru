@@ -1,5 +1,4 @@
-const BASE_URL =
-  'https://raw.githubusercontent.com/FluffyStuff/riichi-mahjong-tiles/master/Regular/';
+const BASE_URL = '/tiles/';
 
 const TILE_NAME_MAP = {
   '1m': 'Man1', '2m': 'Man2', '3m': 'Man3', '4m': 'Man4', '5m': 'Man5', '0m': 'Man5-Dora',
