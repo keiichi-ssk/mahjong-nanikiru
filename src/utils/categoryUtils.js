@@ -1,3 +1,7 @@
+import categoriesData from '../data/categories.json';
+
+const CATEGORY_MAP = Object.fromEntries(categoriesData.map(c => [c.id, c.title]));
+
 export const BOOKS = [
   {
     label: '現代麻雀技術論',
@@ -20,11 +24,11 @@ export const BOOKS = [
 ];
 
 export function sectionNumber(section) {
-  return parseInt(section.match(/^(\d+)_/)?.[1] ?? '0', 10);
+  return parseInt(section, 10);
 }
 
 export function sectionLabel(section) {
-  return section.replace(/^\d+_/, '');
+  return CATEGORY_MAP[parseInt(section, 10)] ?? String(section);
 }
 
 export function getBookLabel(section) {

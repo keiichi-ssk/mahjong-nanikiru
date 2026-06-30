@@ -1,11 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import ProblemEditor from './ProblemEditor'
-import { BOOKS } from '../utils/categoryUtils'
-
-function categoryLabel(name) {
-  return name.replace(/^\d+_/, '')
-}
+import { BOOKS, sectionNumber, sectionLabel } from '../utils/categoryUtils'
 
 function fromDb(p) {
   return {
@@ -299,7 +295,8 @@ export default function AdminApp() {
                   className={`admin-cat-btn${selectedCat === cat ? ' admin-cat-btn--active' : ''}`}
                   onClick={() => { setSelectedCat(cat); setSelectedId(null) }}
                 >
-                  <span className="admin-cat-label">{categoryLabel(cat)}</span>
+                  <span className="admin-cat-id">No.{sectionNumber(cat)}</span>
+                  <span className="admin-cat-label">{sectionLabel(cat)}</span>
                   <span className="admin-cat-id-range">{idRange}</span>
                   <span className={`admin-cat-progress${allDone ? ' admin-cat-progress--done' : ''}`}>
                     {catReviewed}/{catTotal}

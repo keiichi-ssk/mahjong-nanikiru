@@ -114,11 +114,24 @@
   overflow: hidden;
 }
 
+.admin-cat-id {
+  font-size: 0.68rem;
+  color: #5e9ad0;
+  font-family: monospace;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.admin-cat-btn--active .admin-cat-id {
+  color: #89c0f0;
+}
+
 .admin-cat-label {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
+  flex: 1;
 }
 
 .admin-cat-btn:hover { background: #16213e; }
