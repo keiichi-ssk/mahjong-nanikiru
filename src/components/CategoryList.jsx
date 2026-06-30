@@ -140,7 +140,7 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
       </div>
 
       {activeBookData && activeBookData.majorGroups.length === 0 && (
-        <div className="pending-notice">この書籍の問題は準備中です</div>
+        <div className="pending-notice">非公開のコンテンツです</div>
       )}
 
       {activeBookData && activeBookData.majorGroups.length > 0 && (
