@@ -212,7 +212,7 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
                               ? `${filteredCount}問（${filterLabel()}）`
                               : `${totalCount}問`}
                         </span>
-                        {!filterActive && totalCount > 0 && answeredCount > 0 && (
+                        {totalCount > 0 && answeredCount > 0 && (
                           <div className="category-progress">
                             <div className="category-progress-bar">
                               <div

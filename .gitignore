@@ -21,6 +21,9 @@ public/samplequestions/
 samplequestions/
 screenshot_zihai_before.png
 
+# Claude Code 開発メモ
+CLAUDE.md
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
