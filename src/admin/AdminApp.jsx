@@ -11,6 +11,9 @@ function fromDb(p) {
     discardedTile:    p.discarded_tile,
     nakiChoices:      p.naki_choices,
     questionImageUrl: p.question_image_url ?? null,
+    // toDbではdora未設定時に''で保存される（bakaze/jikaze/junmeはnull保存）ため、
+    // ここで''をnullに正規化しないと再読込後に「未設定」判定（?? / 前問題からの引き継ぎ）が効かなくなる
+    dora:             p.dora || null,
   }
 }
 
@@ -431,6 +434,7 @@ export default function AdminApp() {
           <ProblemEditor
             key={currentProblem.id}
             problem={currentProblem}
+            prevProblem={catIdx > 0 ? catProblems[catIdx - 1] : null}
             onSave={handleSave}
             onSaveAndNext={handleSaveAndNext}
             onPrev={handlePrev}

@@ -77,12 +77,20 @@ function parseTilesText(text) {
 }
 
 export default function ProblemEditor({
-  problem, onSave, onSaveAndNext, onPrev, onNext, hasPrev, hasNext, catIdx, catTotal,
+  problem, prevProblem, onSave, onSaveAndNext, onPrev, onNext, hasPrev, hasNext, catIdx, catTotal,
 }) {
-  const [tiles,         setTiles]         = useState(sortTiles(problem.tiles))
-  const [answer,        setAnswer]        = useState(problem.answer)
-  const [dora,          setDora]          = useState(problem.dora ?? null)
-  const [riichi,        setRiichi]        = useState(problem.riichi ?? null)
+  // 手牌が未設定（新規追加直後）の問題は、手牌・正解・状況設定（ドラ・場風・自風・巡目）を
+  // ひとつ前の問題から引き継いでおく。手牌がすでにある問題は自分自身の値を優先する。
+  const inheritFromPrev = (problem.tiles ?? []).length === 0 && !!prevProblem
+
+  const [tiles,         setTiles]         = useState(
+    sortTiles(inheritFromPrev ? (prevProblem.tiles ?? []) : problem.tiles)
+  )
+  const [answer,        setAnswer]        = useState(
+    problem.answer || (inheritFromPrev ? (prevProblem.answer || '') : '')
+  )
+  const [dora,          setDora]          = useState(problem.dora ?? (inheritFromPrev ? prevProblem.dora ?? null : null))
+  const [riichi,        setRiichi]        = useState(problem.riichi ?? (inheritFromPrev ? prevProblem.riichi ?? null : null))
   const [melds,         setMelds]         = useState(problem.melds ?? [])
   const [explanation,   setExplanation]   = useState(problem.explanation ?? '')
   const [reviewed,      setReviewed]      = useState(problem.reviewed ?? false)
@@ -94,9 +102,9 @@ export default function ProblemEditor({
   const [tilesInput,       setTilesInput]       = useState('')
   const [questionImageUrl, setQuestionImageUrl] = useState(problem.questionImageUrl ?? null)
   const [imageUploading,   setImageUploading]   = useState(false)
-  const [bakaze,           setBakaze]           = useState(problem.bakaze ?? null)
-  const [jikaze,           setJikaze]           = useState(problem.jikaze ?? null)
-  const [junme,            setJunme]            = useState(problem.junme  ?? null)
+  const [bakaze,           setBakaze]           = useState(problem.bakaze ?? (inheritFromPrev ? prevProblem.bakaze ?? null : null))
+  const [jikaze,           setJikaze]           = useState(problem.jikaze ?? (inheritFromPrev ? prevProblem.jikaze ?? null : null))
+  const [junme,            setJunme]            = useState(problem.junme  ?? (inheritFromPrev ? prevProblem.junme  ?? null : null))
 
   const explanationRef = useRef(null)
 
