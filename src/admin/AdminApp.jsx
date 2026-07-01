@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import ProblemEditor from './ProblemEditor'
 import { BOOKS, sectionNumber, sectionLabel } from '../utils/categoryUtils'
+import categoriesData from '../data/categories.json'
 
 function fromDb(p) {
   return {
@@ -47,6 +48,7 @@ export default function AdminApp() {
   const [idJumpInput, setIdJumpInput] = useState('')
   const [saveStatus, setSaveStatus]   = useState('')
   const [activeTab, setActiveTab]     = useState('problems')
+  const [addForm, setAddForm]         = useState({ book: '', major: '', section: '' })
   const [allowedUsers, setAllowedUsers] = useState([])
   const [selectedUserEmail, setSelectedUserEmail] = useState(null)
   const [userSaveStatus, setUserSaveStatus] = useState('')
@@ -163,12 +165,16 @@ export default function AdminApp() {
     }
   }
 
-  async function handleAddProblem() {
-    if (!selectedCat) return
-    const maxId = problems.reduce((m, p) => Math.max(m, p.id), 0)
-    const newProblem = {
-      id:               maxId + 1,
-      section:          selectedCat,
+  const addFormBookData  = BOOKS.find(b => b.label === addForm.book)
+  const addFormMajorData = addFormBookData?.majorCategories.find(m => m.label === addForm.major)
+  const addFormSections  = addFormMajorData
+    ? categoriesData.filter(c => c.id >= addFormMajorData.min && c.id <= addFormMajorData.max)
+    : []
+
+  function makeNewProblem(section, id) {
+    return {
+      id,
+      section,
       image:            '',
       tiles:            [],
       answer:           '',
@@ -183,6 +189,25 @@ export default function AdminApp() {
       nakiChoices:      [],
       questionImageUrl: null,
     }
+  }
+
+  async function handleAddFromForm() {
+    if (!addForm.section) return
+    const maxId = problems.reduce((m, p) => Math.max(m, p.id), 0)
+    const newProblem = makeNewProblem(String(addForm.section), maxId + 1)
+    const { error } = await supabase.from('problems').insert(toDb(newProblem))
+    if (!error) {
+      setProblems(prev => [...prev, newProblem])
+      setSelectedCat(String(addForm.section))
+      setSelectedId(newProblem.id)
+      setAddForm({ book: '', major: '', section: '' })
+    }
+  }
+
+  async function handleAddProblem() {
+    if (!selectedCat) return
+    const maxId = problems.reduce((m, p) => Math.max(m, p.id), 0)
+    const newProblem = makeNewProblem(selectedCat, maxId + 1)
     const { error } = await supabase.from('problems').insert(toDb(newProblem))
     if (!error) {
       setProblems([...problems, newProblem])
@@ -279,6 +304,47 @@ export default function AdminApp() {
             }}
           >移動</button>
         </div>
+        <div className="admin-new-problem-form" style={{ display: activeTab === 'problems' ? undefined : 'none' }}>
+          <div className="admin-new-problem-title">新規問題追加</div>
+          <select
+            className="admin-new-problem-select"
+            value={addForm.book}
+            onChange={e => setAddForm({ book: e.target.value, major: '', section: '' })}
+          >
+            <option value="">書籍を選択...</option>
+            {BOOKS.map(b => <option key={b.label} value={b.label}>{b.label}</option>)}
+          </select>
+          <select
+            className="admin-new-problem-select"
+            value={addForm.major}
+            onChange={e => setAddForm(f => ({ ...f, major: e.target.value, section: '' }))}
+            disabled={!addForm.book}
+          >
+            <option value="">大カテゴリ...</option>
+            {(addFormBookData?.majorCategories ?? []).map(m => (
+              <option key={m.label} value={m.label}>{m.label}</option>
+            ))}
+          </select>
+          <select
+            className="admin-new-problem-select"
+            value={addForm.section}
+            onChange={e => setAddForm(f => ({ ...f, section: e.target.value }))}
+            disabled={!addForm.major}
+          >
+            <option value="">小カテゴリ...</option>
+            {addFormSections.map(c => (
+              <option key={c.id} value={c.id}>{c.title}</option>
+            ))}
+          </select>
+          <button
+            className="admin-new-problem-btn"
+            onClick={handleAddFromForm}
+            disabled={!addForm.section}
+          >
+            ＋ 問題を追加
+          </button>
+        </div>
+
         <div className="admin-cat-list" style={{ display: activeTab === 'problems' ? undefined : 'none' }}>
           {categories.map(cat => {
             const catItems    = problems.filter(p => p.section === cat)

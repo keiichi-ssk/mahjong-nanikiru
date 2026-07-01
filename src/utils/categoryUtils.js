@@ -14,11 +14,12 @@ export const BOOKS = [
     ],
   },
   {
-    label: '新科学する麻雀',
+    label: '新科学する麻雀実践編',
     majorCategories: [
-      { label: '基本戦略',     min: 25, max: 29 },
-      { label: '手組みの技術', min: 30, max: 36 },
-      { label: '押し引き',     min: 37, max: 43 },
+      { label: 'テンパイの技術',    min: 25, max: 29 },
+      { label: '対リーチ押し引き',  min: 30, max: 36 },
+      { label: '対副露押し引き',    min: 37, max: 44 },
+      { label: 'ベタオリの技術',    min: 45, max: 46 },
     ],
   },
 ];
@@ -60,9 +61,12 @@ export function getSituationText(section) {
 export function groupByBook(categories) {
   return BOOKS.map(({ label: bookLabel, majorCategories }) => {
     const majorGroups = majorCategories
-      .map(({ label: majorLabel }) => ({
+      .map(({ label: majorLabel, min, max }) => ({
         label: majorLabel,
-        sections: categories.filter((c) => getMajorCategory(c) === majorLabel),
+        sections: categories.filter((c) => {
+          const n = sectionNumber(c);
+          return n >= min && n <= max;
+        }),
       }))
       .filter(({ sections }) => sections.length > 0);
     return { label: bookLabel, majorGroups };

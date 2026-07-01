@@ -198,6 +198,43 @@
 }
 .admin-add-problem-btn:hover { background: rgba(46,204,113,0.08); border-color: #2ecc71; }
 
+/* ===== 新規問題追加フォーム ===== */
+.admin-new-problem-form {
+  padding: 8px 10px;
+  border-bottom: 1px solid #1a2a4a;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.admin-new-problem-title {
+  font-size: 0.72rem;
+  color: #888;
+  margin-bottom: 2px;
+}
+.admin-new-problem-select {
+  width: 100%;
+  background: #111827;
+  border: 1px solid #1a2a4a;
+  color: #ccc;
+  font-size: 0.78rem;
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.admin-new-problem-select:disabled { opacity: 0.4; cursor: not-allowed; }
+.admin-new-problem-btn {
+  background: none;
+  border: 1px dashed #2a4a2a;
+  color: #2ecc71;
+  font-size: 0.78rem;
+  padding: 5px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.admin-new-problem-btn:hover:not(:disabled) { background: rgba(46,204,113,0.08); border-color: #2ecc71; }
+.admin-new-problem-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
 /* ===== メインエリア ===== */
 .admin-main {
   flex: 1;
