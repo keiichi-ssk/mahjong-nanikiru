@@ -91,5 +91,8 @@ export function remapProblem(problem, suitMap) {
     explanation: problem.explanation
       ? problem.explanation.replace(/\[([0-9][mps])\]/g, (_, code) => `[${t(code)}]`)
       : problem.explanation,
+    note: problem.note
+      ? problem.note.replace(/\[([0-9][mps])\]/g, (_, code) => `[${t(code)}]`)
+      : problem.note,
   };
 }

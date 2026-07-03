@@ -633,6 +633,18 @@
   white-space: nowrap;
 }
 
+.problem-note {
+  font-size: 0.85rem;
+  color: #8a95a5;
+  line-height: 1.6;
+  background: rgba(255, 255, 255, 0.04);
+  border-left: 3px solid #4a5a7a;
+  border-radius: 4px;
+  padding: 8px 12px;
+  margin-top: 8px;
+  white-space: pre-wrap;
+}
+
 /* ===== ドラ表示牌 ===== */
 .dora-indicator {
   display: flex;

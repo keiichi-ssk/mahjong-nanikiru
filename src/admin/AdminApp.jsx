@@ -37,6 +37,7 @@ function toDb(p) {
     bakaze:             p.bakaze ?? null,
     jikaze:             p.jikaze ?? null,
     junme:              p.junme  ?? null,
+    note:               p.note ?? '',
   }
 }
 
@@ -191,6 +192,7 @@ export default function AdminApp() {
       discardedTile:    null,
       nakiChoices:      [],
       questionImageUrl: null,
+      note:             '',
     }
   }
 

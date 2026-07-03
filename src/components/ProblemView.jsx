@@ -12,7 +12,7 @@ const NAKI_TIMING_OPTIONS = [
   { value: 'no',    label: '鳴かない' },
 ];
 
-function ExplanationText({ text }) {
+function ExplanationText({ text, className = 'answer-explanation' }) {
   if (!text) return null;
   const parts = [];
   const regex = /\[([0-9][mpsz])\]/g;
@@ -24,7 +24,7 @@ function ExplanationText({ text }) {
   }
   if (last < text.length) parts.push({ type: 'text', value: text.slice(last) });
   return (
-    <p className="answer-explanation">
+    <p className={className}>
       {parts.map((part, i) =>
         part.type === 'text'
           ? part.value
@@ -342,6 +342,8 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
           </div>
         );
       })()}
+
+      <ExplanationText text={p.note} className="problem-note" />
 
       {/* ===== 鳴きタイミング ===== */}
       {problemType === 'naki-timing' && (

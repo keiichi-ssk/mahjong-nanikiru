@@ -105,8 +105,10 @@ export default function ProblemEditor({
   const [bakaze,           setBakaze]           = useState(problem.bakaze ?? (inheritFromPrev ? prevProblem.bakaze ?? null : null))
   const [jikaze,           setJikaze]           = useState(problem.jikaze ?? (inheritFromPrev ? prevProblem.jikaze ?? null : null))
   const [junme,            setJunme]            = useState(problem.junme  ?? (inheritFromPrev ? prevProblem.junme  ?? null : null))
+  const [note,             setNote]             = useState(problem.note ?? '')
 
   const explanationRef = useRef(null)
+  const noteRef        = useRef(null)
 
   async function handleImageUpload(file) {
     if (!file) return
@@ -132,6 +134,20 @@ export default function ProblemEditor({
     const code  = `[${tile}]`
     const next  = explanation.slice(0, start) + code + explanation.slice(end)
     setExplanation(next)
+    requestAnimationFrame(() => {
+      ta.focus()
+      ta.setSelectionRange(start + code.length, start + code.length)
+    })
+  }
+
+  function insertNoteTileCode(tile) {
+    const ta = noteRef.current
+    if (!ta) return
+    const start = ta.selectionStart
+    const end   = ta.selectionEnd
+    const code  = `[${tile}]`
+    const next  = note.slice(0, start) + code + note.slice(end)
+    setNote(next)
     requestAnimationFrame(() => {
       ta.focus()
       ta.setSelectionRange(start + code.length, start + code.length)
@@ -207,7 +223,8 @@ export default function ProblemEditor({
     bakaze,
     jikaze,
     junme,
-  }), [problem, tiles, answer, dora, riichi, melds, explanation, reviewed, disabled, problemType, discardedTile, nakiChoices, questionImageUrl, bakaze, jikaze, junme])
+    note,
+  }), [problem, tiles, answer, dora, riichi, melds, explanation, reviewed, disabled, problemType, discardedTile, nakiChoices, questionImageUrl, bakaze, jikaze, junme, note])
 
   const handleSave = useCallback(() => {
     onSave(buildSaveData())
@@ -563,6 +580,30 @@ export default function ProblemEditor({
                 ))}
               </select>
             </div>
+
+            <div className="palette-tab-divider" />
+            <div className="editor-section-label">注釈</div>
+            <textarea
+              ref={noteRef}
+              className="explanation-textarea"
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              placeholder="状況設定に関する注釈を入力してください（未入力でも保存できます）"
+              rows={2}
+            />
+            <div className="explanation-tile-palette">
+              <span className="explanation-palette-label">牌を挿入：</span>
+              {TILE_GROUPS.map(group => (
+                <div key={group.label} className="palette-row">
+                  <span className="palette-label">{group.label}</span>
+                  <div className="palette-tiles">
+                    {group.tiles.map(t => (
+                      <TileImg key={t} tile={t} size={28} onClick={() => insertNoteTileCode(t)} className="palette-tile" />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -743,34 +784,32 @@ export default function ProblemEditor({
                 ))}
               </>
             )}
+
+            <div className="palette-tab-divider" />
+            <div className="editor-section-label">解説テキスト</div>
+            <textarea
+              ref={explanationRef}
+              className="explanation-textarea"
+              value={explanation}
+              onChange={e => setExplanation(e.target.value)}
+              placeholder="解説を入力してください（未入力でも保存できます）"
+              rows={3}
+            />
+            <div className="explanation-tile-palette">
+              <span className="explanation-palette-label">牌を挿入：</span>
+              {TILE_GROUPS.map(group => (
+                <div key={group.label} className="palette-row">
+                  <span className="palette-label">{group.label}</span>
+                  <div className="palette-tiles">
+                    {group.tiles.map(t => (
+                      <TileImg key={t} tile={t} size={28} onClick={() => insertTileCode(t)} className="palette-tile" />
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
-      </section>
-
-      {/* 解説 */}
-      <section className="editor-section">
-        <div className="editor-section-label">解説テキスト</div>
-        <textarea
-          ref={explanationRef}
-          className="explanation-textarea"
-          value={explanation}
-          onChange={e => setExplanation(e.target.value)}
-          placeholder="解説を入力してください（未入力でも保存できます）"
-          rows={3}
-        />
-        <div className="explanation-tile-palette">
-          <span className="explanation-palette-label">牌を挿入：</span>
-          {TILE_GROUPS.map(group => (
-            <div key={group.label} className="palette-row">
-              <span className="palette-label">{group.label}</span>
-              <div className="palette-tiles">
-                {group.tiles.map(t => (
-                  <TileImg key={t} tile={t} size={28} onClick={() => insertTileCode(t)} className="palette-tile" />
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
       </section>
 
       {/* 保存ボタン */}
