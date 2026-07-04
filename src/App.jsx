@@ -12,6 +12,7 @@ function fromDb(p) {
     discardedTile:    p.discarded_tile,
     nakiChoices:      p.naki_choices,
     questionImageUrl: p.question_image_url ?? null,
+    otherDiscard:     p.other_discard ?? null,
   }
 }
 

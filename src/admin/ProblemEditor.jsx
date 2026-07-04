@@ -106,6 +106,10 @@ export default function ProblemEditor({
   const [jikaze,           setJikaze]           = useState(problem.jikaze ?? (inheritFromPrev ? prevProblem.jikaze ?? null : null))
   const [junme,            setJunme]            = useState(problem.junme  ?? (inheritFromPrev ? prevProblem.junme  ?? null : null))
   const [note,             setNote]             = useState(problem.note ?? '')
+  const otherDiscardBase = problem.otherDiscard ?? (inheritFromPrev ? prevProblem.otherDiscard ?? null : null)
+  const [otherDiscardPlayer,     setOtherDiscardPlayer]     = useState(otherDiscardBase?.player ?? null)
+  const [otherDiscardTiles,      setOtherDiscardTiles]      = useState(otherDiscardBase?.tiles ?? [])
+  const [otherDiscardRiichiIndex, setOtherDiscardRiichiIndex] = useState(otherDiscardBase?.riichiIndex ?? null)
 
   const explanationRef = useRef(null)
   const noteRef        = useRef(null)
@@ -193,6 +197,23 @@ export default function ProblemEditor({
     setMelds(prev => prev.filter((_, i) => i !== index))
   }
 
+  function addOtherDiscardTile(tile) {
+    setOtherDiscardTiles(prev => [...prev, tile])
+  }
+
+  function removeOtherDiscardTile(index) {
+    setOtherDiscardTiles(prev => prev.filter((_, i) => i !== index))
+    setOtherDiscardRiichiIndex(prev => {
+      if (prev === null) return null
+      if (prev === index) return null
+      return prev > index ? prev - 1 : prev
+    })
+  }
+
+  function toggleOtherDiscardRiichi(index) {
+    setOtherDiscardRiichiIndex(prev => prev === index ? null : index)
+  }
+
   function addNakiChoice(tile) {
     if (nakiChoices.some(c => c.tile === tile)) return
     setNakiChoices(prev => [...prev, { tile, correct: false }])
@@ -224,7 +245,10 @@ export default function ProblemEditor({
     jikaze,
     junme,
     note,
-  }), [problem, tiles, answer, dora, riichi, melds, explanation, reviewed, disabled, problemType, discardedTile, nakiChoices, questionImageUrl, bakaze, jikaze, junme, note])
+    otherDiscard: (otherDiscardPlayer || otherDiscardTiles.length > 0)
+      ? { player: otherDiscardPlayer, tiles: otherDiscardTiles, riichiIndex: otherDiscardRiichiIndex }
+      : null,
+  }), [problem, tiles, answer, dora, riichi, melds, explanation, reviewed, disabled, problemType, discardedTile, nakiChoices, questionImageUrl, bakaze, jikaze, junme, note, otherDiscardPlayer, otherDiscardTiles, otherDiscardRiichiIndex])
 
   const handleSave = useCallback(() => {
     onSave(buildSaveData())
@@ -496,6 +520,12 @@ export default function ProblemEditor({
             状況設定
           </button>
           <button
+            className={`palette-tab-btn${paletteTab === 'sutehai' ? ' palette-tab-btn--active' : ''}`}
+            onClick={() => setPaletteTab('sutehai')}
+          >
+            他家捨て牌
+          </button>
+          <button
             className={`palette-tab-btn${paletteTab === 'answer' ? ' palette-tab-btn--active' : ''}`}
             onClick={() => setPaletteTab('answer')}
           >
@@ -604,6 +634,65 @@ export default function ProblemEditor({
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* 他家捨て牌タブ */}
+        {paletteTab === 'sutehai' && (
+          <div className="palette-tab-content">
+            <div className="editor-section-label">家</div>
+            <div className="situation-selector">
+              <button
+                className={`situation-btn situation-btn--unset${otherDiscardPlayer === null ? ' situation-btn--active' : ''}`}
+                onClick={() => setOtherDiscardPlayer(null)}
+              >
+                未設定
+              </button>
+              {['東', '南', '西', '北'].map(wind => (
+                <button
+                  key={wind}
+                  className={`situation-btn${otherDiscardPlayer === wind ? ' situation-btn--active' : ''}`}
+                  onClick={() => setOtherDiscardPlayer(wind)}
+                >
+                  {wind}家
+                </button>
+              ))}
+            </div>
+
+            <div className="palette-tab-divider" />
+            <div className="editor-section-label">
+              捨て牌（クリックでリーチ宣言牌に設定/解除、×で削除）
+            </div>
+            <div className="other-discard-tiles-list">
+              {otherDiscardTiles.map((t, i) => (
+                <div
+                  key={i}
+                  className={`other-discard-tile-item${otherDiscardRiichiIndex === i ? ' other-discard-tile-item--riichi' : ''}`}
+                >
+                  <button className="other-discard-tile-remove" onClick={() => removeOtherDiscardTile(i)}>×</button>
+                  <div
+                    className="other-discard-tile-img-wrap"
+                    onClick={() => toggleOtherDiscardRiichi(i)}
+                    title={getTileLabel(t)}
+                  >
+                    <img src={getTileImageUrl(t)} alt={getTileLabel(t)} />
+                  </div>
+                </div>
+              ))}
+              {otherDiscardTiles.length === 0 && <span className="editor-empty">牌を追加してください</span>}
+            </div>
+
+            <div className="palette-tab-divider" />
+            {TILE_GROUPS.map(group => (
+              <div key={group.label} className="palette-row">
+                <span className="palette-label">{group.label}</span>
+                <div className="palette-tiles">
+                  {group.tiles.map(t => (
+                    <TileImg key={t} tile={t} size={36} onClick={() => addOtherDiscardTile(t)} className="palette-tile" />
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 

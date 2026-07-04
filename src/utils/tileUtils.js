@@ -94,5 +94,8 @@ export function remapProblem(problem, suitMap) {
     note: problem.note
       ? problem.note.replace(/\[([0-9][mps])\]/g, (_, code) => `[${t(code)}]`)
       : problem.note,
+    otherDiscard: problem.otherDiscard
+      ? { ...problem.otherDiscard, tiles: ts(problem.otherDiscard.tiles) }
+      : problem.otherDiscard,
   };
 }

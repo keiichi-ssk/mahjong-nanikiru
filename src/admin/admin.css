@@ -1010,6 +1010,67 @@
 
 .naki-choice-remove-btn:hover { border-color: #e74c3c; color: #e74c3c; }
 
+/* ===== 他家捨て牌 ===== */
+.other-discard-tiles-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.other-discard-tile-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.other-discard-tile-remove {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 18px;
+  height: 18px;
+  line-height: 16px;
+  padding: 0;
+  background: #1a1a2e;
+  border: 1px solid #555;
+  color: #888;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.other-discard-tile-remove:hover { border-color: #e74c3c; color: #e74c3c; }
+
+.other-discard-tile-img-wrap {
+  width: 36px;
+  height: 48px;
+  cursor: pointer;
+}
+
+.other-discard-tile-img-wrap img {
+  width: 36px;
+  height: 48px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 4px;
+  padding: 2px;
+  display: block;
+}
+
+.other-discard-tile-item--riichi .other-discard-tile-img-wrap {
+  width: 48px;
+  height: 36px;
+}
+
+.other-discard-tile-item--riichi .other-discard-tile-img-wrap img {
+  width: 36px;
+  height: 48px;
+  transform: rotate(90deg);
+}
+
 /* ===== 解説テキスト牌挿入パレット ===== */
 .explanation-tile-palette {
   display: flex;

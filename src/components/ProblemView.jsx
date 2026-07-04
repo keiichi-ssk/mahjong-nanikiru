@@ -71,26 +71,55 @@ function DoraIndicatorDisplay({ tile }) {
   );
 }
 
-function HandDisplay({ tiles, melds }) {
-  const hasMetlds = Array.isArray(melds) && melds.length > 0;
-  if (!tiles || tiles.length === 0) return null;
+const OTHER_DISCARD_TILES_PER_ROW = 6;
+
+function OtherDiscardDisplay({ otherDiscard }) {
+  if (!otherDiscard || !otherDiscard.player || !otherDiscard.tiles || otherDiscard.tiles.length === 0) return null;
+  const rows = [];
+  for (let i = 0; i < otherDiscard.tiles.length; i += OTHER_DISCARD_TILES_PER_ROW) {
+    rows.push(otherDiscard.tiles.slice(i, i + OTHER_DISCARD_TILES_PER_ROW).map((tile, j) => ({ tile, index: i + j })));
+  }
   return (
-    <div className="hand-and-melds">
-      <div className="tile-display-readonly">
-        {tiles.map((tile, i) => (
-          <div key={`${tile}-${i}`} className="tile-readonly">
-            <img src={getTileImageUrl(tile)} alt={getTileLabel(tile)} />
+    <div className="other-discard-display">
+      <span className="other-discard-label">{otherDiscard.player}家捨て牌</span>
+      <div className="other-discard-tiles">
+        {rows.map((row, r) => (
+          <div key={r} className="other-discard-row">
+            {row.map(({ tile, index }) => (
+              <div key={index} className={`other-discard-tile${otherDiscard.riichiIndex === index ? ' other-discard-tile--rotated' : ''}`}>
+                <img src={getTileImageUrl(tile)} alt={getTileLabel(tile)} />
+              </div>
+            ))}
           </div>
         ))}
       </div>
-      {hasMetlds && (
-        <div className="melds-area">
-          {melds.map((meld, i) => (
-            <MeldDisplay key={i} meld={meld} />
+    </div>
+  );
+}
+
+function HandDisplay({ tiles, melds, otherDiscard }) {
+  const hasMetlds = Array.isArray(melds) && melds.length > 0;
+  if (!tiles || tiles.length === 0) return null;
+  return (
+    <>
+      <div className="hand-and-melds">
+        <div className="tile-display-readonly">
+          {tiles.map((tile, i) => (
+            <div key={`${tile}-${i}`} className="tile-readonly">
+              <img src={getTileImageUrl(tile)} alt={getTileLabel(tile)} />
+            </div>
           ))}
         </div>
-      )}
-    </div>
+        {hasMetlds && (
+          <div className="melds-area">
+            {melds.map((meld, i) => (
+              <MeldDisplay key={i} meld={meld} />
+            ))}
+          </div>
+        )}
+      </div>
+      <OtherDiscardDisplay otherDiscard={otherDiscard} />
+    </>
   );
 }
 
@@ -120,7 +149,7 @@ function NakiTimingView({ problem, onAnswer }) {
         </div>
       )}
 
-      <HandDisplay tiles={problem.tiles} melds={problem.melds} />
+      <HandDisplay tiles={problem.tiles} melds={problem.melds} otherDiscard={problem.otherDiscard} />
 
       {!answered ? (
         <div className="naki-timing-btns">
@@ -192,7 +221,7 @@ function NakiChoiceView({ problem, onAnswer }) {
 
   return (
     <>
-      <HandDisplay tiles={problem.tiles} melds={problem.melds} />
+      <HandDisplay tiles={problem.tiles} melds={problem.melds} otherDiscard={problem.otherDiscard} />
 
       <p className="naki-choice-instruction">鳴く牌をすべて選んでください（複数選択可）</p>
 
@@ -383,6 +412,7 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
               )}
             </div>
           )}
+          <OtherDiscardDisplay otherDiscard={p.otherDiscard} />
 
           {!answered ? (
             <div className="riichi-choice-btns">
@@ -442,6 +472,7 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
                 </button>
               )}
             </div>
+            <OtherDiscardDisplay otherDiscard={p.otherDiscard} />
             {quadTiles.length > 0 && (
               <div className="ankan-options">
                 {quadTiles.map(kanTile => {

@@ -972,6 +972,63 @@
   font-weight: bold;
 }
 
+/* ===== 他家捨て牌表示 ===== */
+.other-discard-display {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.other-discard-label {
+  font-size: 0.75rem;
+  color: #6a7585;
+  font-weight: bold;
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding-top: 4px;
+}
+
+.other-discard-tiles {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.other-discard-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.other-discard-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.other-discard-tile img {
+  width: 22px;
+  height: 30px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 3px;
+  padding: 1px;
+  display: block;
+}
+
+.other-discard-tile--rotated {
+  width: 30px;
+  height: 22px;
+}
+
+.other-discard-tile--rotated img {
+  width: 22px;
+  height: 30px;
+  transform: rotate(90deg);
+}
+
 /* ===== 鳴きタイミング 選択ボタン ===== */
 .naki-timing-btns {
   display: flex;

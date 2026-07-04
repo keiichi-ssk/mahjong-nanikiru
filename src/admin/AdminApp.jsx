@@ -14,6 +14,7 @@ function fromDb(p) {
     // toDbではdora未設定時に''で保存される（bakaze/jikaze/junmeはnull保存）ため、
     // ここで''をnullに正規化しないと再読込後に「未設定」判定（?? / 前問題からの引き継ぎ）が効かなくなる
     dora:             p.dora || null,
+    otherDiscard:     p.other_discard ?? null,
   }
 }
 
@@ -38,6 +39,7 @@ function toDb(p) {
     jikaze:             p.jikaze ?? null,
     junme:              p.junme  ?? null,
     note:               p.note ?? '',
+    other_discard:      p.otherDiscard ?? null,
   }
 }
 
@@ -193,6 +195,7 @@ export default function AdminApp() {
       nakiChoices:      [],
       questionImageUrl: null,
       note:             '',
+      otherDiscard:     null,
     }
   }
 
