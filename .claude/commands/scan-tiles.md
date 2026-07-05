@@ -13,6 +13,8 @@
    ```
    $env:ANTHROPIC_API_KEY="sk-ant-..."
    ```
+   ※ Anthropic API はプリペイド制。残高がないと 401/429 で失敗する。
+   失敗した場合は console.anthropic.com → Billing でクレジット残高を確認するよう案内する。
 
 2. **スキャン実行**
    作業ディレクトリ `d:\ClaudeCode\麻雀何切るアプリ開発` で以下を実行:
@@ -24,9 +26,18 @@
    スキャン完了後、成功/スキップ/エラーの件数を報告する。
    エラーがあれば `scripts/progress.json` の `errors` フィールドを確認するよう案内する。
 
-4. **管理画面の案内**
+4. **Supabase への移行（アプリのデータは Supabase が正）**
+   スキャン結果は problems.json（中間データ）に出るだけなので、アプリに反映するには
+   `node scripts/migrate-to-supabase.mjs` で Supabase に upsert する。
+   実行前に必ず確認:
+   - migrate スクリプトの列リストが `src/utils/problemMapper.js` の `toDb` と揃っているか
+   - **既存IDへの upsert は管理画面での手修正を上書きする。** 既存データがある場合は
+     新規IDのみに絞るか、ユーザーに確認してから実行する
+
+5. **管理画面の案内**
    開発サーバーが起動していない場合は `npm run dev` を実行するか確認し、
    修正作業の URL を案内する:
    ```
    http://localhost:5173/admin.html
    ```
+   自動認識の精度は6〜7割のため、管理画面での手動修正（reviewed 化）が前提。
