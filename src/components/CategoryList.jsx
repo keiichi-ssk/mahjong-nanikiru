@@ -1,13 +1,18 @@
 import { useState } from 'react';
 import { groupByBook, sectionLabel } from '../utils/categoryUtils';
+import { useTap } from '../utils/useTap';
 
 function ToggleRow({ label, checked, onToggle }) {
+  // 縦に並ぶトグルを素早く連続タップすると、ダブルタップ結合で
+  // 2回目のタップが1つ目のトグルに誤配送されるため useTap で処理する
+  const labelTap = useTap(onToggle);
+  const switchTap = useTap(onToggle);
   return (
     <div className="random-toggle-row">
-      <span className="random-toggle-label" onClick={onToggle}>{label}</span>
+      <span className="random-toggle-label" {...labelTap}>{label}</span>
       <button
         className={`random-toggle${checked ? ' random-toggle--on' : ''}`}
-        onClick={onToggle}
+        {...switchTap}
         role="switch"
         aria-checked={checked}
         aria-label={label}
@@ -75,18 +80,18 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
   const activeBookData = books.find(b => b.label === activeBook) ?? books[0];
 
   function resetSection(cat, catProblems) {
-    if (!window.confirm(`「${sectionLabel(cat)}」の正誤をリセットしますか？`)) return;
+    if (!window.confirm(`「${sectionLabel(cat)}」の回答状況をリセットしますか？`)) return;
     onResetResults(catProblems.map(p => p.id));
   }
 
   function resetMajor(majorLabel, sections) {
-    if (!window.confirm(`「${majorLabel}」の正誤をリセットしますか？`)) return;
+    if (!window.confirm(`「${majorLabel}」の回答状況をリセットしますか？`)) return;
     const ids = sections.flatMap(s => problems.filter(p => p.section === s)).map(p => p.id);
     onResetResults(ids);
   }
 
   function resetBook(bookLabel) {
-    if (!window.confirm(`「${bookLabel}」全体の正誤をリセットしますか？`)) return;
+    if (!window.confirm(`「${bookLabel}」全体の回答状況をリセットしますか？`)) return;
     const bookData = books.find(b => b.label === bookLabel);
     if (!bookData) return;
     const ids = bookData.majorGroups
@@ -142,7 +147,7 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
             return answeredInBook > 0 ? (
               <div className="book-reset-bar">
                 <button className="btn-reset-book" onClick={() => resetBook(activeBook)}>
-                  「{activeBook}」の正誤をリセット
+                  「{activeBook}」の回答状況をリセット
                 </button>
               </div>
             ) : null;
@@ -166,7 +171,7 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
                         className="btn-reset-major"
                         onClick={(e) => { e.stopPropagation(); resetMajor(majorLabel, sections); }}
                       >
-                        正誤をリセット
+                        回答状況をリセット
                       </button>
                     )}
                     <span className={`select-badge${majorAllChecked ? ' select-badge--active' : ''}`}>{majorAllChecked ? '全解除' : '全選択'}</span>
@@ -219,7 +224,7 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
                                 className="btn-reset-section"
                                 onClick={(e) => { e.stopPropagation(); resetSection(cat, catProblems); }}
                               >
-                                正誤をリセット
+                                回答状況をリセット
                               </button>
                             )}
                           </div>
