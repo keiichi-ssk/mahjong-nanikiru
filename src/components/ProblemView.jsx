@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import TileButton from './TileButton';
 import { getTileLabel, getTileImageUrl, randomSuitMap, remapProblem, getDoraIndicator } from '../utils/tileUtils';
 import { getSituationText } from '../utils/categoryUtils';
+import { normalizeProblemType, isRiichiJudgmentProblem, judgeAnswer, judgeNakiTiming, judgeNakiChoice } from '../utils/judgeUtils';
 
 const MELD_TYPE_LABELS = { chi: 'チー', pon: 'ポン', kan: '大明槓', kakan: '加槓', ankan: '暗槓' };
 
@@ -121,12 +122,12 @@ function HandDisplay({ tiles, melds, otherDiscard }) {
 function NakiTimingView({ problem, onAnswer }) {
   const [selected, setSelected] = useState(null);
   const answered = selected !== null;
-  const isCorrect = selected === problem.answer;
+  const isCorrect = judgeNakiTiming(problem, selected);
 
   function handleSelect(value) {
     if (answered) return;
     setSelected(value);
-    onAnswer?.(value === problem.answer);
+    onAnswer?.(judgeNakiTiming(problem, value));
   }
 
   return (
@@ -209,9 +210,7 @@ function NakiChoiceView({ problem, onAnswer }) {
   }
 
   const correctTiles = new Set(sortedChoices.filter(c => c.correct).map(c => c.tile));
-  const isCorrect = answered &&
-    selected.size === correctTiles.size &&
-    [...selected].every(t => correctTiles.has(t));
+  const isCorrect = answered && judgeNakiChoice(sortedChoices, selected);
 
   return (
     <>
@@ -232,10 +231,8 @@ function NakiChoiceView({ problem, onAnswer }) {
 
       {!answered ? (
         <button className="naki-choice-submit-btn" onClick={() => {
-          const correct = selected.size === correctTiles.size &&
-            [...selected].every(t => correctTiles.has(t));
           setAnswered(true);
-          onAnswer?.(correct);
+          onAnswer?.(judgeNakiChoice(sortedChoices, selected));
         }}>
           答え合わせ
         </button>
@@ -276,8 +273,8 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
     return remapProblem(problem, suitMap);
   }, [problem, suitMap]);
 
-  const problemType   = (p.problemType === 'image-quiz' || !p.problemType) ? 'default' : p.problemType;
-  const isRiichiJudgment = problemType === 'riichi-judgment' || (problemType === 'default' && p.section === '1_リーチ判断');
+  const problemType   = normalizeProblemType(p.problemType);
+  const isRiichiJudgment = isRiichiJudgmentProblem(p);
   const needsRiichi = !isRiichiJudgment && p.riichi !== null && p.riichi !== undefined;
   const answered = selected !== null;
   const hasMetlds = Array.isArray(p.melds) && p.melds.length > 0;
@@ -291,9 +288,7 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
     return Object.keys(counts).filter(tile => counts[tile] === 4);
   }, [p.tiles]);
 
-  const isCorrect = isRiichiJudgment
-    ? selectedRiichi === p.riichi
-    : selected === p.answer && (!needsRiichi || (selectedRiichi ?? false) === p.riichi);
+  const isCorrect = judgeAnswer(p, { selected, selectedRiichi });
 
   useEffect(() => {
     if (!answered) return;
