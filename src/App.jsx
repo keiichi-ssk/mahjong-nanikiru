@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from './lib/supabase';
 import CategoryList from './components/CategoryList';
 import ProblemView from './components/ProblemView';
-import { getMajorCategory } from './utils/categoryUtils';
+import { isSectionAllowed } from './utils/categoryUtils';
 import { fromDb } from './utils/problemMapper';
 import './App.css';
 
@@ -132,7 +132,7 @@ export default function App() {
   }, [loading, problems]);
 
   const visibleProblems = allowedMajorCategories
-    ? problems.filter(p => allowedMajorCategories.includes(getMajorCategory(p.section)))
+    ? problems.filter(p => isSectionAllowed(allowedMajorCategories, p.section))
     : problems;
 
   const categories = [...new Set(visibleProblems.map(p => p.section))].sort(

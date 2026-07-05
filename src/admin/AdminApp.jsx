@@ -1,11 +1,21 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import ProblemEditor from './ProblemEditor'
-import { BOOKS, sectionNumber, sectionLabel } from '../utils/categoryUtils'
+import { BOOKS, ALL_MAJOR_CATEGORIES, majorCategoryKey, sectionNumber, sectionLabel } from '../utils/categoryUtils'
 import { fromDb, toDb } from '../utils/problemMapper'
 import categoriesData from '../data/categories.json'
 
-const ALL_MAJOR_CATEGORIES = BOOKS.flatMap(b => b.majorCategories.map(c => ({ book: b.label, label: c.label })))
+// allowed_major_categories の値を複合キー（"書籍::大カテゴリ"）に正規化する。
+// レガシー裸ラベルは該当する全書籍の複合キーに展開（現行の実効挙動を保存）、
+// どの大カテゴリにも一致しない旧ラベルは除去する
+function normalizeAllowedKeys(list) {
+  const out = new Set()
+  for (const v of list) {
+    if (v.includes('::')) { out.add(v); continue }
+    ALL_MAJOR_CATEGORIES.filter(c => c.label === v).forEach(c => out.add(c.key))
+  }
+  return [...out]
+}
 
 export default function AdminApp() {
   const [session, setSession]         = useState(null)
@@ -45,18 +55,17 @@ export default function AdminApp() {
       .then(({ data }) => setAllowedUsers(data || []))
   }, [session, activeTab])
 
-  async function handleToggleUserCategory(email, categoryLabel, checked) {
+  async function handleToggleUserCategory(email, categoryKey, checked) {
     const user = allowedUsers.find(u => u.email === email)
     if (!user) return
     const current = user.allowed_major_categories
-    const allLabels = ALL_MAJOR_CATEGORIES.map(c => c.label)
+    const allKeys = ALL_MAJOR_CATEGORIES.map(c => c.key)
     let next
     if (checked) {
-      const base = current ?? []
-      next = [...base, categoryLabel]
+      next = [...new Set([...normalizeAllowedKeys(current ?? []), categoryKey])]
     } else {
-      const base = current ?? allLabels
-      next = base.filter(c => c !== categoryLabel)
+      const base = current === null || current === undefined ? allKeys : normalizeAllowedKeys(current)
+      next = base.filter(k => k !== categoryKey)
       if (next.length === 0) next = null
     }
     const { error } = await supabase
@@ -134,9 +143,8 @@ export default function AdminApp() {
   }
 
   const addFormBookData  = BOOKS.find(b => b.label === addForm.book)
-  const addFormMajorData = addFormBookData?.majorCategories.find(m => m.label === addForm.major)
-  const addFormSections  = addFormMajorData
-    ? categoriesData.filter(c => c.id >= addFormMajorData.min && c.id <= addFormMajorData.max)
+  const addFormSections  = addForm.book && addForm.major
+    ? categoriesData.filter(c => c.book === addForm.book && c.major === addForm.major)
     : []
 
   function makeNewProblem(section, id) {
@@ -441,13 +449,15 @@ export default function AdminApp() {
                   <div key={book.label} className="admin-user-book">
                     <h3 className="admin-user-book-label">{book.label}</h3>
                     {book.majorCategories.map(cat => {
-                      const isChecked = allowed ? allowed.includes(cat.label) : true
+                      const key = majorCategoryKey(book.label, cat.label)
+                      // 複合キーに加え、SQL移行前のレガシー裸ラベルもチェック済みとして表示する
+                      const isChecked = allowed ? (allowed.includes(key) || allowed.includes(cat.label)) : true
                       return (
-                        <label key={cat.label} className="admin-user-cat-row">
+                        <label key={key} className="admin-user-cat-row">
                           <input
                             type="checkbox"
                             checked={isChecked}
-                            onChange={e => handleToggleUserCategory(user.email, cat.label, e.target.checked)}
+                            onChange={e => handleToggleUserCategory(user.email, key, e.target.checked)}
                           />
                           <span>{cat.label}</span>
                         </label>

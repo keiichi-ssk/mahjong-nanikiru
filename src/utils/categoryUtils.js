@@ -1,72 +1,94 @@
 import categoriesData from '../data/categories.json';
 
-const CATEGORY_MAP = Object.fromEntries(categoriesData.map(c => [c.id, c.title]));
+// categories.json が書籍・大カテゴリ帰属の唯一の情報源。
+// 書籍・大カテゴリの表示順は categories.json の配列中の初出順で決まる
+// （IDの数値範囲には依存しない。並べ替えると表示順が変わるので注意）。
 
-export const BOOKS = [
-  {
-    label: '現代麻雀技術論',
-    majorCategories: [
-      { label: 'テンパイの技術',       min: 1,  max: 3  },
-      { label: '1シャンテンの技術',    min: 4,  max: 11 },
-      { label: '2シャンテンの技術',    min: 12, max: 16 },
-      { label: '3シャンテン以上の選択', min: 17, max: 17 },
-      { label: '鳴きの技術',           min: 18, max: 24 },
-    ],
-  },
-  {
-    label: '新科学する麻雀実践編',
-    majorCategories: [
-      { label: 'テンパイの技術',    min: 25, max: 29 },
-      { label: '対リーチ押し引き',  min: 30, max: 36 },
-      { label: '対副露押し引き',    min: 37, max: 44 },
-      { label: 'ベタオリの技術',    min: 45, max: 46 },
-    ],
-  },
-];
+const CATEGORY_INDEX = Object.fromEntries(categoriesData.map(c => [c.id, c]));
+
+function getCategory(section) {
+  return CATEGORY_INDEX[parseInt(section, 10)];
+}
+
+function buildBooks(categories) {
+  const books = [];
+  const bookMap = new Map();
+  for (const c of categories) {
+    let book = bookMap.get(c.book);
+    if (!book) {
+      book = { label: c.book, majorCategories: [], majorMap: new Map() };
+      bookMap.set(c.book, book);
+      books.push(book);
+    }
+    let major = book.majorMap.get(c.major);
+    if (!major) {
+      major = { label: c.major, categoryIds: [] };
+      book.majorMap.set(c.major, major);
+      book.majorCategories.push(major);
+    }
+    major.categoryIds.push(c.id);
+  }
+  return books.map(({ label, majorCategories }) => ({ label, majorCategories }));
+}
+
+export const BOOKS = buildBooks(categoriesData);
+
+// 権限キーの区切り文字。allowed_users.allowed_major_categories には
+// "書籍名::大カテゴリ名" の複合キーを保存する（同名大カテゴリの書籍またぎ対策）
+export const MAJOR_KEY_SEPARATOR = '::';
+
+export function majorCategoryKey(bookLabel, majorLabel) {
+  return `${bookLabel}${MAJOR_KEY_SEPARATOR}${majorLabel}`;
+}
+
+export const ALL_MAJOR_CATEGORIES = BOOKS.flatMap(b =>
+  b.majorCategories.map(m => ({
+    book: b.label,
+    label: m.label,
+    key: majorCategoryKey(b.label, m.label),
+  }))
+);
 
 export function sectionNumber(section) {
   return parseInt(section, 10);
 }
 
 export function sectionLabel(section) {
-  return CATEGORY_MAP[parseInt(section, 10)] ?? String(section);
+  return getCategory(section)?.title ?? String(section);
 }
 
 export function getBookLabel(section) {
-  const n = sectionNumber(section);
-  for (const book of BOOKS) {
-    if (book.majorCategories.some(({ min, max }) => n >= min && n <= max)) {
-      return book.label;
-    }
-  }
-  return 'その他';
+  return getCategory(section)?.book ?? 'その他';
 }
 
 export function getMajorCategory(section) {
-  const n = sectionNumber(section);
-  for (const book of BOOKS) {
-    const found = book.majorCategories.find(({ min, max }) => n >= min && n <= max);
-    if (found) return found.label;
-  }
-  return 'その他';
+  return getCategory(section)?.major ?? 'その他';
+}
+
+export function getMajorCategoryKey(section) {
+  const c = getCategory(section);
+  return c ? majorCategoryKey(c.book, c.major) : null;
 }
 
 export function getSituationText(section) {
-  const n = sectionNumber(section);
-  if (n >= 1 && n <= 11) return '東場 南家 7〜9巡目';
-  if (n >= 12 && n <= 17) return '東場 南家 4〜6巡目';
-  return null;
+  return getCategory(section)?.situation ?? null;
+}
+
+// allowed: allowed_users.allowed_major_categories の値。null/undefined は無制限。
+// 複合キー（"書籍::大カテゴリ"）に加え、移行前のレガシー裸ラベル（"大カテゴリ"）も受理する
+export function isSectionAllowed(allowed, section) {
+  if (allowed == null) return true;
+  const c = getCategory(section);
+  if (!c) return false;
+  return allowed.includes(majorCategoryKey(c.book, c.major)) || allowed.includes(c.major);
 }
 
 export function groupByBook(categories) {
   return BOOKS.map(({ label: bookLabel, majorCategories }) => {
     const majorGroups = majorCategories
-      .map(({ label: majorLabel, min, max }) => ({
+      .map(({ label: majorLabel, categoryIds }) => ({
         label: majorLabel,
-        sections: categories.filter((c) => {
-          const n = sectionNumber(c);
-          return n >= min && n <= max;
-        }),
+        sections: categories.filter((c) => categoryIds.includes(sectionNumber(c))),
       }))
       .filter(({ sections }) => sections.length > 0);
     return { label: bookLabel, majorGroups };
