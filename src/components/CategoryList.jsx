@@ -23,12 +23,168 @@ function ToggleRow({ label, checked, onToggle }) {
   );
 }
 
+function CategoryCard({ label, available, isChecked, countText, answeredCount, correctCount, totalCount, showReset, onToggle, onReset }) {
+  const tap = useTap(onToggle, { disabled: !available });
+  return (
+    <div
+      className={`category-card${available ? '' : ' category-card--disabled'}${isChecked ? ' category-card--checked' : ''}`}
+      {...tap}
+      role="button"
+      tabIndex={available ? 0 : -1}
+      onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && available && onToggle()}
+    >
+      <span className="card-check">{isChecked ? '✓' : ''}</span>
+      <span className="category-name">{label}</span>
+      <span className="category-count">{countText}</span>
+      {totalCount > 0 && answeredCount > 0 && (
+        <div className="category-card-status">
+          <div className="category-progress">
+            <div className="category-progress-bar">
+              <div
+                className="category-progress-fill"
+                style={{ width: `${(correctCount / totalCount) * 100}%` }}
+              />
+            </div>
+            <span className="category-progress-text">
+              {correctCount}/{totalCount}問正解
+            </span>
+          </div>
+          {showReset && (
+            <button
+              className="btn-reset-section"
+              onClick={(e) => { e.stopPropagation(); onReset(); }}
+            >
+              進捗をリセット
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 大カテゴリのアコーディオン。見出しタップで開閉、右端の全選択/全解除で一括選択。
+// 畳んだ状態でも問題数・進捗・選択数が見えるようにする
+function MajorGroup({
+  majorLabel, sections, problems, results, session, onResetResults,
+  filterActive, filterLabelText, isProblemIncluded, availableSections,
+  checkedSections, toggleSection, toggleGroup, resetSection, resetMajor,
+  isOpen, onToggleOpen,
+}) {
+  const majorAvailable = availableSections(sections);
+  const majorAllChecked = majorAvailable.length > 0 && majorAvailable.every(s => checkedSections.has(s));
+  const majorProblems = sections.flatMap(s => problems.filter(p => p.section === s));
+  const answeredInMajor = majorProblems.filter(p => results[p.id] !== undefined).length;
+  const correctInMajor = majorProblems.filter(p => results[p.id] === true).length;
+  const selectedInMajor = sections.filter(s => checkedSections.has(s)).length;
+  const totalInMajor = majorProblems.length;
+  const filteredInMajor = filterActive ? majorProblems.filter(isProblemIncluded).length : totalInMajor;
+
+  const headerTap = useTap(onToggleOpen);
+  const selectTap = useTap(() => { if (majorAvailable.length > 0) toggleGroup(majorAvailable); });
+
+  return (
+    <div className="major-category-group">
+      <h3 className="major-category-label">
+        <span
+          className="major-toggle-area"
+          role="button"
+          tabIndex={0}
+          aria-expanded={isOpen}
+          {...headerTap}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onToggleOpen()}
+        >
+          <span className={`major-chevron${isOpen ? ' major-chevron--open' : ''}`}>▶</span>
+          <span className="major-label-text">{majorLabel}</span>
+          {selectedInMajor > 0 && (
+            <span className="major-selected-badge">{selectedInMajor}選択</span>
+          )}
+          {!isOpen && (
+            <span className="major-summary">
+              {filterActive ? `${filteredInMajor}問（${filterLabelText}）` : `${totalInMajor}問`}
+              {answeredInMajor > 0 && ` ・ ${correctInMajor}/${totalInMajor}正解`}
+            </span>
+          )}
+        </span>
+        <div className="major-category-actions">
+          {isOpen && session && onResetResults && answeredInMajor > 0 && (
+            <button
+              className="btn-reset-major"
+              onClick={() => resetMajor(majorLabel, sections)}
+            >
+              進捗をリセット
+            </button>
+          )}
+          <button
+            className={`select-badge${majorAllChecked ? ' select-badge--active' : ''}`}
+            {...selectTap}
+          >
+            {majorAllChecked ? '全解除' : '全選択'}
+          </button>
+        </div>
+      </h3>
+      {isOpen && (
+        <div className="category-grid">
+          {sections.map((cat) => {
+            const catProblems = problems.filter((p) => p.section === cat);
+            const totalCount = catProblems.length;
+            const filteredCount = filterActive
+              ? catProblems.filter(isProblemIncluded).length
+              : totalCount;
+            const available = filterActive ? filteredCount > 0 : totalCount > 0;
+            const answeredCount = catProblems.filter(p => results[p.id] !== undefined).length;
+            const correctCount = catProblems.filter(p => results[p.id] === true).length;
+            const countText = totalCount === 0
+              ? '準備中'
+              : filterActive
+                ? `${filteredCount}問（${filterLabelText}）`
+                : `${totalCount}問`;
+            return (
+              <CategoryCard
+                key={cat}
+                label={sectionLabel(cat)}
+                available={available}
+                isChecked={checkedSections.has(cat)}
+                countText={countText}
+                answeredCount={answeredCount}
+                correctCount={correctCount}
+                totalCount={totalCount}
+                showReset={!!(session && onResetResults && answeredCount > 0)}
+                onToggle={() => toggleSection(cat)}
+                onReset={() => resetSection(cat, catProblems)}
+              />
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function CategoryList({ categories, problems, randomMode, onToggleRandom, unansweredOnlyMode, onToggleUnansweredOnly, wrongOnlyMode, onToggleWrongOnly, onStart, results = {}, session, onResetResults }) {
   const books = groupByBook(categories);
   const [checkedSections, setCheckedSections] = useState(new Set());
   const [activeBook, setActiveBook] = useState(() => books[0]?.label ?? '');
   // 出題数。null = 全問（選択カテゴリが変わっても常に全問に追従する）
   const [questionCount, setQuestionCount] = useState(null);
+  // 開いている大カテゴリ（"書籍::大カテゴリ" キーの集合）。初回は全部畳む
+  const [openMajors, setOpenMajors] = useState(() => {
+    try {
+      return new Set(JSON.parse(localStorage.getItem('openMajorCategories') ?? '[]'));
+    } catch {
+      return new Set();
+    }
+  });
+
+  function toggleMajorOpen(key) {
+    setOpenMajors(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      localStorage.setItem('openMajorCategories', JSON.stringify([...next]));
+      return next;
+    });
+  }
 
   function toggleSection(cat) {
     setCheckedSections(prev => {
@@ -154,86 +310,28 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
           })()}
 
           {activeBookData.majorGroups.map(({ label: majorLabel, sections }) => {
-            const majorAvailable = availableSections(sections);
-            const majorAllChecked = majorAvailable.length > 0 && majorAvailable.every(s => checkedSections.has(s));
-            const majorProblems = sections.flatMap(s => problems.filter(p => p.section === s));
-            const answeredInMajor = majorProblems.filter(p => results[p.id] !== undefined).length;
+            const majorKey = `${activeBook}::${majorLabel}`;
             return (
-              <div key={majorLabel} className="major-category-group">
-                <h3
-                  className={`major-category-label major-category-label--selectable${majorAllChecked ? ' major-category-label--checked' : ''}`}
-                  onClick={() => majorAvailable.length > 0 && toggleGroup(majorAvailable)}
-                >
-                  <span>{majorLabel}</span>
-                  <div className="major-category-actions">
-                    {session && onResetResults && answeredInMajor > 0 && (
-                      <button
-                        className="btn-reset-major"
-                        onClick={(e) => { e.stopPropagation(); resetMajor(majorLabel, sections); }}
-                      >
-                        進捗をリセット
-                      </button>
-                    )}
-                    <span className={`select-badge${majorAllChecked ? ' select-badge--active' : ''}`}>{majorAllChecked ? '全解除' : '全選択'}</span>
-                  </div>
-                </h3>
-                <div className="category-grid">
-                  {sections.map((cat) => {
-                    const catProblems = problems.filter((p) => p.section === cat);
-                    const totalCount = catProblems.length;
-                    const filteredCount = filterActive
-                      ? catProblems.filter(isProblemIncluded).length
-                      : totalCount;
-                    const available = filterActive ? filteredCount > 0 : totalCount > 0;
-                    const isChecked = checkedSections.has(cat);
-                    const answeredCount = catProblems.filter(p => results[p.id] !== undefined).length;
-                    const correctCount = catProblems.filter(p => results[p.id] === true).length;
-                    return (
-                      <div
-                        key={cat}
-                        className={`category-card${available ? '' : ' category-card--disabled'}${isChecked ? ' category-card--checked' : ''}`}
-                        onClick={() => available && toggleSection(cat)}
-                        role="button"
-                        tabIndex={available ? 0 : -1}
-                        onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && available && toggleSection(cat)}
-                      >
-                        <span className="card-check">{isChecked ? '✓' : ''}</span>
-                        <span className="category-name">{sectionLabel(cat)}</span>
-                        <span className="category-count">
-                          {totalCount === 0
-                            ? '準備中'
-                            : filterActive
-                              ? `${filteredCount}問（${filterLabel()}）`
-                              : `${totalCount}問`}
-                        </span>
-                        {totalCount > 0 && answeredCount > 0 && (
-                          <div className="category-card-status">
-                            <div className="category-progress">
-                              <div className="category-progress-bar">
-                                <div
-                                  className="category-progress-fill"
-                                  style={{ width: `${(correctCount / totalCount) * 100}%` }}
-                                />
-                              </div>
-                              <span className="category-progress-text">
-                                {correctCount}/{totalCount}問正解
-                              </span>
-                            </div>
-                            {session && onResetResults && (
-                              <button
-                                className="btn-reset-section"
-                                onClick={(e) => { e.stopPropagation(); resetSection(cat, catProblems); }}
-                              >
-                                進捗をリセット
-                              </button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              <MajorGroup
+                key={majorKey}
+                majorLabel={majorLabel}
+                sections={sections}
+                problems={problems}
+                results={results}
+                session={session}
+                onResetResults={onResetResults}
+                filterActive={filterActive}
+                filterLabelText={filterLabel()}
+                isProblemIncluded={isProblemIncluded}
+                availableSections={availableSections}
+                checkedSections={checkedSections}
+                toggleSection={toggleSection}
+                toggleGroup={toggleGroup}
+                resetSection={resetSection}
+                resetMajor={resetMajor}
+                isOpen={openMajors.has(majorKey)}
+                onToggleOpen={() => toggleMajorOpen(majorKey)}
+              />
             );
           })}
         </div>

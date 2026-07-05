@@ -12,7 +12,7 @@ export function useTap(onTap, { disabled = false } = {}) {
   const touchStart = useRef(null);
 
   return {
-    onClick: onTap,
+    onClick: disabled ? undefined : onTap,
     onTouchStart(e) {
       const t = e.touches[0];
       touchStart.current = { x: t.clientX, y: t.clientY };
@@ -21,6 +21,10 @@ export function useTap(onTap, { disabled = false } = {}) {
       const start = touchStart.current;
       touchStart.current = null;
       if (disabled || !start || !e.cancelable) return;
+      // ネストした別のインタラクティブ要素（カード内のボタン等）からの
+      // バブリングは無視する（そちら側のクリックを潰さない）
+      const interactive = e.target.closest('button, [role="button"], a, input, select, textarea');
+      if (interactive && interactive !== e.currentTarget) return;
       const t = e.changedTouches[0];
       // 指が大きく動いた場合はスクロール操作なので無視
       if (Math.abs(t.clientX - start.x) > 10 || Math.abs(t.clientY - start.y) > 10) return;
