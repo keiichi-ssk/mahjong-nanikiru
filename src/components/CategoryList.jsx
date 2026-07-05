@@ -1,6 +1,23 @@
 import { useState } from 'react';
 import { groupByBook, sectionLabel } from '../utils/categoryUtils';
 
+function ToggleRow({ label, checked, onToggle }) {
+  return (
+    <div className="random-toggle-row">
+      <span className="random-toggle-label" onClick={onToggle}>{label}</span>
+      <button
+        className={`random-toggle${checked ? ' random-toggle--on' : ''}`}
+        onClick={onToggle}
+        role="switch"
+        aria-checked={checked}
+        aria-label={label}
+      >
+        <span className="random-toggle-thumb" />
+      </button>
+    </div>
+  );
+}
+
 export default function CategoryList({ categories, problems, randomMode, onToggleRandom, unansweredOnlyMode, onToggleUnansweredOnly, wrongOnlyMode, onToggleWrongOnly, onStart, results = {}, session, onResetResults }) {
   const books = groupByBook(categories);
   const [checkedSections, setCheckedSections] = useState(new Set());
@@ -81,41 +98,11 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
     <div className="category-list">
 
       <div className="toggle-rows">
-        <div className="random-toggle-row">
-          <span className="random-toggle-label">ランダム出題</span>
-          <button
-            className={`random-toggle${randomMode ? ' random-toggle--on' : ''}`}
-            onClick={onToggleRandom}
-            role="switch"
-            aria-checked={randomMode}
-          >
-            <span className="random-toggle-thumb" />
-          </button>
-        </div>
+        <ToggleRow label="ランダム出題" checked={randomMode} onToggle={onToggleRandom} />
         {session && (
           <>
-            <div className="random-toggle-row">
-              <span className="random-toggle-label">未回答の問題</span>
-              <button
-                className={`random-toggle${unansweredOnlyMode ? ' random-toggle--on' : ''}`}
-                onClick={onToggleUnansweredOnly}
-                role="switch"
-                aria-checked={unansweredOnlyMode}
-              >
-                <span className="random-toggle-thumb" />
-              </button>
-            </div>
-            <div className="random-toggle-row">
-              <span className="random-toggle-label">間違えた問題</span>
-              <button
-                className={`random-toggle${wrongOnlyMode ? ' random-toggle--on' : ''}`}
-                onClick={onToggleWrongOnly}
-                role="switch"
-                aria-checked={wrongOnlyMode}
-              >
-                <span className="random-toggle-thumb" />
-              </button>
-            </div>
+            <ToggleRow label="未回答の問題" checked={unansweredOnlyMode} onToggle={onToggleUnansweredOnly} />
+            <ToggleRow label="間違えた問題" checked={wrongOnlyMode} onToggle={onToggleWrongOnly} />
           </>
         )}
       </div>

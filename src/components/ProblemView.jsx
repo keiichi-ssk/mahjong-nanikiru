@@ -97,7 +97,7 @@ function HandDisplay({ tiles, melds, otherDiscard }) {
     <>
       {hasHand && (
         <div className="hand-and-melds">
-          <div className="tile-display-readonly">
+          <div className="tile-display-readonly" style={{ '--hand-count': tiles.length }}>
             {tiles.map((tile, i) => (
               <div key={`${tile}-${i}`} className="tile-readonly">
                 <img src={getTileImageUrl(tile)} alt={getTileLabel(tile)} />
@@ -218,7 +218,7 @@ function NakiChoiceView({ problem, onAnswer }) {
 
       <p className="naki-choice-instruction">鳴く牌をすべて選んでください（複数選択可）</p>
 
-      <div className="tile-selector">
+      <div className="tile-selector" style={{ '--hand-count': sortedChoices.length }}>
         {sortedChoices.map((c, i) => (
           <TileButton
             key={i}
@@ -415,7 +415,7 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
           {p.tiles && p.tiles.length > 0 && (
             <div className="tile-selector-row">
               <div className="hand-and-melds">
-                <div className="tile-selector">
+                <div className="tile-selector" style={{ '--hand-count': p.tiles.length }}>
                   {p.tiles.map((tile, i) => (
                     <TileButton
                       key={`${tile}-${i}`}
