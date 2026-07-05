@@ -873,12 +873,13 @@
   border-radius: 6px;
   padding: 0;
   cursor: pointer;
-  transition: border-color 0.15s, transform 0.1s, opacity 0.2s, box-shadow 0.15s;
+  transition: border-color 0.15s, transform 0.1s, opacity 0.2s, box-shadow 0.15s, filter 0.1s;
   width: 40px;
   height: 55px;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.95),
     inset 0 -1px 0 rgba(0, 0, 0, 0.08),
@@ -899,9 +900,20 @@
   cursor: default;
 }
 
-/* タップ時の押下フィードバック */
+/* タップ時の押下フィードバック
+   ※ scale等のジオメトリ変化はタップ判定中に当たり判定がズレて
+   隣の牌に誤反応するため、明度変化のみで表現する */
 .tile-button:active:not(:disabled) {
-  transform: scale(0.94);
+  filter: brightness(0.85);
+}
+
+/* 当たり判定を牌間の隙間＋上下に拡張する（見た目は不変）。
+   44px未満の小さいターゲットはタップ位置のわずかなズレで
+   隣の牌や無効地帯に割り当てられるため、判定領域を切れ目なくする */
+.tile-button::after {
+  content: '';
+  position: absolute;
+  inset: -6px -1px;
 }
 
 .tile-button--correct {
