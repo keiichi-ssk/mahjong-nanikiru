@@ -260,11 +260,11 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
     <div className="category-list">
 
       <div className="toggle-rows">
-        <ToggleRow label="ランダム出題" checked={randomMode} onToggle={onToggleRandom} />
+        <ToggleRow label="シャッフル出題" checked={randomMode} onToggle={onToggleRandom} />
         {session && (
           <>
-            <ToggleRow label="未回答の問題" checked={unansweredOnlyMode} onToggle={onToggleUnansweredOnly} />
-            <ToggleRow label="間違えた問題" checked={wrongOnlyMode} onToggle={onToggleWrongOnly} />
+            <ToggleRow label="未回答のみ" checked={unansweredOnlyMode} onToggle={onToggleUnansweredOnly} />
+            <ToggleRow label="間違いのみ" checked={wrongOnlyMode} onToggle={onToggleWrongOnly} />
           </>
         )}
       </div>
