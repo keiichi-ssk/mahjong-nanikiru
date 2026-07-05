@@ -1,3 +1,24 @@
+/* セマンティックカラートークン（Nord系ダークテーマ）
+   色を変えるときはここだけを変更する。App.css 側は var() 参照 */
+:root {
+  --color-bg: #2e3440;
+  --color-surface: #3b4252;
+  --color-surface-hover: #424c60;
+  --color-surface-active: #3a4a5c;
+  --color-border: #434c5e;
+  --color-border-strong: #4c566a;
+  --color-primary: #5e81ac;
+  --color-primary-hover: #6d90bb;
+  --color-primary-light: #81a1c1;
+  --color-accent: #88c0d0;
+  --color-text: #d8dee9;
+  --color-text-bright: #eceff4;
+  --color-text-secondary: #9fadbf;
+  --color-text-muted: #93a0b3;
+  --color-success: #a3be8c;
+  --color-danger: #bf616a;
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
   margin: 0;
@@ -10,8 +31,8 @@ html {
 
 body {
   font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
-  background: #2e3440;
-  color: #d8dee9;
+  background: var(--color-bg);
+  color: var(--color-text);
   min-height: 100vh;
   min-height: 100dvh;
 }

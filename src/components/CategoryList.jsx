@@ -22,6 +22,8 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
   const books = groupByBook(categories);
   const [checkedSections, setCheckedSections] = useState(new Set());
   const [activeBook, setActiveBook] = useState(() => books[0]?.label ?? '');
+  // 出題数。null = 全問（選択カテゴリが変わっても常に全問に追従する）
+  const [questionCount, setQuestionCount] = useState(null);
 
   function toggleSection(cat) {
     setCheckedSections(prev => {
@@ -230,17 +232,46 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
         </div>
       )}
 
-      {checkedSections.size > 0 && (
-        <div className="start-button-bar">
-          <button
-            className="btn-start"
-            onClick={() => onStart(checkedSections)}
-            disabled={totalSelectedProblems === 0}
-          >
-            出題開始（{totalSelectedProblems}問）
-          </button>
-        </div>
-      )}
+      {checkedSections.size > 0 && (() => {
+        const effectiveCount = questionCount === null
+          ? totalSelectedProblems
+          : Math.min(questionCount, totalSelectedProblems);
+        const trackPct = totalSelectedProblems > 1
+          ? ((effectiveCount - 1) / (totalSelectedProblems - 1)) * 100
+          : 100;
+        return (
+          <div className="start-button-bar">
+            {totalSelectedProblems > 1 && (
+              <div className="question-count-row">
+                <span className="question-count-label">出題数</span>
+                <input
+                  type="range"
+                  className="question-count-slider"
+                  min={1}
+                  max={totalSelectedProblems}
+                  value={effectiveCount}
+                  onChange={(e) => {
+                    const v = Number(e.target.value);
+                    setQuestionCount(v >= totalSelectedProblems ? null : v);
+                  }}
+                  aria-label="出題数"
+                  style={{ '--track-fill': `linear-gradient(to right, var(--color-primary) ${trackPct}%, var(--color-border-strong) ${trackPct}%)` }}
+                />
+                <span className="question-count-value">
+                  {questionCount === null ? `全問（${totalSelectedProblems}）` : `${effectiveCount}問`}
+                </span>
+              </div>
+            )}
+            <button
+              className="btn-start"
+              onClick={() => onStart(checkedSections, effectiveCount)}
+              disabled={totalSelectedProblems === 0}
+            >
+              出題開始（{effectiveCount}問）
+            </button>
+          </div>
+        );
+      })()}
     </div>
   );
 }

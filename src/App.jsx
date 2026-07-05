@@ -15,6 +15,23 @@ function shuffled(arr) {
   return a;
 }
 
+function LoadingSkeleton() {
+  return (
+    <div className="loading-skeleton" role="status" aria-label="読み込み中">
+      <div className="skeleton-block skeleton-toggle" />
+      <div className="skeleton-tabs">
+        <div className="skeleton-block skeleton-tab" />
+        <div className="skeleton-block skeleton-tab" />
+        <div className="skeleton-block skeleton-tab" />
+      </div>
+      <div className="skeleton-block skeleton-heading" />
+      {Array.from({ length: 6 }, (_, i) => (
+        <div key={i} className="skeleton-block skeleton-card" />
+      ))}
+    </div>
+  );
+}
+
 async function signInWithGoogle() {
   const { error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
@@ -139,7 +156,7 @@ export default function App() {
     (a, b) => parseInt(a) - parseInt(b)
   );
 
-  function startSelected(sections) {
+  function startSelected(sections, count = null) {
     let catProblems = visibleProblems.filter(p => sections.has(p.section));
     if (unansweredOnlyMode || wrongOnlyMode) {
       catProblems = catProblems.filter(p => {
@@ -148,7 +165,11 @@ export default function App() {
         return false;
       });
     }
-    const ordered = randomMode ? shuffled(catProblems) : catProblems;
+    let ordered = randomMode ? shuffled(catProblems) : catProblems;
+    // 出題数の指定があれば先頭から絞る（ランダムON時はシャッフル後なので実質ランダム抽出）
+    if (count != null && count < ordered.length) {
+      ordered = ordered.slice(0, count);
+    }
     setOrderedProblems(ordered);
     setIsPlaying(true);
     setPlayingKey(k => k + 1);
@@ -169,7 +190,7 @@ export default function App() {
 
   function renderContent() {
     if (session && isAllowed === null) {
-      return <div style={{ padding: 32, textAlign: 'center' }}>読み込み中...</div>;
+      return <LoadingSkeleton />;
     }
     if (session && isAllowed === false) {
       return (
@@ -183,7 +204,7 @@ export default function App() {
       );
     }
     if (loading) {
-      return <div style={{ padding: 32, textAlign: 'center' }}>読み込み中...</div>;
+      return <LoadingSkeleton />;
     }
     if (!isPlaying) {
       return (
