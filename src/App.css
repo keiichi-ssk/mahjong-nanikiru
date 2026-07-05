@@ -390,6 +390,14 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* 進捗＋リセットボタンのまとまり。スマホでは2行目に折り返す */
+.category-card-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
 .category-progress {
   display: flex;
   flex-direction: row;
@@ -1645,6 +1653,18 @@
   /* カテゴリ一覧 */
   .category-grid {
     gap: 6px;
+  }
+
+  /* カテゴリカード: 縮まない要素（進捗バー・リセットボタン）を1行に
+     詰め込むと画面幅を超えてはみ出すため、2行目に折り返す */
+  .category-card {
+    flex-wrap: wrap;
+  }
+
+  .category-card-status {
+    flex: 1 1 100%;
+    justify-content: space-between;
+    margin-left: 24px; /* チェック列ぶんインデントしてカテゴリ名と揃える */
   }
 
   .app-title {

@@ -202,25 +202,27 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
                               : `${totalCount}問`}
                         </span>
                         {totalCount > 0 && answeredCount > 0 && (
-                          <div className="category-progress">
-                            <div className="category-progress-bar">
-                              <div
-                                className="category-progress-fill"
-                                style={{ width: `${(correctCount / totalCount) * 100}%` }}
-                              />
+                          <div className="category-card-status">
+                            <div className="category-progress">
+                              <div className="category-progress-bar">
+                                <div
+                                  className="category-progress-fill"
+                                  style={{ width: `${(correctCount / totalCount) * 100}%` }}
+                                />
+                              </div>
+                              <span className="category-progress-text">
+                                {correctCount}/{totalCount}問正解
+                              </span>
                             </div>
-                            <span className="category-progress-text">
-                              {correctCount}/{totalCount}問正解
-                            </span>
+                            {session && onResetResults && (
+                              <button
+                                className="btn-reset-section"
+                                onClick={(e) => { e.stopPropagation(); resetSection(cat, catProblems); }}
+                              >
+                                正誤をリセット
+                              </button>
+                            )}
                           </div>
-                        )}
-                        {session && onResetResults && answeredCount > 0 && (
-                          <button
-                            className="btn-reset-section"
-                            onClick={(e) => { e.stopPropagation(); resetSection(cat, catProblems); }}
-                          >
-                            正誤をリセット
-                          </button>
                         )}
                       </div>
                     );
