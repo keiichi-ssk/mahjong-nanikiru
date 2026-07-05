@@ -560,17 +560,8 @@
   display: block;
 }
 
-/* 横向き牌：画像を90度回転、コンテナはその逆サイズ */
-.meld-tile--rotated {
-  width: 49px;
-  height: 36px;
-}
-
-.meld-tile--rotated img {
-  width: 36px;
-  height: 49px;
-  transform: rotate(90deg);
-}
+/* 横向き牌：実装はファイル末尾の .tile-rotated ユーティリティ（JSX側で併用）。ここではサイズだけ指定 */
+.meld-tile--rotated { --tile-w: 36px; --tile-h: 49px; }
 
 /* 裏向き牌（暗槓） */
 .meld-tile--back {
@@ -766,6 +757,51 @@
   color: #88c0d0;
   font-weight: bold;
 }
+
+/* ===== 他家捨て牌表示 ===== */
+.other-discard-display {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.other-discard-label {
+  font-size: 0.75rem;
+  color: #6a7585;
+  font-weight: bold;
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding-top: 4px;
+}
+
+/* 6枚ごとの折返しは grid の列数で実現（JS側での行分割は不要） */
+.other-discard-tiles {
+  display: grid;
+  grid-template-columns: repeat(6, max-content);
+  gap: 3px 2px;
+  align-items: end;
+}
+
+.other-discard-tile {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.other-discard-tile img {
+  width: 22px;
+  height: 30px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 3px;
+  padding: 1px;
+  display: block;
+}
+
+/* リーチ宣言牌（横向き）：実装はファイル末尾の .tile-rotated ユーティリティ */
+.other-discard-tile--rotated { --tile-w: 22px; --tile-h: 30px; }
 
 /* ===== 鳴きタイミング 選択ボタン ===== */
 .naki-timing-btns {
@@ -1191,4 +1227,22 @@
     width: 40px;
     height: 55px;
   }
+}
+
+/* ===== 横向き牌ユーティリティ =====
+   リーチ宣言牌・鳴き牌の横向き表示の共通実装。
+   使う側は tile-rotated クラスを併用し、--tile-w / --tile-h に縦向き時の牌サイズを指定する。
+   ※ 元クラスの width/height に後勝ちするよう、必ずファイル末尾に置くこと */
+.tile-rotated {
+  width: var(--tile-h);
+  height: var(--tile-w);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tile-rotated img {
+  width: var(--tile-w);
+  height: var(--tile-h);
+  transform: rotate(90deg);
 }

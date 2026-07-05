@@ -3,18 +3,8 @@ import { supabase } from './lib/supabase';
 import CategoryList from './components/CategoryList';
 import ProblemView from './components/ProblemView';
 import { getMajorCategory } from './utils/categoryUtils';
+import { fromDb } from './utils/problemMapper';
 import './App.css';
-
-function fromDb(p) {
-  return {
-    ...p,
-    problemType:      p.problem_type,
-    discardedTile:    p.discarded_tile,
-    nakiChoices:      p.naki_choices,
-    questionImageUrl: p.question_image_url ?? null,
-    otherDiscard:     p.other_discard ?? null,
-  }
-}
 
 function shuffled(arr) {
   const a = [...arr];

@@ -2,46 +2,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import ProblemEditor from './ProblemEditor'
 import { BOOKS, sectionNumber, sectionLabel } from '../utils/categoryUtils'
+import { fromDb, toDb } from '../utils/problemMapper'
 import categoriesData from '../data/categories.json'
-
-function fromDb(p) {
-  return {
-    ...p,
-    problemType:      p.problem_type,
-    discardedTile:    p.discarded_tile,
-    nakiChoices:      p.naki_choices,
-    questionImageUrl: p.question_image_url ?? null,
-    // toDbではdora未設定時に''で保存される（bakaze/jikaze/junmeはnull保存）ため、
-    // ここで''をnullに正規化しないと再読込後に「未設定」判定（?? / 前問題からの引き継ぎ）が効かなくなる
-    dora:             p.dora || null,
-    otherDiscard:     p.other_discard ?? null,
-  }
-}
-
-function toDb(p) {
-  return {
-    id:                 p.id,
-    section:            p.section,
-    image:              p.image ?? '',
-    tiles:              p.tiles ?? [],
-    answer:             p.answer ?? '',
-    dora:               p.dora ?? '',
-    riichi:             p.riichi ?? null,
-    explanation:        p.explanation ?? '',
-    reviewed:           p.reviewed ?? false,
-    disabled:           p.disabled ?? false,
-    melds:              p.melds ?? [],
-    problem_type:       p.problemType ?? 'default',
-    discarded_tile:     p.discardedTile ?? null,
-    naki_choices:       p.nakiChoices ?? [],
-    question_image_url: p.questionImageUrl ?? null,
-    bakaze:             p.bakaze ?? null,
-    jikaze:             p.jikaze ?? null,
-    junme:              p.junme  ?? null,
-    note:               p.note ?? '',
-    other_discard:      p.otherDiscard ?? null,
-  }
-}
 
 const ALL_MAJOR_CATEGORIES = BOOKS.flatMap(b => b.majorCategories.map(c => ({ book: b.label, label: c.label })))
 

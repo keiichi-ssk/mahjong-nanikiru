@@ -53,11 +53,52 @@ function MeldPreview({ meld }) {
         const isBack    = type === 'ankan' && (i === 0 || i === 3)
         if (isBack) return <div key={i} className="meld-preview-back" />
         return (
-          <div key={i} className={`meld-preview-tile${isRotated ? ' meld-preview-tile--rotated' : ''}`}>
+          <div key={i} className={`meld-preview-tile${isRotated ? ' meld-preview-tile--rotated tile-rotated' : ''}`}>
             <img src={getTileImageUrl(t)} alt={t} width={30} height={Math.round(30 * 60 / 44)} />
           </div>
         )
       })}
+    </div>
+  )
+}
+
+// 牌パレット（萬子/筒子/索子/字牌の4行）。tileClassName は牌ごとにクラスを変えたいとき関数で渡す
+function TilePalette({ size = 36, onTileClick, tileClassName }) {
+  return TILE_GROUPS.map(group => (
+    <div key={group.label} className="palette-row">
+      <span className="palette-label">{group.label}</span>
+      <div className="palette-tiles">
+        {group.tiles.map(t => (
+          <TileImg
+            key={t} tile={t} size={size}
+            onClick={() => onTileClick(t)}
+            className={tileClassName ? tileClassName(t) : 'palette-tile'}
+          />
+        ))}
+      </div>
+    </div>
+  ))
+}
+
+// 風選択（未設定 + 東南西北など）。suffix はボタン表示の接尾辞（場/家）
+function WindSelector({ value, onChange, winds, suffix = '' }) {
+  return (
+    <div className="situation-selector">
+      <button
+        className={`situation-btn situation-btn--unset${value === null ? ' situation-btn--active' : ''}`}
+        onClick={() => onChange(null)}
+      >
+        未設定
+      </button>
+      {winds.map(wind => (
+        <button
+          key={wind}
+          className={`situation-btn${value === wind ? ' situation-btn--active' : ''}`}
+          onClick={() => onChange(wind)}
+        >
+          {wind}{suffix}
+        </button>
+      ))}
     </div>
   )
 }
@@ -245,10 +286,16 @@ export default function ProblemEditor({
     jikaze,
     junme,
     note,
-    otherDiscard: (otherDiscardPlayer || otherDiscardTiles.length > 0)
+    // アプリ側（OtherDiscardDisplay）は家と牌の両方が揃わないと表示しないため、
+    // 片方だけの不完全な設定は保存せず null にする（画面には警告を出す）
+    otherDiscard: (otherDiscardPlayer && otherDiscardTiles.length > 0)
       ? { player: otherDiscardPlayer, tiles: otherDiscardTiles, riichiIndex: otherDiscardRiichiIndex }
       : null,
   }), [problem, tiles, answer, dora, riichi, melds, explanation, reviewed, disabled, problemType, discardedTile, nakiChoices, questionImageUrl, bakaze, jikaze, junme, note, otherDiscardPlayer, otherDiscardTiles, otherDiscardRiichiIndex])
+
+  const otherDiscardIncomplete =
+    (otherDiscardPlayer !== null && otherDiscardTiles.length === 0) ||
+    (otherDiscardPlayer === null && otherDiscardTiles.length > 0)
 
   const handleSave = useCallback(() => {
     onSave(buildSaveData())
@@ -443,16 +490,7 @@ export default function ProblemEditor({
         {/* 手牌追加パレット */}
         {!addingMeld && (
           <div className="hand-palette-rows">
-            {TILE_GROUPS.map(group => (
-              <div key={group.label} className="palette-row">
-                <span className="palette-label">{group.label}</span>
-                <div className="palette-tiles">
-                  {group.tiles.map(t => (
-                    <TileImg key={t} tile={t} size={36} onClick={() => addTile(t)} className="palette-tile" />
-                  ))}
-                </div>
-              </div>
-            ))}
+            <TilePalette onTileClick={addTile} />
           </div>
         )}
 
@@ -476,20 +514,11 @@ export default function ProblemEditor({
               ))}
             </div>
             <div className="meld-palette">
-              {TILE_GROUPS.map(group => (
-                <div key={group.label} className="palette-row">
-                  <span className="palette-label">{group.label}</span>
-                  <div className="palette-tiles">
-                    {group.tiles.map(t => (
-                      <TileImg
-                        key={t} tile={t} size={32}
-                        onClick={() => addTileToMeld(t)}
-                        className={`palette-tile${isAddingComplete ? ' palette-tile--disabled' : ''}`}
-                      />
-                    ))}
-                  </div>
-                </div>
-              ))}
+              <TilePalette
+                size={32}
+                onTileClick={addTileToMeld}
+                tileClassName={() => `palette-tile${isAddingComplete ? ' palette-tile--disabled' : ''}`}
+              />
             </div>
             <button
               className={`meld-confirm-btn${isAddingComplete ? ' meld-confirm-btn--ready' : ''}`}
@@ -541,60 +570,18 @@ export default function ProblemEditor({
               現在のドラ: <strong>{dora ? getTileLabel(dora) : 'なし'}</strong>
               <button className="dora-clear" onClick={() => setDora(null)}>なし</button>
             </div>
-            {TILE_GROUPS.map(group => (
-              <div key={group.label} className="palette-row">
-                <span className="palette-label">{group.label}</span>
-                <div className="palette-tiles">
-                  {group.tiles.map(t => (
-                    <TileImg
-                      key={t} tile={t} size={36}
-                      onClick={() => setDora(t)}
-                      className={`palette-tile ${dora === t ? 'tile--answer' : ''}`}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
+            <TilePalette
+              onTileClick={setDora}
+              tileClassName={t => `palette-tile ${dora === t ? 'tile--answer' : ''}`}
+            />
 
             <div className="palette-tab-divider" />
             <div className="editor-section-label">場風</div>
-            <div className="situation-selector">
-              <button
-                className={`situation-btn situation-btn--unset${bakaze === null ? ' situation-btn--active' : ''}`}
-                onClick={() => setBakaze(null)}
-              >
-                未設定
-              </button>
-              {['東', '南', '西'].map(wind => (
-                <button
-                  key={wind}
-                  className={`situation-btn${bakaze === wind ? ' situation-btn--active' : ''}`}
-                  onClick={() => setBakaze(wind)}
-                >
-                  {wind}場
-                </button>
-              ))}
-            </div>
+            <WindSelector value={bakaze} onChange={setBakaze} winds={['東', '南', '西']} suffix="場" />
 
             <div className="palette-tab-divider" />
             <div className="editor-section-label">自風</div>
-            <div className="situation-selector">
-              <button
-                className={`situation-btn situation-btn--unset${jikaze === null ? ' situation-btn--active' : ''}`}
-                onClick={() => setJikaze(null)}
-              >
-                未設定
-              </button>
-              {['東', '南', '西', '北'].map(wind => (
-                <button
-                  key={wind}
-                  className={`situation-btn${jikaze === wind ? ' situation-btn--active' : ''}`}
-                  onClick={() => setJikaze(wind)}
-                >
-                  {wind}
-                </button>
-              ))}
-            </div>
+            <WindSelector value={jikaze} onChange={setJikaze} winds={['東', '南', '西', '北']} />
 
             <div className="palette-tab-divider" />
             <div className="editor-section-label">巡目</div>
@@ -623,16 +610,7 @@ export default function ProblemEditor({
             />
             <div className="explanation-tile-palette">
               <span className="explanation-palette-label">牌を挿入：</span>
-              {TILE_GROUPS.map(group => (
-                <div key={group.label} className="palette-row">
-                  <span className="palette-label">{group.label}</span>
-                  <div className="palette-tiles">
-                    {group.tiles.map(t => (
-                      <TileImg key={t} tile={t} size={28} onClick={() => insertNoteTileCode(t)} className="palette-tile" />
-                    ))}
-                  </div>
-                </div>
-              ))}
+              <TilePalette size={28} onTileClick={insertNoteTileCode} />
             </div>
           </div>
         )}
@@ -641,23 +619,7 @@ export default function ProblemEditor({
         {paletteTab === 'sutehai' && (
           <div className="palette-tab-content">
             <div className="editor-section-label">家</div>
-            <div className="situation-selector">
-              <button
-                className={`situation-btn situation-btn--unset${otherDiscardPlayer === null ? ' situation-btn--active' : ''}`}
-                onClick={() => setOtherDiscardPlayer(null)}
-              >
-                未設定
-              </button>
-              {['東', '南', '西', '北'].map(wind => (
-                <button
-                  key={wind}
-                  className={`situation-btn${otherDiscardPlayer === wind ? ' situation-btn--active' : ''}`}
-                  onClick={() => setOtherDiscardPlayer(wind)}
-                >
-                  {wind}家
-                </button>
-              ))}
-            </div>
+            <WindSelector value={otherDiscardPlayer} onChange={setOtherDiscardPlayer} winds={['東', '南', '西', '北']} suffix="家" />
 
             <div className="palette-tab-divider" />
             <div className="editor-section-label">
@@ -671,7 +633,7 @@ export default function ProblemEditor({
                 >
                   <button className="other-discard-tile-remove" onClick={() => removeOtherDiscardTile(i)}>×</button>
                   <div
-                    className="other-discard-tile-img-wrap"
+                    className={`other-discard-tile-img-wrap${otherDiscardRiichiIndex === i ? ' tile-rotated' : ''}`}
                     onClick={() => toggleOtherDiscardRiichi(i)}
                     title={getTileLabel(t)}
                   >
@@ -681,18 +643,14 @@ export default function ProblemEditor({
               ))}
               {otherDiscardTiles.length === 0 && <span className="editor-empty">牌を追加してください</span>}
             </div>
+            {otherDiscardIncomplete && (
+              <div className="other-discard-warning">
+                ⚠ 家と捨て牌の両方を設定してください。片方だけの設定は保存されません。
+              </div>
+            )}
 
             <div className="palette-tab-divider" />
-            {TILE_GROUPS.map(group => (
-              <div key={group.label} className="palette-row">
-                <span className="palette-label">{group.label}</span>
-                <div className="palette-tiles">
-                  {group.tiles.map(t => (
-                    <TileImg key={t} tile={t} size={36} onClick={() => addOtherDiscardTile(t)} className="palette-tile" />
-                  ))}
-                </div>
-              </div>
-            ))}
+            <TilePalette onTileClick={addOtherDiscardTile} />
           </div>
         )}
 
@@ -798,20 +756,10 @@ export default function ProblemEditor({
                     />
                   )}
                 </div>
-                {TILE_GROUPS.map(group => (
-                  <div key={group.label} className="palette-row">
-                    <span className="palette-label">{group.label}</span>
-                    <div className="palette-tiles">
-                      {group.tiles.map(t => (
-                        <TileImg
-                          key={t} tile={t} size={36}
-                          onClick={() => setDiscardedTile(t)}
-                          className={`palette-tile ${discardedTile === t ? 'tile--answer' : ''}`}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                ))}
+                <TilePalette
+                  onTileClick={setDiscardedTile}
+                  tileClassName={t => `palette-tile ${discardedTile === t ? 'tile--answer' : ''}`}
+                />
                 <div className="palette-tab-divider" />
                 <div className="editor-section-label">正解タイミング</div>
                 <div className="naki-timing-selector">
@@ -854,23 +802,10 @@ export default function ProblemEditor({
                 )}
                 {nakiChoices.length === 0 && <span className="editor-empty">牌パレットから選択肢を追加してください</span>}
                 <div className="editor-section-label" style={{ marginTop: 8 }}>牌パレット（クリックで選択肢に追加）</div>
-                {TILE_GROUPS.map(group => (
-                  <div key={group.label} className="palette-row">
-                    <span className="palette-label">{group.label}</span>
-                    <div className="palette-tiles">
-                      {group.tiles.map(t => {
-                        const added = nakiChoices.some(c => c.tile === t)
-                        return (
-                          <TileImg
-                            key={t} tile={t} size={36}
-                            onClick={() => addNakiChoice(t)}
-                            className={`palette-tile${added ? ' palette-tile--disabled' : ''}`}
-                          />
-                        )
-                      })}
-                    </div>
-                  </div>
-                ))}
+                <TilePalette
+                  onTileClick={addNakiChoice}
+                  tileClassName={t => `palette-tile${nakiChoices.some(c => c.tile === t) ? ' palette-tile--disabled' : ''}`}
+                />
               </>
             )}
 
@@ -886,16 +821,7 @@ export default function ProblemEditor({
             />
             <div className="explanation-tile-palette">
               <span className="explanation-palette-label">牌を挿入：</span>
-              {TILE_GROUPS.map(group => (
-                <div key={group.label} className="palette-row">
-                  <span className="palette-label">{group.label}</span>
-                  <div className="palette-tiles">
-                    {group.tiles.map(t => (
-                      <TileImg key={t} tile={t} size={28} onClick={() => insertTileCode(t)} className="palette-tile" />
-                    ))}
-                  </div>
-                </div>
-              ))}
+              <TilePalette size={28} onTileClick={insertTileCode} />
             </div>
           </div>
         )}
@@ -903,6 +829,11 @@ export default function ProblemEditor({
 
       {/* 保存ボタン */}
       <div className="editor-save-area">
+        {otherDiscardIncomplete && (
+          <span className="editor-save-warning">
+            ⚠ 他家捨て牌が未完成（家と牌の両方が必要）のため保存されません
+          </span>
+        )}
         <button className="editor-save-btn" onClick={handleSave}>
           保存のみ
         </button>

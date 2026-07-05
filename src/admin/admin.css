@@ -527,16 +527,8 @@
 
 .meld-preview-tile img { display: block; border-radius: 3px; background: #fff; }
 
-.meld-preview-tile--rotated {
-  width: 41px;
-  height: 30px;
-}
-
-.meld-preview-tile--rotated img {
-  transform: rotate(90deg);
-  width: 30px;
-  height: 41px;
-}
+/* 横向き牌：実装はファイル末尾の .tile-rotated ユーティリティ（JSX側で併用）。ここではサイズだけ指定 */
+.meld-preview-tile--rotated { --tile-w: 30px; --tile-h: 41px; }
 
 .meld-preview-back {
   width: 30px;
@@ -1060,15 +1052,22 @@
   display: block;
 }
 
-.other-discard-tile-item--riichi .other-discard-tile-img-wrap {
-  width: 48px;
-  height: 36px;
+/* リーチ宣言牌（横向き）：実装はファイル末尾の .tile-rotated ユーティリティ。
+   flex中央揃えを持つ共通実装に寄せることで、回転画像が枠からずれる問題も防ぐ */
+.other-discard-tile-item--riichi .other-discard-tile-img-wrap { --tile-w: 36px; --tile-h: 48px; }
+
+/* 不完全な他家捨て牌設定（家か牌の片方だけ）の警告 */
+.other-discard-warning {
+  margin-top: 8px;
+  color: #f39c12;
+  font-size: 0.8rem;
 }
 
-.other-discard-tile-item--riichi .other-discard-tile-img-wrap img {
-  width: 36px;
-  height: 48px;
-  transform: rotate(90deg);
+.editor-save-warning {
+  color: #f39c12;
+  font-size: 0.8rem;
+  align-self: center;
+  margin-right: 8px;
 }
 
 /* ===== 解説テキスト牌挿入パレット ===== */
@@ -1512,3 +1511,21 @@ kbd {
 
 .junme-select:focus { border-color: #f5c842; }
 .junme-select option { background: #0d1426; color: #ddd; }
+
+/* ===== 横向き牌ユーティリティ =====
+   リーチ宣言牌・副露プレビューの横向き表示の共通実装（App.css と同じパターン）。
+   使う側は tile-rotated クラスを併用し、--tile-w / --tile-h に縦向き時の牌サイズを指定する。
+   ※ 元クラスの width/height に後勝ちするよう、必ずファイル末尾に置くこと */
+.tile-rotated {
+  width: var(--tile-h);
+  height: var(--tile-w);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tile-rotated img {
+  width: var(--tile-w);
+  height: var(--tile-h);
+  transform: rotate(90deg);
+}

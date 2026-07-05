@@ -47,7 +47,7 @@ function MeldDisplay({ meld }) {
             return <div key={i} className="meld-tile meld-tile--back" />;
           }
           return (
-            <div key={i} className={`meld-tile${isRotated ? ' meld-tile--rotated' : ''}`}>
+            <div key={i} className={`meld-tile${isRotated ? ' meld-tile--rotated tile-rotated' : ''}`}>
               <img src={getTileImageUrl(tile)} alt={getTileLabel(tile)} />
             </div>
           );
@@ -71,25 +71,16 @@ function DoraIndicatorDisplay({ tile }) {
   );
 }
 
-const OTHER_DISCARD_TILES_PER_ROW = 6;
-
 function OtherDiscardDisplay({ otherDiscard }) {
   if (!otherDiscard || !otherDiscard.player || !otherDiscard.tiles || otherDiscard.tiles.length === 0) return null;
-  const rows = [];
-  for (let i = 0; i < otherDiscard.tiles.length; i += OTHER_DISCARD_TILES_PER_ROW) {
-    rows.push(otherDiscard.tiles.slice(i, i + OTHER_DISCARD_TILES_PER_ROW).map((tile, j) => ({ tile, index: i + j })));
-  }
   return (
     <div className="other-discard-display">
       <span className="other-discard-label">{otherDiscard.player}家捨て牌</span>
+      {/* 6枚ごとの折返しは CSS grid（repeat(6, max-content)）に任せる */}
       <div className="other-discard-tiles">
-        {rows.map((row, r) => (
-          <div key={r} className="other-discard-row">
-            {row.map(({ tile, index }) => (
-              <div key={index} className={`other-discard-tile${otherDiscard.riichiIndex === index ? ' other-discard-tile--rotated' : ''}`}>
-                <img src={getTileImageUrl(tile)} alt={getTileLabel(tile)} />
-              </div>
-            ))}
+        {otherDiscard.tiles.map((tile, i) => (
+          <div key={i} className={`other-discard-tile${otherDiscard.riichiIndex === i ? ' other-discard-tile--rotated tile-rotated' : ''}`}>
+            <img src={getTileImageUrl(tile)} alt={getTileLabel(tile)} />
           </div>
         ))}
       </div>
@@ -97,27 +88,30 @@ function OtherDiscardDisplay({ otherDiscard }) {
   );
 }
 
+// 手牌が未設定でも他家捨て牌は独立して表示する（問題タイプ間で挙動を揃える）
 function HandDisplay({ tiles, melds, otherDiscard }) {
   const hasMetlds = Array.isArray(melds) && melds.length > 0;
-  if (!tiles || tiles.length === 0) return null;
+  const hasHand = tiles && tiles.length > 0;
   return (
     <>
-      <div className="hand-and-melds">
-        <div className="tile-display-readonly">
-          {tiles.map((tile, i) => (
-            <div key={`${tile}-${i}`} className="tile-readonly">
-              <img src={getTileImageUrl(tile)} alt={getTileLabel(tile)} />
-            </div>
-          ))}
-        </div>
-        {hasMetlds && (
-          <div className="melds-area">
-            {melds.map((meld, i) => (
-              <MeldDisplay key={i} meld={meld} />
+      {hasHand && (
+        <div className="hand-and-melds">
+          <div className="tile-display-readonly">
+            {tiles.map((tile, i) => (
+              <div key={`${tile}-${i}`} className="tile-readonly">
+                <img src={getTileImageUrl(tile)} alt={getTileLabel(tile)} />
+              </div>
             ))}
           </div>
-        )}
-      </div>
+          {hasMetlds && (
+            <div className="melds-area">
+              {melds.map((meld, i) => (
+                <MeldDisplay key={i} meld={meld} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
       <OtherDiscardDisplay otherDiscard={otherDiscard} />
     </>
   );
@@ -394,25 +388,7 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
       {/* ===== リーチ判断 ===== */}
       {isRiichiJudgment && (
         <>
-          {p.tiles && p.tiles.length > 0 && (
-            <div className="hand-and-melds">
-              <div className="tile-display-readonly">
-                {p.tiles.map((tile, i) => (
-                  <div key={`${tile}-${i}`} className="tile-readonly">
-                    <img src={getTileImageUrl(tile)} alt={getTileLabel(tile)} />
-                  </div>
-                ))}
-              </div>
-              {hasMetlds && (
-                <div className="melds-area">
-                  {p.melds.map((meld, i) => (
-                    <MeldDisplay key={i} meld={meld} />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-          <OtherDiscardDisplay otherDiscard={p.otherDiscard} />
+          <HandDisplay tiles={p.tiles} melds={p.melds} otherDiscard={p.otherDiscard} />
 
           {!answered ? (
             <div className="riichi-choice-btns">
@@ -440,8 +416,8 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
 
       {/* ===== 通常の何切るカテゴリ ===== */}
       {problemType === 'default' && !isRiichiJudgment && (
-        p.tiles && p.tiles.length > 0 ? (
-          <>
+        <>
+          {p.tiles && p.tiles.length > 0 && (
             <div className="tile-selector-row">
               <div className="hand-and-melds">
                 <div className="tile-selector">
@@ -472,8 +448,9 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
                 </button>
               )}
             </div>
-            <OtherDiscardDisplay otherDiscard={p.otherDiscard} />
-            {quadTiles.length > 0 && (
+          )}
+          <OtherDiscardDisplay otherDiscard={p.otherDiscard} />
+          {quadTiles.length > 0 && (
               <div className="ankan-options">
                 {quadTiles.map(kanTile => {
                   const st = getKanBtnState(kanTile);
@@ -522,12 +499,12 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
                 <ExplanationText text={p.explanation} />
               </div>
             )}
-          </>
-        ) : (
-          <div className="pending-notice">
-            この問題の回答・解説は準備中です
-          </div>
-        )
+          {(!p.tiles || p.tiles.length === 0) && (
+            <div className="pending-notice">
+              この問題の回答・解説は準備中です
+            </div>
+          )}
+        </>
       )}
 
       <div className="problem-nav">
