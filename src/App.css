@@ -190,9 +190,11 @@
   white-space: nowrap;
 }
 
-.book-tab:hover {
-  border-color: var(--color-primary-light);
-  color: #c8d0dc;
+@media (hover: hover) {
+  .book-tab:hover {
+    border-color: var(--color-primary-light);
+    color: #c8d0dc;
+  }
 }
 
 .book-tab--active {
@@ -298,8 +300,10 @@
   transition: background 0.15s;
 }
 
-.major-category-label--selectable:hover {
-  background: rgba(163, 190, 140, 0.15);
+@media (hover: hover) {
+  .major-category-label--selectable:hover {
+    background: rgba(163, 190, 140, 0.15);
+  }
 }
 
 .major-category-label--checked {
@@ -342,9 +346,11 @@
   min-height: 46px;
 }
 
-.category-card:hover:not(.category-card--disabled) {
-  border-color: var(--color-primary-light);
-  background: var(--color-surface-hover);
+@media (hover: hover) {
+  .category-card:hover:not(.category-card--disabled) {
+    border-color: var(--color-primary-light);
+    background: var(--color-surface-hover);
+  }
 }
 
 .category-card--disabled {
@@ -880,9 +886,13 @@
     2px 4px 6px rgba(0, 0, 0, 0.22);
 }
 
-.tile-button:hover:not(:disabled) {
-  border-color: var(--color-primary-light);
-  transform: translateY(-4px);
+/* ホバー装飾はマウス環境のみ。タッチ端末ではタップ後に:hoverが貼り付き、
+   選択状態と見分けがつかなくなるため適用しない */
+@media (hover: hover) {
+  .tile-button:hover:not(:disabled) {
+    border-color: var(--color-primary-light);
+    transform: translateY(-4px);
+  }
 }
 
 .tile-button:disabled {
@@ -1229,9 +1239,11 @@
   transition: background 0.15s, border-color 0.15s, color 0.15s, box-shadow 0.15s;
 }
 
-.riichi-toggle:hover:not(:disabled) {
-  border-color: var(--color-danger);
-  color: var(--color-danger);
+@media (hover: hover) {
+  .riichi-toggle:hover:not(:disabled) {
+    border-color: var(--color-danger);
+    color: var(--color-danger);
+  }
 }
 
 .riichi-toggle--on {
@@ -1367,8 +1379,10 @@
   transition: transform 0.1s, box-shadow 0.15s;
 }
 
-.riichi-choice-btn:hover {
-  transform: translateY(-3px);
+@media (hover: hover) {
+  .riichi-choice-btn:hover {
+    transform: translateY(-3px);
+  }
 }
 
 .riichi-choice-btn:active {

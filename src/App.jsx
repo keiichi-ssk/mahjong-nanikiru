@@ -58,6 +58,9 @@ export default function App() {
   const [results, setResults] = useState({});
   // 今ラウンド（現在の出題一巡）の正誤。サマリー表示と再挑戦の抽出に使う
   const [roundResults, setRoundResults] = useState({});
+  // 今ラウンドの回答内容（選んだ牌・リーチ選択・スーツ置換マップ）。
+  // リロードや「前の問題」で戻ったときに回答済み状態を復元するために使う
+  const [roundAnswers, setRoundAnswers] = useState({});
   // セッション内で最初に回答したときの正誤。DBへはこの1度目だけを記録する
   // （再挑戦で正解しても1度目の誤答を保持し、次回セッションで復習できるようにする）
   const [sessionFirstResults, setSessionFirstResults] = useState({});
@@ -120,6 +123,12 @@ export default function App() {
     if (error) console.error('[handleAnswer]', error);
   }
 
+  function persistAnswer(problemId, payload) {
+    const next = { ...roundAnswers, [problemId]: payload };
+    setRoundAnswers(next);
+    sessionStorage.setItem('roundAnswers', JSON.stringify(next));
+  }
+
   async function handleResetResults(problemIds) {
     if (!session || !problemIds.length) return;
     setResults(prev => {
@@ -160,6 +169,7 @@ export default function App() {
         setOrderedProblems(restored);
         setCurrentIndex(savedIndex);
         setRoundResults(JSON.parse(sessionStorage.getItem('roundResults') ?? '{}'));
+        setRoundAnswers(JSON.parse(sessionStorage.getItem('roundAnswers') ?? '{}'));
         setSessionFirstResults(JSON.parse(sessionStorage.getItem('sessionFirstResults') ?? '{}'));
         setShowSummary(sessionStorage.getItem('showSummary') === 'true');
         setIsPlaying(true);
@@ -195,12 +205,14 @@ export default function App() {
     setPlayingKey(k => k + 1);
     setCurrentIndex(0);
     setRoundResults({});
+    setRoundAnswers({});
     setSessionFirstResults({});
     setShowSummary(false);
     sessionStorage.setItem('isPlaying', 'true');
     sessionStorage.setItem('orderedIds', JSON.stringify(ordered.map(p => p.id)));
     sessionStorage.setItem('currentIndex', '0');
     sessionStorage.setItem('roundResults', '{}');
+    sessionStorage.setItem('roundAnswers', '{}');
     sessionStorage.setItem('sessionFirstResults', '{}');
     sessionStorage.removeItem('showSummary');
   }
@@ -218,11 +230,13 @@ export default function App() {
     setOrderedProblems(ordered);
     setCurrentIndex(0);
     setRoundResults({});
+    setRoundAnswers({});
     setShowSummary(false);
     setPlayingKey(k => k + 1);
     sessionStorage.setItem('orderedIds', JSON.stringify(ordered.map(p => p.id)));
     sessionStorage.setItem('currentIndex', '0');
     sessionStorage.setItem('roundResults', '{}');
+    sessionStorage.setItem('roundAnswers', '{}');
     sessionStorage.removeItem('showSummary');
   }
 
@@ -231,12 +245,14 @@ export default function App() {
     setOrderedProblems([]);
     setCurrentIndex(0);
     setRoundResults({});
+    setRoundAnswers({});
     setSessionFirstResults({});
     setShowSummary(false);
     sessionStorage.removeItem('isPlaying');
     sessionStorage.removeItem('orderedIds');
     sessionStorage.removeItem('currentIndex');
     sessionStorage.removeItem('roundResults');
+    sessionStorage.removeItem('roundAnswers');
     sessionStorage.removeItem('sessionFirstResults');
     sessionStorage.removeItem('showSummary');
   }
@@ -298,6 +314,8 @@ export default function App() {
         onNext={() => setCurrentIndex((i) => { sessionStorage.setItem('currentIndex', String(i + 1)); return i + 1; })}
         onFinish={finishRound}
         onAnswer={handleAnswer}
+        savedAnswer={roundAnswers[orderedProblems[currentIndex].id]}
+        onPersistAnswer={persistAnswer}
       />
     );
   }

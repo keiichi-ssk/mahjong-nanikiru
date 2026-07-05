@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import TileButton from './TileButton';
 import { getTileLabel, getTileImageUrl, randomSuitMap, remapProblem, getDoraIndicator } from '../utils/tileUtils';
 import { getSituationText } from '../utils/categoryUtils';
@@ -119,8 +119,8 @@ function HandDisplay({ tiles, melds, otherDiscard }) {
 }
 
 // ===== パターン1: 鳴きタイミング =====
-function NakiTimingView({ problem, onAnswer }) {
-  const [selected, setSelected] = useState(null);
+function NakiTimingView({ problem, onAnswer, savedAnswer, onPersist }) {
+  const [selected, setSelected] = useState(savedAnswer?.nakiTiming ?? null);
   const answered = selected !== null;
   const isCorrect = judgeNakiTiming(problem, selected);
 
@@ -128,6 +128,7 @@ function NakiTimingView({ problem, onAnswer }) {
     if (answered) return;
     setSelected(value);
     onAnswer?.(judgeNakiTiming(problem, value));
+    onPersist?.({ nakiTiming: value });
   }
 
   return (
@@ -186,10 +187,10 @@ function sortChoices(choices) {
 }
 
 // ===== パターン2: 鳴き選択 =====
-function NakiChoiceView({ problem, onAnswer }) {
+function NakiChoiceView({ problem, onAnswer, savedAnswer, onPersist }) {
   const sortedChoices = sortChoices(problem.nakiChoices ?? []);
-  const [selected, setSelected] = useState(new Set());
-  const [answered, setAnswered] = useState(false);
+  const [selected, setSelected] = useState(() => new Set(savedAnswer?.nakiChoiceTiles ?? []));
+  const [answered, setAnswered] = useState(savedAnswer?.nakiChoiceTiles != null);
 
   function toggleSelect(tile) {
     if (answered) return;
@@ -233,6 +234,7 @@ function NakiChoiceView({ problem, onAnswer }) {
         <button className="naki-choice-submit-btn" onClick={() => {
           setAnswered(true);
           onAnswer?.(judgeNakiChoice(sortedChoices, selected));
+          onPersist?.({ nakiChoiceTiles: [...selected] });
         }}>
           答え合わせ
         </button>
@@ -256,16 +258,19 @@ function NakiChoiceView({ problem, onAnswer }) {
 }
 
 // ===== メイン =====
-export default function ProblemView({ problem, index, total, onBack, onPrev, onNext, onFinish, onAnswer }) {
-  const [selected, setSelected] = useState(null);
-  const [selectedRiichi, setSelectedRiichi] = useState(null);
-  const [suitMap, setSuitMap] = useState(() => randomSuitMap());
+export default function ProblemView({ problem, index, total, onBack, onPrev, onNext, onFinish, onAnswer, savedAnswer, onPersistAnswer }) {
+  // savedAnswer があれば回答済み状態（選択牌・リーチ・スーツ置換）を復元する。
+  // 問題の切替は key（playingKey-currentIndex）による再マウントで行われるため、
+  // ここでの useState 初期化だけで問題ごとの初期化が完結する
+  const [selected, setSelected] = useState(savedAnswer?.selected ?? null);
+  const [selectedRiichi, setSelectedRiichi] = useState(savedAnswer?.selectedRiichi ?? null);
+  const [suitMap] = useState(() => savedAnswer?.suitMap ?? randomSuitMap());
+  // 復元時は onAnswer / persist を再発火させない
+  const restoredRef = useRef(savedAnswer != null);
 
-  useEffect(() => {
-    setSuitMap(randomSuitMap());
-    setSelected(null);
-    setSelectedRiichi(null);
-  }, [problem.id]);
+  function persistAnswer(data) {
+    onPersistAnswer?.(problem.id, { suitMap, ...data });
+  }
 
   // image-quiz はスーツ置換すると画像と牌が食い違うためそのまま使う
   const p = useMemo(() => {
@@ -291,9 +296,10 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
   const isCorrect = judgeAnswer(p, { selected, selectedRiichi });
 
   useEffect(() => {
-    if (!answered) return;
+    if (!answered || restoredRef.current) return;
     if (problemType === 'naki-timing' || problemType === 'naki-choice') return;
     onAnswer?.(problem.id, isCorrect);
+    persistAnswer({ selected, selectedRiichi });
   }, [answered]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleSelect(tile) {
@@ -372,12 +378,22 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
 
       {/* ===== 鳴きタイミング ===== */}
       {problemType === 'naki-timing' && (
-        <NakiTimingView problem={p} onAnswer={isCorrect => onAnswer?.(problem.id, isCorrect)} />
+        <NakiTimingView
+          problem={p}
+          onAnswer={isCorrect => onAnswer?.(problem.id, isCorrect)}
+          savedAnswer={savedAnswer}
+          onPersist={persistAnswer}
+        />
       )}
 
       {/* ===== 鳴き選択 ===== */}
       {problemType === 'naki-choice' && (
-        <NakiChoiceView problem={p} onAnswer={isCorrect => onAnswer?.(problem.id, isCorrect)} />
+        <NakiChoiceView
+          problem={p}
+          onAnswer={isCorrect => onAnswer?.(problem.id, isCorrect)}
+          savedAnswer={savedAnswer}
+          onPersist={persistAnswer}
+        />
       )}
 
       {/* ===== 問題画像（全タイプ共通） ===== */}
