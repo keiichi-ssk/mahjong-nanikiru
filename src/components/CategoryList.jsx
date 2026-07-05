@@ -46,7 +46,7 @@ function CategoryCard({ label, available, isChecked, countText, answeredCount, c
               />
             </div>
             <span className="category-progress-text">
-              {correctCount}/{totalCount}問正解
+              ✓ {correctCount}/{totalCount}
             </span>
           </div>
           {showReset && (
@@ -100,7 +100,7 @@ function MajorGroup({
               {filterActive
                 ? `${filteredInMajor}問（${filterLabelText}）`
                 : answeredInMajor > 0
-                  ? `${correctInMajor}/${totalInMajor}正解`
+                  ? `✓ ${correctInMajor}/${totalInMajor}`
                   : `${totalInMajor}問`}
             </span>
           )}
