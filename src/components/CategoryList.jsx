@@ -76,7 +76,6 @@ function MajorGroup({
   const majorProblems = sections.flatMap(s => problems.filter(p => p.section === s));
   const answeredInMajor = majorProblems.filter(p => results[p.id] !== undefined).length;
   const correctInMajor = majorProblems.filter(p => results[p.id] === true).length;
-  const selectedInMajor = sections.filter(s => checkedSections.has(s)).length;
   const totalInMajor = majorProblems.length;
   const filteredInMajor = filterActive ? majorProblems.filter(isProblemIncluded).length : totalInMajor;
 
@@ -96,13 +95,13 @@ function MajorGroup({
         >
           <span className={`major-chevron${isOpen ? ' major-chevron--open' : ''}`}>▶</span>
           <span className="major-label-text">{majorLabel}</span>
-          {selectedInMajor > 0 && (
-            <span className="major-selected-badge">{selectedInMajor}選択</span>
-          )}
           {!isOpen && (
             <span className="major-summary">
-              {filterActive ? `${filteredInMajor}問（${filterLabelText}）` : `${totalInMajor}問`}
-              {answeredInMajor > 0 && ` ・ ${correctInMajor}/${totalInMajor}正解`}
+              {filterActive
+                ? `${filteredInMajor}問（${filterLabelText}）`
+                : answeredInMajor > 0
+                  ? `${correctInMajor}/${totalInMajor}正解`
+                  : `${totalInMajor}問`}
             </span>
           )}
         </span>
