@@ -80,18 +80,18 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
   const activeBookData = books.find(b => b.label === activeBook) ?? books[0];
 
   function resetSection(cat, catProblems) {
-    if (!window.confirm(`「${sectionLabel(cat)}」の回答状況をリセットしますか？`)) return;
+    if (!window.confirm(`「${sectionLabel(cat)}」の進捗をリセットしますか？`)) return;
     onResetResults(catProblems.map(p => p.id));
   }
 
   function resetMajor(majorLabel, sections) {
-    if (!window.confirm(`「${majorLabel}」の回答状況をリセットしますか？`)) return;
+    if (!window.confirm(`「${majorLabel}」の進捗をリセットしますか？`)) return;
     const ids = sections.flatMap(s => problems.filter(p => p.section === s)).map(p => p.id);
     onResetResults(ids);
   }
 
   function resetBook(bookLabel) {
-    if (!window.confirm(`「${bookLabel}」全体の回答状況をリセットしますか？`)) return;
+    if (!window.confirm(`「${bookLabel}」全体の進捗をリセットしますか？`)) return;
     const bookData = books.find(b => b.label === bookLabel);
     if (!bookData) return;
     const ids = bookData.majorGroups
@@ -147,7 +147,7 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
             return answeredInBook > 0 ? (
               <div className="book-reset-bar">
                 <button className="btn-reset-book" onClick={() => resetBook(activeBook)}>
-                  「{activeBook}」の回答状況をリセット
+                  「{activeBook}」の進捗をリセット
                 </button>
               </div>
             ) : null;
@@ -171,7 +171,7 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
                         className="btn-reset-major"
                         onClick={(e) => { e.stopPropagation(); resetMajor(majorLabel, sections); }}
                       >
-                        回答状況をリセット
+                        進捗をリセット
                       </button>
                     )}
                     <span className={`select-badge${majorAllChecked ? ' select-badge--active' : ''}`}>{majorAllChecked ? '全解除' : '全選択'}</span>
@@ -224,7 +224,7 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
                                 className="btn-reset-section"
                                 onClick={(e) => { e.stopPropagation(); resetSection(cat, catProblems); }}
                               >
-                                回答状況をリセット
+                                進捗をリセット
                               </button>
                             )}
                           </div>
