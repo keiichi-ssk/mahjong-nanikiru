@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from './lib/supabase';
 import CategoryList from './components/CategoryList';
 import ProblemView from './components/ProblemView';
+import SessionSummary from './components/SessionSummary';
 import { isSectionAllowed } from './utils/categoryUtils';
 import { fromDb } from './utils/problemMapper';
 import './App.css';
@@ -55,6 +56,12 @@ export default function App() {
   const [isAllowed, setIsAllowed] = useState(null);
   const [allowedMajorCategories, setAllowedMajorCategories] = useState(null);
   const [results, setResults] = useState({});
+  // 今ラウンド（現在の出題一巡）の正誤。サマリー表示と再挑戦の抽出に使う
+  const [roundResults, setRoundResults] = useState({});
+  // セッション内で最初に回答したときの正誤。DBへはこの1度目だけを記録する
+  // （再挑戦で正解しても1度目の誤答を保持し、次回セッションで復習できるようにする）
+  const [sessionFirstResults, setSessionFirstResults] = useState({});
+  const [showSummary, setShowSummary] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
@@ -92,6 +99,16 @@ export default function App() {
   }, [session]);
 
   async function handleAnswer(problemId, isCorrect) {
+    const nextRound = { ...roundResults, [problemId]: isCorrect };
+    setRoundResults(nextRound);
+    sessionStorage.setItem('roundResults', JSON.stringify(nextRound));
+
+    // セッション内2回目以降の回答（再挑戦・前に戻っての答え直し）はDBに記録しない
+    if (problemId in sessionFirstResults) return;
+    const nextFirst = { ...sessionFirstResults, [problemId]: isCorrect };
+    setSessionFirstResults(nextFirst);
+    sessionStorage.setItem('sessionFirstResults', JSON.stringify(nextFirst));
+
     if (!session) return;
     setResults(prev => ({ ...prev, [problemId]: isCorrect }));
     const { error } = await supabase
@@ -142,6 +159,9 @@ export default function App() {
       if (restored.length > 0) {
         setOrderedProblems(restored);
         setCurrentIndex(savedIndex);
+        setRoundResults(JSON.parse(sessionStorage.getItem('roundResults') ?? '{}'));
+        setSessionFirstResults(JSON.parse(sessionStorage.getItem('sessionFirstResults') ?? '{}'));
+        setShowSummary(sessionStorage.getItem('showSummary') === 'true');
         setIsPlaying(true);
         setPlayingKey(k => k + 1);
       }
@@ -174,18 +194,51 @@ export default function App() {
     setIsPlaying(true);
     setPlayingKey(k => k + 1);
     setCurrentIndex(0);
+    setRoundResults({});
+    setSessionFirstResults({});
+    setShowSummary(false);
     sessionStorage.setItem('isPlaying', 'true');
     sessionStorage.setItem('orderedIds', JSON.stringify(ordered.map(p => p.id)));
     sessionStorage.setItem('currentIndex', '0');
+    sessionStorage.setItem('roundResults', '{}');
+    sessionStorage.setItem('sessionFirstResults', '{}');
+    sessionStorage.removeItem('showSummary');
+  }
+
+  function finishRound() {
+    setShowSummary(true);
+    sessionStorage.setItem('showSummary', 'true');
+  }
+
+  // 今ラウンドで間違えた問題だけで新しいラウンドを開始する
+  function retryWrong() {
+    const wrong = orderedProblems.filter(p => roundResults[p.id] === false);
+    if (wrong.length === 0) return;
+    const ordered = randomMode ? shuffled(wrong) : wrong;
+    setOrderedProblems(ordered);
+    setCurrentIndex(0);
+    setRoundResults({});
+    setShowSummary(false);
+    setPlayingKey(k => k + 1);
+    sessionStorage.setItem('orderedIds', JSON.stringify(ordered.map(p => p.id)));
+    sessionStorage.setItem('currentIndex', '0');
+    sessionStorage.setItem('roundResults', '{}');
+    sessionStorage.removeItem('showSummary');
   }
 
   function backToCategories() {
     setIsPlaying(false);
     setOrderedProblems([]);
     setCurrentIndex(0);
+    setRoundResults({});
+    setSessionFirstResults({});
+    setShowSummary(false);
     sessionStorage.removeItem('isPlaying');
     sessionStorage.removeItem('orderedIds');
     sessionStorage.removeItem('currentIndex');
+    sessionStorage.removeItem('roundResults');
+    sessionStorage.removeItem('sessionFirstResults');
+    sessionStorage.removeItem('showSummary');
   }
 
   function renderContent() {
@@ -224,6 +277,16 @@ export default function App() {
         />
       );
     }
+    if (showSummary) {
+      return (
+        <SessionSummary
+          problems={orderedProblems}
+          roundResults={roundResults}
+          onRetryWrong={retryWrong}
+          onBack={backToCategories}
+        />
+      );
+    }
     return (
       <ProblemView
         key={`${playingKey}-${currentIndex}`}
@@ -233,6 +296,7 @@ export default function App() {
         onBack={backToCategories}
         onPrev={() => setCurrentIndex((i) => { sessionStorage.setItem('currentIndex', String(i - 1)); return i - 1; })}
         onNext={() => setCurrentIndex((i) => { sessionStorage.setItem('currentIndex', String(i + 1)); return i + 1; })}
+        onFinish={finishRound}
         onAnswer={handleAnswer}
       />
     );

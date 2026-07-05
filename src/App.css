@@ -1438,6 +1438,175 @@
   cursor: default;
 }
 
+.btn-nav--finish {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: var(--color-text-bright);
+  font-weight: bold;
+}
+
+.btn-nav--finish:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+  color: var(--color-text-bright);
+}
+
+/* ===== 出題進捗バー ===== */
+.problem-progress {
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: -12px;
+}
+
+.problem-progress-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* ===== セッション結果サマリー ===== */
+.session-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 40px 16px 24px;
+  text-align: center;
+}
+
+.session-summary-title {
+  font-size: 1.3rem;
+  color: var(--color-text-bright);
+  margin: 0;
+}
+
+.session-summary-score {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.session-summary-correct {
+  font-size: 3rem;
+  font-weight: bold;
+  color: var(--color-accent);
+  line-height: 1;
+}
+
+.session-summary-total {
+  font-size: 1rem;
+  color: var(--color-text-secondary);
+}
+
+.session-summary-bar {
+  width: 100%;
+  max-width: 360px;
+  height: 8px;
+  background: var(--color-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.session-summary-bar-fill {
+  height: 100%;
+  background: var(--color-success);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.session-summary-note {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.session-summary-perfect {
+  font-size: 1.15rem;
+  font-weight: bold;
+  color: var(--color-success);
+  margin: 0;
+}
+
+.session-summary-wrong {
+  width: 100%;
+  max-width: 420px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  text-align: left;
+}
+
+.session-summary-wrong-title {
+  font-size: 0.9rem;
+  color: var(--color-danger);
+  margin: 0 0 8px;
+}
+
+.session-summary-wrong-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.88rem;
+  color: var(--color-text);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.session-summary-wrong-id {
+  color: var(--color-text-muted);
+  font-family: monospace;
+  font-size: 0.78rem;
+}
+
+.session-summary-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 360px;
+  margin-top: 6px;
+}
+
+.btn-retry-wrong {
+  background: var(--color-primary);
+  border: none;
+  border-radius: 10px;
+  padding: 14px 20px;
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--color-text-bright);
+  cursor: pointer;
+  transition: background 0.2s, transform 0.1s;
+  box-shadow: 0 4px 14px rgba(94, 129, 172, 0.4);
+}
+
+.btn-retry-wrong:hover { background: var(--color-primary-hover); }
+.btn-retry-wrong:active { transform: scale(0.97); }
+
+.btn-back-to-categories {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 12px 20px;
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.btn-back-to-categories:hover {
+  border-color: var(--color-primary-light);
+  color: var(--color-accent);
+}
+
 /* ===== スマホ対応 (max-width: 600px) ===== */
 @media (max-width: 600px) {
   .app-header {

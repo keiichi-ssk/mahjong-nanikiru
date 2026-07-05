@@ -256,7 +256,7 @@ function NakiChoiceView({ problem, onAnswer }) {
 }
 
 // ===== メイン =====
-export default function ProblemView({ problem, index, total, onBack, onPrev, onNext, onAnswer }) {
+export default function ProblemView({ problem, index, total, onBack, onPrev, onNext, onFinish, onAnswer }) {
   const [selected, setSelected] = useState(null);
   const [selectedRiichi, setSelectedRiichi] = useState(null);
   const [suitMap, setSuitMap] = useState(() => randomSuitMap());
@@ -340,6 +340,13 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
           <span className="problem-counter">問題 {index + 1} / {total}</span>
           <span className="problem-id-label">#{problem.id}</span>
         </div>
+      </div>
+
+      <div className="problem-progress" aria-hidden="true">
+        <div
+          className="problem-progress-fill"
+          style={{ width: `${((index + 1) / total) * 100}%` }}
+        />
       </div>
 
       {(() => {
@@ -506,9 +513,15 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
         <button className="btn-nav" onClick={onPrev} disabled={index === 0}>
           ← 前の問題
         </button>
-        <button className="btn-nav" onClick={onNext} disabled={index === total - 1}>
-          次の問題 →
-        </button>
+        {index === total - 1 ? (
+          <button className="btn-nav btn-nav--finish" onClick={onFinish}>
+            結果を見る →
+          </button>
+        ) : (
+          <button className="btn-nav" onClick={onNext}>
+            次の問題 →
+          </button>
+        )}
       </div>
     </div>
   );
