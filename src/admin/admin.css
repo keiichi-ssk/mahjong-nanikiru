@@ -607,18 +607,6 @@
   background: #0d1426;
 }
 
-/* 副露パレット */
-.meld-palette {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.palette-tile--disabled {
-  opacity: 0.3;
-  pointer-events: none;
-}
-
 /* 副露確定ボタン */
 .meld-confirm-btn {
   background: none;
@@ -1070,23 +1058,6 @@
   margin-right: 8px;
 }
 
-/* ===== 解説テキスト牌挿入パレット ===== */
-.explanation-tile-palette {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  background: #0a0f1e;
-  border: 1px solid #1a2a4a;
-  border-radius: 6px;
-  padding: 8px 10px;
-}
-
-.explanation-palette-label {
-  font-size: 0.75rem;
-  color: #666;
-  margin-bottom: 2px;
-}
-
 /* ===== キーボードショートカット表示 ===== */
 kbd {
   font-size: 0.7rem;
@@ -1461,11 +1432,16 @@ kbd {
   margin-bottom: 10px;
 }
 
-/* ===== 手牌セクション内パレット ===== */
-.hand-palette-rows {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+/* タブ内ステータス行の牌画像（牌UI統一ルール: 白背景・角丸） */
+.palette-tab-status-tile {
+  background: #fff;
+  border: 2px solid #ccc;
+  border-radius: 6px;
+  padding: 2px;
+  display: block;
+  width: 28px;
+  height: auto;
+  flex-shrink: 0;
 }
 
 /* ===== 状況設定（場風・自風・巡目） ===== */
@@ -1511,6 +1487,169 @@ kbd {
 
 .junme-select:focus { border-color: #f5c842; }
 .junme-select option { background: #0d1426; color: #ddd; }
+
+/* ===== 点数状況（管理画面） ===== */
+.score-edit-area {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.score-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.score-edit-wind {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 76px;
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  color: #aaa;
+}
+
+.score-edit-self {
+  font-size: 0.68rem;
+  color: #000;
+  background: #f5c842;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-weight: bold;
+}
+
+.score-step-btn {
+  background: none;
+  border: 1px solid #2a3a5a;
+  color: #aaa;
+  min-width: 44px;
+  min-height: 32px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.score-step-btn:hover { border-color: #f5c842; color: #f5c842; }
+
+.score-edit-input {
+  background: #0d1426;
+  color: #ddd;
+  border: 1px solid #2a3a5a;
+  border-radius: 6px;
+  padding: 6px 8px;
+  width: 72px;
+  font-size: 0.9rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.score-edit-input:focus { border-color: #f5c842; }
+
+.score-edit-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.score-edit-total {
+  font-size: 0.8rem;
+  color: #7fb069;
+}
+
+.score-edit-total--warn { color: #f5a742; }
+
+/* ===== 共通牌パレット（画面下部固定ドック） ===== */
+.palette-dock {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: #0f1830;
+  border: 1px solid #2a3a5a;
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  padding: 10px 12px 8px;
+  margin: 0 -4px;
+  box-shadow: 0 -6px 16px rgba(0, 0, 0, 0.45);
+}
+
+.palette-dock-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.palette-dock-modes {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.palette-dock-modes-label {
+  font-size: 0.75rem;
+  color: #666;
+}
+
+.palette-mode-btn {
+  background: none;
+  border: 1px solid #2a3a5a;
+  color: #aaa;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.palette-mode-btn:hover { border-color: #f5c842; color: #f5c842; }
+
+.palette-mode-btn--active {
+  background: #f5c842;
+  border-color: #f5c842;
+  color: #000;
+  font-weight: bold;
+}
+
+.palette-mode-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.palette-mode-btn:disabled:hover { border-color: #2a3a5a; color: #aaa; }
+
+.palette-dock-status {
+  font-size: 0.8rem;
+  color: #7fb069;
+  white-space: nowrap;
+}
+
+/* パレットドックへの誘導ボタン（ドラなど、選択UIをドックへ移した箇所に置く） */
+.palette-mode-jump {
+  background: none;
+  border: 1px solid #2a3a5a;
+  color: #aaa;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  margin-left: 8px;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.palette-mode-jump:hover { border-color: #f5c842; color: #f5c842; }
 
 /* ===== 横向き牌ユーティリティ =====
    リーチ宣言牌・副露プレビューの横向き表示の共通実装（App.css と同じパターン）。

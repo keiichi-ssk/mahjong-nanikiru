@@ -15,6 +15,21 @@ const MELD_LABELS     = { chi: 'チー', pon: 'ポン', kan: '大明槓', kakan:
 const MELD_TILE_COUNT = { chi: 3, pon: 3, kan: 4, kakan: 4, ankan: 4 }
 const MELD_TYPES      = ['chi', 'pon', 'kan', 'kakan', 'ankan']
 
+// 共通パレット（画面下部固定）の送り先モード
+const PALETTE_MODE_LABELS = {
+  hand:        '手牌',
+  meld:        '副露',
+  dora:        'ドラ',
+  note:        '注釈に挿入',
+  explanation: '解説に挿入',
+  sutehai:     '捨て牌',
+  depai:       '出牌',
+  nakiChoice:  '選択肢',
+}
+
+const SCORE_WINDS    = ['東', '南', '西', '北']
+const DEFAULT_SCORES = { 東: 25000, 南: 25000, 西: 25000, 北: 25000, kyotaku: 0 }
+
 const NAKI_TIMING_OPTIONS = [
   { value: 'early', label: '序盤から鳴く' },
   { value: 'mid',   label: '中盤から鳴く' },
@@ -103,6 +118,41 @@ function WindSelector({ value, onChange, winds, suffix = '' }) {
   )
 }
 
+// 点数入力の1行（風ラベル + ±ステッパー + 直接入力）。
+// 入力中は任意の数字を受け付け、確定（blur）時に100点単位へ丸める
+function ScoreInputRow({ label, isSelf, value, onChange, steps }) {
+  return (
+    <div className="score-edit-row">
+      <span className="score-edit-wind">
+        {label}
+        {isSelf && <span className="score-edit-self">自分</span>}
+      </span>
+      {steps.filter(s => s < 0).map(s => (
+        <button key={s} className="score-step-btn" onClick={() => onChange(Math.max(0, value + s))}>
+          −{-s}
+        </button>
+      ))}
+      <input
+        type="text"
+        inputMode="numeric"
+        className="score-edit-input"
+        value={value}
+        onFocus={e => e.target.select()}
+        onChange={e => {
+          const n = parseInt(e.target.value.replace(/[^0-9]/g, ''), 10)
+          onChange(Number.isNaN(n) ? 0 : n)
+        }}
+        onBlur={() => onChange(Math.max(0, Math.round(value / 100) * 100))}
+      />
+      {steps.filter(s => s > 0).map(s => (
+        <button key={s} className="score-step-btn" onClick={() => onChange(value + s)}>
+          +{s}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function parseTilesText(text) {
   const result = []
   let buf = []
@@ -144,8 +194,10 @@ export default function ProblemEditor({
   const [questionImageUrl, setQuestionImageUrl] = useState(problem.questionImageUrl ?? null)
   const [imageUploading,   setImageUploading]   = useState(false)
   const [bakaze,           setBakaze]           = useState(problem.bakaze ?? (inheritFromPrev ? prevProblem.bakaze ?? null : null))
+  const [kyoku,            setKyoku]            = useState(problem.kyoku  ?? (inheritFromPrev ? prevProblem.kyoku  ?? null : null))
   const [jikaze,           setJikaze]           = useState(problem.jikaze ?? (inheritFromPrev ? prevProblem.jikaze ?? null : null))
   const [junme,            setJunme]            = useState(problem.junme  ?? (inheritFromPrev ? prevProblem.junme  ?? null : null))
+  const [scores,           setScores]           = useState(problem.scores ?? (inheritFromPrev ? prevProblem.scores ?? null : null))
   const [note,             setNote]             = useState(problem.note ?? '')
   const otherDiscardBase = problem.otherDiscard ?? (inheritFromPrev ? prevProblem.otherDiscard ?? null : null)
   const [otherDiscardPlayer,     setOtherDiscardPlayer]     = useState(otherDiscardBase?.player ?? null)
@@ -154,6 +206,10 @@ export default function ProblemEditor({
 
   const explanationRef = useRef(null)
   const noteRef        = useRef(null)
+  // 一度もフォーカスしていない textarea は selectionStart が 0 のため、
+  // カーソル位置ではなく末尾に挿入する（フォーカス済みかをここで覚える）
+  const explanationTouchedRef = useRef(false)
+  const noteTouchedRef        = useRef(false)
 
   async function handleImageUpload(file) {
     if (!file) return
@@ -174,8 +230,8 @@ export default function ProblemEditor({
   function insertTileCode(tile) {
     const ta = explanationRef.current
     if (!ta) return
-    const start = ta.selectionStart
-    const end   = ta.selectionEnd
+    const start = explanationTouchedRef.current ? ta.selectionStart : explanation.length
+    const end   = explanationTouchedRef.current ? ta.selectionEnd   : explanation.length
     const code  = `[${tile}]`
     const next  = explanation.slice(0, start) + code + explanation.slice(end)
     setExplanation(next)
@@ -188,8 +244,8 @@ export default function ProblemEditor({
   function insertNoteTileCode(tile) {
     const ta = noteRef.current
     if (!ta) return
-    const start = ta.selectionStart
-    const end   = ta.selectionEnd
+    const start = noteTouchedRef.current ? ta.selectionStart : note.length
+    const end   = noteTouchedRef.current ? ta.selectionEnd   : note.length
     const code  = `[${tile}]`
     const next  = note.slice(0, start) + code + note.slice(end)
     setNote(next)
@@ -283,15 +339,17 @@ export default function ProblemEditor({
     nakiChoices,
     questionImageUrl: questionImageUrl || null,
     bakaze,
+    kyoku,
     jikaze,
     junme,
+    scores,
     note,
     // アプリ側（OtherDiscardDisplay）は家と牌の両方が揃わないと表示しないため、
     // 片方だけの不完全な設定は保存せず null にする（画面には警告を出す）
     otherDiscard: (otherDiscardPlayer && otherDiscardTiles.length > 0)
       ? { player: otherDiscardPlayer, tiles: otherDiscardTiles, riichiIndex: otherDiscardRiichiIndex }
       : null,
-  }), [problem, tiles, answer, dora, riichi, melds, explanation, reviewed, disabled, problemType, discardedTile, nakiChoices, questionImageUrl, bakaze, jikaze, junme, note, otherDiscardPlayer, otherDiscardTiles, otherDiscardRiichiIndex])
+  }), [problem, tiles, answer, dora, riichi, melds, explanation, reviewed, disabled, problemType, discardedTile, nakiChoices, questionImageUrl, bakaze, kyoku, jikaze, junme, scores, note, otherDiscardPlayer, otherDiscardTiles, otherDiscardRiichiIndex])
 
   const otherDiscardIncomplete =
     (otherDiscardPlayer !== null && otherDiscardTiles.length === 0) ||
@@ -318,7 +376,48 @@ export default function ProblemEditor({
 
   const isAddingComplete = addingMeld && addingMeld.tiles.length === MELD_TILE_COUNT[addingMeld.type]
 
-  const [paletteTab, setPaletteTab] = useState('jokyo')
+  const [paletteTab,  setPaletteTab]  = useState('hand')
+  const [paletteMode, setPaletteMode] = useState('hand')
+
+  // 共通パレットの送り先モード。タブや問題タイプに依存するモードは文脈があるときだけ出す。
+  // 副露追加中は「副露」に固定（setState不要にするため、実効モードは描画時に導出する）
+  const availableModes = [
+    'hand',
+    ...(addingMeld ? ['meld'] : []),
+    'dora',
+    'note',
+    'explanation',
+    ...(paletteTab === 'sutehai' ? ['sutehai'] : []),
+    ...(paletteTab === 'answer' && problemType === 'naki-timing' ? ['depai'] : []),
+    ...(paletteTab === 'answer' && problemType === 'naki-choice' ? ['nakiChoice'] : []),
+  ]
+  const effectiveMode = addingMeld
+    ? 'meld'
+    : (availableModes.includes(paletteMode) ? paletteMode : 'hand')
+
+  function handlePaletteTile(tile) {
+    switch (effectiveMode) {
+      case 'hand':        addTile(tile); break
+      case 'meld':        addTileToMeld(tile); break
+      case 'dora':        setDora(tile); break
+      case 'note':        insertNoteTileCode(tile); break
+      case 'explanation': insertTileCode(tile); break
+      case 'sutehai':     addOtherDiscardTile(tile); break
+      case 'depai':       setDiscardedTile(tile); break
+      case 'nakiChoice':  addNakiChoice(tile); break
+    }
+  }
+
+  const paletteStatus = {
+    hand:        `手牌: ${tiles.length}枚`,
+    meld:        addingMeld ? `${MELD_LABELS[addingMeld.type]}: ${addingMeld.tiles.length} / ${MELD_TILE_COUNT[addingMeld.type]}枚` : '',
+    dora:        `ドラ: ${dora ? getTileLabel(dora) : 'なし'}`,
+    note:        '注釈のカーソル位置に挿入',
+    explanation: '解説のカーソル位置に挿入',
+    sutehai:     `${otherDiscardPlayer ? `${otherDiscardPlayer}家` : ''}捨て牌: ${otherDiscardTiles.length}枚`,
+    depai:       `出牌: ${discardedTile ? getTileLabel(discardedTile) : '未設定'}`,
+    nakiChoice:  `選択肢: ${nakiChoices.length}件`,
+  }[effectiveMode]
 
   return (
     <div className="editor">
@@ -449,99 +548,17 @@ export default function ProblemEditor({
             </div>
           )}
         </div>
-        <div className="tiles-text-input-row">
-          <input
-            type="text"
-            className="tiles-text-input"
-            value={tilesInput}
-            onChange={e => setTilesInput(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                const parsed = parseTilesText(tilesInput)
-                if (parsed.length > 0) {
-                  setTiles(sortTiles(parsed))
-                  setTilesInput('')
-                }
-              }
-            }}
-            placeholder="例: 23467m234p234888s（Enterで適用）"
-          />
-          <button
-            className="tiles-text-apply-btn"
-            onClick={() => {
-              const parsed = parseTilesText(tilesInput)
-              if (parsed.length > 0) {
-                setTiles(sortTiles(parsed))
-                setTilesInput('')
-              }
-            }}
-          >
-            適用
-          </button>
-          <button
-            className="tiles-text-apply-btn tiles-text-clear-btn"
-            onClick={() => setTiles([])}
-          >
-            全削除
-          </button>
-        </div>
-
-        {/* 手牌追加パレット */}
-        {!addingMeld && (
-          <div className="hand-palette-rows">
-            <TilePalette onTileClick={addTile} />
-          </div>
-        )}
-
-        <div className="palette-tab-divider" />
-        <div className="editor-section-label">副露（鳴き）</div>
-        {addingMeld ? (
-          <div className="meld-adding">
-            <div className="meld-adding-header">
-              <span className="meld-adding-title">
-                {MELD_LABELS[addingMeld.type]}：牌を選択
-                （{addingMeld.tiles.length} / {MELD_TILE_COUNT[addingMeld.type]}枚）
-              </span>
-              <button className="meld-cancel-btn" onClick={() => setAddingMeld(null)}>キャンセル</button>
-            </div>
-            <div className="meld-selected-tiles">
-              {addingMeld.tiles.map((t, i) => (
-                <TileImg key={i} tile={t} size={36} onClick={() => removeTileFromMeld(i)} className="editor-tile" />
-              ))}
-              {Array.from({ length: MELD_TILE_COUNT[addingMeld.type] - addingMeld.tiles.length }).map((_, i) => (
-                <div key={`empty-${i}`} className="meld-tile-slot" />
-              ))}
-            </div>
-            <div className="meld-palette">
-              <TilePalette
-                size={32}
-                onTileClick={addTileToMeld}
-                tileClassName={() => `palette-tile${isAddingComplete ? ' palette-tile--disabled' : ''}`}
-              />
-            </div>
-            <button
-              className={`meld-confirm-btn${isAddingComplete ? ' meld-confirm-btn--ready' : ''}`}
-              onClick={confirmMeld}
-              disabled={!isAddingComplete}
-            >
-              副露を追加
-            </button>
-          </div>
-        ) : (
-          <div className="meld-add-btns">
-            {MELD_TYPES.map(type => (
-              <button key={type} className="meld-add-btn" onClick={() => startAddMeld(type)}>
-                {MELD_LABELS[type]}
-              </button>
-            ))}
-          </div>
-        )}
       </section>
 
       {/* === パレット統合エリア === */}
       <section className="editor-section editor-section--palette">
         <div className="palette-tab-bar">
+          <button
+            className={`palette-tab-btn${paletteTab === 'hand' ? ' palette-tab-btn--active' : ''}`}
+            onClick={() => { setPaletteTab('hand'); setPaletteMode('hand') }}
+          >
+            手牌
+          </button>
           <button
             className={`palette-tab-btn${paletteTab === 'jokyo' ? ' palette-tab-btn--active' : ''}`}
             onClick={() => setPaletteTab('jokyo')}
@@ -550,17 +567,102 @@ export default function ProblemEditor({
           </button>
           <button
             className={`palette-tab-btn${paletteTab === 'sutehai' ? ' palette-tab-btn--active' : ''}`}
-            onClick={() => setPaletteTab('sutehai')}
+            onClick={() => { setPaletteTab('sutehai'); setPaletteMode('sutehai') }}
           >
             他家捨て牌
           </button>
           <button
             className={`palette-tab-btn${paletteTab === 'answer' ? ' palette-tab-btn--active' : ''}`}
-            onClick={() => setPaletteTab('answer')}
+            onClick={() => {
+              setPaletteTab('answer')
+              if (problemType === 'naki-timing')     setPaletteMode('depai')
+              else if (problemType === 'naki-choice') setPaletteMode('nakiChoice')
+            }}
           >
             正解設定
           </button>
         </div>
+
+        {/* 手牌タブ */}
+        {paletteTab === 'hand' && (
+          <div className="palette-tab-content">
+            <div className="editor-section-label">テキスト一括入力</div>
+            <div className="tiles-text-input-row">
+              <input
+                type="text"
+                className="tiles-text-input"
+                value={tilesInput}
+                onChange={e => setTilesInput(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    const parsed = parseTilesText(tilesInput)
+                    if (parsed.length > 0) {
+                      setTiles(sortTiles(parsed))
+                      setTilesInput('')
+                    }
+                  }
+                }}
+                placeholder="例: 23467m234p234888s（Enterで適用）"
+              />
+              <button
+                className="tiles-text-apply-btn"
+                onClick={() => {
+                  const parsed = parseTilesText(tilesInput)
+                  if (parsed.length > 0) {
+                    setTiles(sortTiles(parsed))
+                    setTilesInput('')
+                  }
+                }}
+              >
+                適用
+              </button>
+              <button
+                className="tiles-text-apply-btn tiles-text-clear-btn"
+                onClick={() => setTiles([])}
+              >
+                全削除
+              </button>
+            </div>
+
+            <div className="palette-tab-divider" />
+            <div className="editor-section-label">副露（鳴き）</div>
+            {addingMeld ? (
+              <div className="meld-adding">
+                <div className="meld-adding-header">
+                  <span className="meld-adding-title">
+                    {MELD_LABELS[addingMeld.type]}：下のパレットから牌を選択
+                    （{addingMeld.tiles.length} / {MELD_TILE_COUNT[addingMeld.type]}枚）
+                  </span>
+                  <button className="meld-cancel-btn" onClick={() => setAddingMeld(null)}>キャンセル</button>
+                </div>
+                <div className="meld-selected-tiles">
+                  {addingMeld.tiles.map((t, i) => (
+                    <TileImg key={i} tile={t} size={36} onClick={() => removeTileFromMeld(i)} className="editor-tile" />
+                  ))}
+                  {Array.from({ length: MELD_TILE_COUNT[addingMeld.type] - addingMeld.tiles.length }).map((_, i) => (
+                    <div key={`empty-${i}`} className="meld-tile-slot" />
+                  ))}
+                </div>
+                <button
+                  className={`meld-confirm-btn${isAddingComplete ? ' meld-confirm-btn--ready' : ''}`}
+                  onClick={confirmMeld}
+                  disabled={!isAddingComplete}
+                >
+                  副露を追加
+                </button>
+              </div>
+            ) : (
+              <div className="meld-add-btns">
+                {MELD_TYPES.map(type => (
+                  <button key={type} className="meld-add-btn" onClick={() => startAddMeld(type)}>
+                    {MELD_LABELS[type]}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 状況設定タブ */}
         {paletteTab === 'jokyo' && (
@@ -568,16 +670,34 @@ export default function ProblemEditor({
             <div className="editor-section-label">ドラ</div>
             <div className="palette-tab-status">
               現在のドラ: <strong>{dora ? getTileLabel(dora) : 'なし'}</strong>
+              {dora && <img src={getTileImageUrl(dora)} alt={getTileLabel(dora)} className="palette-tab-status-tile" />}
               <button className="dora-clear" onClick={() => setDora(null)}>なし</button>
+              <button className="palette-mode-jump" onClick={() => setPaletteMode('dora')}>下のパレットで選ぶ ↓</button>
             </div>
-            <TilePalette
-              onTileClick={setDora}
-              tileClassName={t => `palette-tile ${dora === t ? 'tile--answer' : ''}`}
-            />
 
             <div className="palette-tab-divider" />
             <div className="editor-section-label">場風</div>
             <WindSelector value={bakaze} onChange={setBakaze} winds={['東', '南', '西']} suffix="場" />
+
+            <div className="palette-tab-divider" />
+            <div className="editor-section-label">局（場風とセットで「南1局」のように表示されます）</div>
+            <div className="situation-selector">
+              <button
+                className={`situation-btn situation-btn--unset${kyoku === null ? ' situation-btn--active' : ''}`}
+                onClick={() => setKyoku(null)}
+              >
+                未設定
+              </button>
+              {[1, 2, 3, 4].map(n => (
+                <button
+                  key={n}
+                  className={`situation-btn${kyoku === n ? ' situation-btn--active' : ''}`}
+                  onClick={() => setKyoku(n)}
+                >
+                  {n}局
+                </button>
+              ))}
+            </div>
 
             <div className="palette-tab-divider" />
             <div className="editor-section-label">自風</div>
@@ -599,19 +719,68 @@ export default function ProblemEditor({
             </div>
 
             <div className="palette-tab-divider" />
+            <div className="editor-section-label">点数状況</div>
+            <div className="situation-selector">
+              <button
+                className={`situation-btn situation-btn--unset${scores === null ? ' situation-btn--active' : ''}`}
+                onClick={() => setScores(null)}
+              >
+                未設定
+              </button>
+              <button
+                className={`situation-btn${scores !== null ? ' situation-btn--active' : ''}`}
+                onClick={() => setScores(prev => prev ?? { ...DEFAULT_SCORES })}
+              >
+                設定する
+              </button>
+            </div>
+            {scores !== null && (() => {
+              const total = SCORE_WINDS.reduce((sum, w) => sum + (scores[w] ?? 0), 0) + (scores.kyotaku ?? 0)
+              const totalOk = total === 100000
+              return (
+                <div className="score-edit-area">
+                  {SCORE_WINDS.map(w => (
+                    <ScoreInputRow
+                      key={w}
+                      label={`${w}家`}
+                      isSelf={jikaze === w}
+                      value={scores[w] ?? 0}
+                      onChange={v => setScores(prev => ({ ...prev, [w]: v }))}
+                      steps={[-1000, -100, 100, 1000]}
+                    />
+                  ))}
+                  <ScoreInputRow
+                    label="供託"
+                    isSelf={false}
+                    value={scores.kyotaku ?? 0}
+                    onChange={v => setScores(prev => ({ ...prev, kyotaku: v }))}
+                    steps={[-1000, 1000]}
+                  />
+                  <div className="score-edit-footer">
+                    <span className={`score-edit-total${totalOk ? '' : ' score-edit-total--warn'}`}>
+                      {totalOk
+                        ? `合計 ${total.toLocaleString()}点（供託込み） ✓`
+                        : `⚠ 合計 ${total.toLocaleString()}点（供託込み）— 100,000点になっていません`}
+                    </span>
+                    <button className="dora-clear" onClick={() => setScores({ ...DEFAULT_SCORES })}>
+                      全員25000に戻す
+                    </button>
+                  </div>
+                </div>
+              )
+            })()}
+
+            <div className="palette-tab-divider" />
             <div className="editor-section-label">注釈</div>
             <textarea
               ref={noteRef}
               className="explanation-textarea"
               value={note}
               onChange={e => setNote(e.target.value)}
-              placeholder="状況設定に関する注釈を入力してください（未入力でも保存できます）"
+              onFocus={() => { noteTouchedRef.current = true; setPaletteMode('note') }}
+              placeholder="状況設定に関する注釈を入力してください（牌は下のパレットからカーソル位置に挿入できます）"
               rows={2}
             />
-            <div className="explanation-tile-palette">
-              <span className="explanation-palette-label">牌を挿入：</span>
-              <TilePalette size={28} onTileClick={insertNoteTileCode} />
-            </div>
           </div>
         )}
 
@@ -624,6 +793,14 @@ export default function ProblemEditor({
             <div className="palette-tab-divider" />
             <div className="editor-section-label">
               捨て牌（クリックでリーチ宣言牌に設定/解除、×で削除）
+              {otherDiscardTiles.length > 0 && (
+                <button
+                  className="dora-clear"
+                  onClick={() => { setOtherDiscardTiles([]); setOtherDiscardRiichiIndex(null) }}
+                >
+                  全削除
+                </button>
+              )}
             </div>
             <div className="other-discard-tiles-list">
               {otherDiscardTiles.map((t, i) => (
@@ -648,9 +825,6 @@ export default function ProblemEditor({
                 ⚠ 家と捨て牌の両方を設定してください。片方だけの設定は保存されません。
               </div>
             )}
-
-            <div className="palette-tab-divider" />
-            <TilePalette onTileClick={addOtherDiscardTile} />
           </div>
         )}
 
@@ -756,10 +930,6 @@ export default function ProblemEditor({
                     />
                   )}
                 </div>
-                <TilePalette
-                  onTileClick={setDiscardedTile}
-                  tileClassName={t => `palette-tile ${discardedTile === t ? 'tile--answer' : ''}`}
-                />
                 <div className="palette-tab-divider" />
                 <div className="editor-section-label">正解タイミング</div>
                 <div className="naki-timing-selector">
@@ -800,12 +970,7 @@ export default function ProblemEditor({
                     ))}
                   </div>
                 )}
-                {nakiChoices.length === 0 && <span className="editor-empty">牌パレットから選択肢を追加してください</span>}
-                <div className="editor-section-label" style={{ marginTop: 8 }}>牌パレット（クリックで選択肢に追加）</div>
-                <TilePalette
-                  onTileClick={addNakiChoice}
-                  tileClassName={t => `palette-tile${nakiChoices.some(c => c.tile === t) ? ' palette-tile--disabled' : ''}`}
-                />
+                {nakiChoices.length === 0 && <span className="editor-empty">下のパレットから選択肢を追加してください</span>}
               </>
             )}
 
@@ -816,13 +981,10 @@ export default function ProblemEditor({
               className="explanation-textarea"
               value={explanation}
               onChange={e => setExplanation(e.target.value)}
-              placeholder="解説を入力してください（未入力でも保存できます）"
+              onFocus={() => { explanationTouchedRef.current = true; setPaletteMode('explanation') }}
+              placeholder="解説を入力してください（牌は下のパレットからカーソル位置に挿入できます）"
               rows={3}
             />
-            <div className="explanation-tile-palette">
-              <span className="explanation-palette-label">牌を挿入：</span>
-              <TilePalette size={28} onTileClick={insertTileCode} />
-            </div>
           </div>
         )}
       </section>
@@ -840,6 +1002,27 @@ export default function ProblemEditor({
         <button className="editor-save-next-btn" onClick={handleSaveAndNext} disabled={!hasNext}>
           保存して次へ → <kbd>Ctrl+S</kbd>
         </button>
+      </div>
+
+      {/* 共通牌パレット（画面下部固定）。送り先モードで牌の追加先を切り替える */}
+      <div className="palette-dock">
+        <div className="palette-dock-header">
+          <div className="palette-dock-modes">
+            <span className="palette-dock-modes-label">送り先:</span>
+            {availableModes.map(m => (
+              <button
+                key={m}
+                className={`palette-mode-btn${effectiveMode === m ? ' palette-mode-btn--active' : ''}`}
+                onClick={() => setPaletteMode(m)}
+                disabled={!!addingMeld && m !== 'meld'}
+              >
+                {PALETTE_MODE_LABELS[m]}
+              </button>
+            ))}
+          </div>
+          <span className="palette-dock-status">{paletteStatus}</span>
+        </div>
+        <TilePalette size={32} onTileClick={handlePaletteTile} />
       </div>
     </div>
   )

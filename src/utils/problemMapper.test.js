@@ -19,10 +19,12 @@ const fullRow = {
   naki_choices: [],
   question_image_url: null,
   bakaze: '東',
+  kyoku: 2,
   jikaze: '南',
   junme: 8,
   note: '3巡目に[1p]が2枚切れ。',
   other_discard: { player: '西', tiles: ['1z', '9m'], riichiIndex: null },
+  scores: { 東: 25000, 南: 31200, 西: 18800, 北: 24000, kyotaku: 1000 },
 };
 
 describe('fromDb（DB行 → アプリ内オブジェクト）', () => {
@@ -41,13 +43,15 @@ describe('fromDb（DB行 → アプリ内オブジェクト）', () => {
     expect(fromDb({ ...fullRow, dora: '5m' }).dora).toBe('5m');
   });
 
-  it('question_image_url / other_discard が無い古い行でも null になる', () => {
+  it('question_image_url / other_discard / scores が無い古い行でも null になる', () => {
     const legacy = { ...fullRow };
     delete legacy.question_image_url;
     delete legacy.other_discard;
+    delete legacy.scores;
     const q = fromDb(legacy);
     expect(q.questionImageUrl).toBeNull();
     expect(q.otherDiscard).toBeNull();
+    expect(q.scores).toBeNull();
   });
 });
 
@@ -88,10 +92,12 @@ describe('toDb（アプリ内オブジェクト → DB行）', () => {
       naki_choices: [],
       question_image_url: null,
       bakaze: null,
+      kyoku: null,
       jikaze: null,
       junme: null,
       note: '',
       other_discard: null,
+      scores: null,
     });
   });
 });

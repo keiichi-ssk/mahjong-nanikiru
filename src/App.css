@@ -1141,6 +1141,61 @@
   font-weight: bold;
 }
 
+/* ===== 点数状況バー ===== */
+.score-display {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: -4px;
+}
+
+.score-chip {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.score-chip--self {
+  border-color: var(--color-accent);
+  background: rgba(136, 192, 208, 0.1);
+}
+
+.score-chip-wind {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.68rem;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.score-chip-self-badge {
+  font-size: 0.62rem;
+  color: #0b1220;
+  background: var(--color-accent);
+  border-radius: 3px;
+  padding: 0 4px;
+  font-weight: bold;
+}
+
+.score-chip-points {
+  font-size: 0.88rem;
+  color: #dde4ee;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.score-chip--kyotaku .score-chip-points {
+  font-weight: normal;
+  color: var(--color-text-muted);
+}
+
 /* ===== 他家捨て牌表示 ===== */
 .other-discard-display {
   display: flex;

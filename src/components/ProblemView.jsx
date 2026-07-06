@@ -72,6 +72,34 @@ function DoraIndicatorDisplay({ tile }) {
   );
 }
 
+// 点数状況バー。scores が未設定（null）の問題では表示しない。
+// jikaze と一致する家に「自分」バッジを付け、供託は 1000点以上あるときだけ末尾に出す
+function ScoreDisplay({ scores, jikaze }) {
+  if (!scores) return null;
+  return (
+    <div className="score-display">
+      {['東', '南', '西', '北'].map(w => {
+        const isSelf = jikaze === w;
+        return (
+          <div key={w} className={`score-chip${isSelf ? ' score-chip--self' : ''}`}>
+            <span className="score-chip-wind">
+              {w}家
+              {isSelf && <span className="score-chip-self-badge">自分</span>}
+            </span>
+            <span className="score-chip-points">{(scores[w] ?? 0).toLocaleString()}</span>
+          </div>
+        );
+      })}
+      {(scores.kyotaku ?? 0) > 0 && (
+        <div className="score-chip score-chip--kyotaku">
+          <span className="score-chip-wind">供託</span>
+          <span className="score-chip-points">{scores.kyotaku.toLocaleString()}点</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function OtherDiscardDisplay({ otherDiscard }) {
   if (!otherDiscard || !otherDiscard.player || !otherDiscard.tiles || otherDiscard.tiles.length === 0) return null;
   return (
@@ -359,7 +387,8 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
         const hasSituationFields = p.bakaze || p.jikaze || p.junme != null;
         const situationText = hasSituationFields
           ? [
-              p.bakaze ? `${p.bakaze}場` : null,
+              // 局が設定されていれば「南1局」、なければ従来どおり「南場」
+              p.bakaze ? (p.kyoku != null ? `${p.bakaze}${p.kyoku}局` : `${p.bakaze}場`) : null,
               p.jikaze ? `${p.jikaze}家` : null,
               p.junme  != null ? `${p.junme}巡目` : null,
             ].filter(Boolean).join(' ')
@@ -373,6 +402,8 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
           </div>
         );
       })()}
+
+      <ScoreDisplay scores={p.scores} jikaze={p.jikaze} />
 
       <ExplanationText text={p.note} className="problem-note" />
 

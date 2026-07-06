@@ -13,6 +13,7 @@ export function fromDb(p) {
     // ここで''をnullに正規化しないと再読込後に「未設定」判定（?? / 前問題からの引き継ぎ）が効かなくなる
     dora:             p.dora || null,
     otherDiscard:     p.other_discard ?? null,
+    scores:           p.scores ?? null,
   }
 }
 
@@ -34,9 +35,11 @@ export function toDb(p) {
     naki_choices:       p.nakiChoices ?? [],
     question_image_url: p.questionImageUrl ?? null,
     bakaze:             p.bakaze ?? null,
+    kyoku:              p.kyoku  ?? null,
     jikaze:             p.jikaze ?? null,
     junme:              p.junme  ?? null,
     note:               p.note ?? '',
     other_discard:      p.otherDiscard ?? null,
+    scores:             p.scores ?? null,
   }
 }
