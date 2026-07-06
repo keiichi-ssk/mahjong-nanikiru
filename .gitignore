@@ -24,6 +24,9 @@ screenshot_zihai_before.png
 # Claude Code 開発メモ
 CLAUDE.md
 
+# Claude Code 個人用設定（Git管理外）
+.claude/settings.local.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
