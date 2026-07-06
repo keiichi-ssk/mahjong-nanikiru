@@ -323,7 +323,7 @@ export default function App() {
   return (
     <>
       <header className="app-header">
-        <span className="app-header-title">麻雀上達ドリル</span>
+        <span className="app-header-title">座学する麻雀</span>
         {session ? (
           <div className="user-info">
             {session.user.user_metadata?.avatar_url && (
