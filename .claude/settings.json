@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|PowerShell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/pre-push-test.sh",
+            "timeout": 180,
+            "statusMessage": "push前にnpm testを実行中..."
+          }
+        ]
+      }
+    ]
+  }
+}
