@@ -1385,8 +1385,13 @@ kbd {
   gap: 4px;
 }
 
+/* セグメントコントロール型タブ。選択中の見た目は場風・問題タイプ等の
+   「黄色塗りつぶし＋黒文字」ルール（situation-btn--active）に揃える */
 .palette-tab-bar {
   display: flex;
+  gap: 6px;
+  padding: 8px 10px;
+  background: #0a0f1e;
   border-bottom: 1px solid #1a2a4a;
 }
 
@@ -1394,21 +1399,25 @@ kbd {
   flex: 1;
   padding: 10px 8px;
   background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  color: #888;
-  font-size: 0.85rem;
+  border: 1px solid #2a3a5a;
+  border-radius: 8px;
+  color: #aaa;
+  font-size: 0.9rem;
   font-family: inherit;
   cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 
-.palette-tab-btn:hover { color: #ccc; }
+.palette-tab-btn:hover { border-color: #f5c842; color: #f5c842; }
 
 .palette-tab-btn--active {
-  color: #f5c842;
-  border-bottom-color: #f5c842;
+  background: #f5c842;
+  border-color: #f5c842;
+  color: #000;
+  font-weight: bold;
 }
+
+.palette-tab-btn--active:hover { color: #000; }
 
 .palette-tab-content {
   padding: 12px 16px;

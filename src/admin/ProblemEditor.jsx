@@ -561,7 +561,7 @@ export default function ProblemEditor({
           </button>
           <button
             className={`palette-tab-btn${paletteTab === 'jokyo' ? ' palette-tab-btn--active' : ''}`}
-            onClick={() => setPaletteTab('jokyo')}
+            onClick={() => { setPaletteTab('jokyo'); setPaletteMode('dora') }}
           >
             状況設定
           </button>
@@ -575,8 +575,9 @@ export default function ProblemEditor({
             className={`palette-tab-btn${paletteTab === 'answer' ? ' palette-tab-btn--active' : ''}`}
             onClick={() => {
               setPaletteTab('answer')
-              if (problemType === 'naki-timing')     setPaletteMode('depai')
+              if (problemType === 'naki-timing')      setPaletteMode('depai')
               else if (problemType === 'naki-choice') setPaletteMode('nakiChoice')
+              else                                    setPaletteMode('explanation')
             }}
           >
             正解設定
