@@ -27,6 +27,12 @@ CLAUDE.md
 # Claude Code 個人用設定（Git管理外）
 .claude/settings.local.json
 
+# 画像スキャンのローカル進捗状態
+scripts/progress.json
+
+# ゴミ箱（削除ファイルの一時退避先）
+.trash/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
