@@ -174,7 +174,17 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
   }, [problems]);
   const getSectionProblems = (cat) => problemsBySection.get(cat) ?? [];
   const [checkedSections, setCheckedSections] = useState(new Set());
-  const [activeBook, setActiveBook] = useState(() => books[0]?.label ?? '');
+  // 選択中の書籍タブ。リロードしても保持する（保存済みの書籍が存在しなければ先頭へ）
+  const [activeBook, setActiveBook] = useState(() => {
+    const stored = localStorage.getItem('activeBook');
+    if (stored && books.some(b => b.label === stored)) return stored;
+    return books[0]?.label ?? '';
+  });
+
+  function selectBook(label) {
+    setActiveBook(label);
+    localStorage.setItem('activeBook', label);
+  }
   // 出題数。null = 全問（選択カテゴリが変わっても常に全問に追従する）
   const [questionCount, setQuestionCount] = useState(null);
   // 開いている大カテゴリ（"書籍::大カテゴリ" キーの集合）。初回は全部畳む
@@ -287,7 +297,7 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
             <button
               key={bookLabel}
               className={`book-tab${activeBook === bookLabel ? ' book-tab--active' : ''}`}
-              onClick={() => setActiveBook(bookLabel)}
+              onClick={() => selectBook(bookLabel)}
             >
               {bookLabel}
               {selectedCount > 0 && (
