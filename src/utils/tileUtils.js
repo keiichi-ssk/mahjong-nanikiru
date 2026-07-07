@@ -47,6 +47,22 @@ export function getDoraIndicator(doraTile) {
   return null;
 }
 
+// ===== 牌の並び順（萬→筒→索→字、赤5は5.5扱い） =====
+
+const SUIT_ORDER = { m: 0, p: 1, s: 2, z: 3 };
+
+export function compareTiles(a, b) {
+  const suitA = a.slice(-1), suitB = b.slice(-1);
+  if (suitA !== suitB) return SUIT_ORDER[suitA] - SUIT_ORDER[suitB];
+  const nA = a[0] === '0' ? 5.5 : parseInt(a[0], 10);
+  const nB = b[0] === '0' ? 5.5 : parseInt(b[0], 10);
+  return nA - nB;
+}
+
+export function sortTiles(tiles) {
+  return [...tiles].sort(compareTiles);
+}
+
 // ===== 数牌種類ランダム入れ替え =====
 
 const SUIT_PERMUTATIONS = [

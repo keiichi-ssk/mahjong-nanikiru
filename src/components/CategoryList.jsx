@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { groupByBook, sectionLabel } from '../utils/categoryUtils';
 import { useTap } from '../utils/useTap';
 
@@ -66,14 +66,14 @@ function CategoryCard({ label, available, isChecked, countText, answeredCount, c
 // 大カテゴリのアコーディオン。見出しタップで開閉、右端の全選択/全解除で一括選択。
 // 畳んだ状態でも問題数・進捗・選択数が見えるようにする
 function MajorGroup({
-  majorLabel, sections, problems, results, session, onResetResults,
+  majorLabel, sections, getSectionProblems, results, session, onResetResults,
   filterActive, filterLabelText, isProblemIncluded, availableSections,
   checkedSections, toggleSection, toggleGroup, resetSection, resetMajor,
   isOpen, onToggleOpen,
 }) {
   const majorAvailable = availableSections(sections);
   const majorAllChecked = majorAvailable.length > 0 && majorAvailable.every(s => checkedSections.has(s));
-  const majorProblems = sections.flatMap(s => problems.filter(p => p.section === s));
+  const majorProblems = sections.flatMap(getSectionProblems);
   const answeredInMajor = majorProblems.filter(p => results[p.id] !== undefined).length;
   const correctInMajor = majorProblems.filter(p => results[p.id] === true).length;
   const totalInMajor = majorProblems.length;
@@ -125,7 +125,7 @@ function MajorGroup({
       {isOpen && (
         <div className="category-grid">
           {sections.map((cat) => {
-            const catProblems = problems.filter((p) => p.section === cat);
+            const catProblems = getSectionProblems(cat);
             const totalCount = catProblems.length;
             const filteredCount = filterActive
               ? catProblems.filter(isProblemIncluded).length
@@ -162,6 +162,17 @@ function MajorGroup({
 
 export default function CategoryList({ categories, problems, randomMode, onToggleRandom, unansweredOnlyMode, onToggleUnansweredOnly, wrongOnlyMode, onToggleWrongOnly, onStart, results = {}, session, onResetResults }) {
   const books = groupByBook(categories);
+  // section → 問題配列。render のたびに全問題を何度も filter しないための索引
+  const problemsBySection = useMemo(() => {
+    const map = new Map();
+    for (const p of problems) {
+      const list = map.get(p.section);
+      if (list) list.push(p);
+      else map.set(p.section, [p]);
+    }
+    return map;
+  }, [problems]);
+  const getSectionProblems = (cat) => problemsBySection.get(cat) ?? [];
   const [checkedSections, setCheckedSections] = useState(new Set());
   const [activeBook, setActiveBook] = useState(() => books[0]?.label ?? '');
   // 出題数。null = 全問（選択カテゴリが変わっても常に全問に追従する）
@@ -215,7 +226,7 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
 
   function availableSections(sections) {
     return sections.filter(cat => {
-      const catProblems = problems.filter(p => p.section === cat);
+      const catProblems = getSectionProblems(cat);
       if (filterActive) return catProblems.some(isProblemIncluded);
       return catProblems.length > 0;
     });
@@ -241,8 +252,7 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
 
   function resetMajor(majorLabel, sections) {
     if (!window.confirm(`「${majorLabel}」の進捗をリセットしますか？`)) return;
-    const ids = sections.flatMap(s => problems.filter(p => p.section === s)).map(p => p.id);
-    onResetResults(ids);
+    onResetResults(sections.flatMap(getSectionProblems).map(p => p.id));
   }
 
   function resetBook(bookLabel) {
@@ -251,7 +261,7 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
     if (!bookData) return;
     const ids = bookData.majorGroups
       .flatMap(g => g.sections)
-      .flatMap(s => problems.filter(p => p.section === s))
+      .flatMap(getSectionProblems)
       .map(p => p.id);
     onResetResults(ids);
   }
@@ -297,7 +307,7 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
           {session && onResetResults && (() => {
             const bookProblems = activeBookData.majorGroups
               .flatMap(g => g.sections)
-              .flatMap(s => problems.filter(p => p.section === s));
+              .flatMap(getSectionProblems);
             const answeredInBook = bookProblems.filter(p => results[p.id] !== undefined).length;
             return answeredInBook > 0 ? (
               <div className="book-reset-bar">
@@ -315,7 +325,7 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
                 key={majorKey}
                 majorLabel={majorLabel}
                 sections={sections}
-                problems={problems}
+                getSectionProblems={getSectionProblems}
                 results={results}
                 session={session}
                 onResetResults={onResetResults}

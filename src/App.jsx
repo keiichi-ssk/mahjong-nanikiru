@@ -1,10 +1,15 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from './lib/supabase';
 import CategoryList from './components/CategoryList';
 import ProblemView from './components/ProblemView';
 import SessionSummary from './components/SessionSummary';
 import { isSectionAllowed } from './utils/categoryUtils';
 import { fromDb } from './utils/problemMapper';
+import {
+  saveRoundStart, saveRoundRetry, clearRound, loadRound,
+  saveCurrentIndex, saveRoundResults, saveRoundAnswers,
+  saveSessionFirstResults, saveShowSummary,
+} from './utils/roundStorage';
 import './App.css';
 
 function shuffled(arr) {
@@ -14,6 +19,21 @@ function shuffled(arr) {
     [a[i], a[j]] = [a[j], a[i]];
   }
   return a;
+}
+
+// localStorage に保存される ON/OFF 設定（シャッフル出題・未回答のみ等）
+function useLocalStorageToggle(key, defaultValue) {
+  const [on, setOn] = useState(() => {
+    const stored = localStorage.getItem(key);
+    return stored === null ? defaultValue : stored === 'true';
+  });
+  const toggle = useCallback(() => {
+    setOn(prev => {
+      localStorage.setItem(key, String(!prev));
+      return !prev;
+    });
+  }, [key]);
+  return [on, toggle];
 }
 
 function LoadingSkeleton() {
@@ -48,9 +68,9 @@ export default function App() {
   const [playingKey, setPlayingKey] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [orderedProblems, setOrderedProblems] = useState([]);
-  const [randomMode, setRandomMode] = useState(() => localStorage.getItem('randomMode') !== 'false');
-  const [unansweredOnlyMode, setUnansweredOnlyMode] = useState(() => localStorage.getItem('unansweredOnlyMode') === 'true');
-  const [wrongOnlyMode, setWrongOnlyMode] = useState(() => localStorage.getItem('wrongOnlyMode') === 'true');
+  const [randomMode, toggleRandomMode] = useLocalStorageToggle('randomMode', true);
+  const [unansweredOnlyMode, toggleUnansweredOnlyMode] = useLocalStorageToggle('unansweredOnlyMode', false);
+  const [wrongOnlyMode, toggleWrongOnlyMode] = useLocalStorageToggle('wrongOnlyMode', false);
   const restoredRef = useRef(false);
   const [session, setSession] = useState(null);
   const [isAllowed, setIsAllowed] = useState(null);
@@ -104,13 +124,13 @@ export default function App() {
   async function handleAnswer(problemId, isCorrect) {
     const nextRound = { ...roundResults, [problemId]: isCorrect };
     setRoundResults(nextRound);
-    sessionStorage.setItem('roundResults', JSON.stringify(nextRound));
+    saveRoundResults(nextRound);
 
     // セッション内2回目以降の回答（再挑戦・前に戻っての答え直し）はDBに記録しない
     if (problemId in sessionFirstResults) return;
     const nextFirst = { ...sessionFirstResults, [problemId]: isCorrect };
     setSessionFirstResults(nextFirst);
-    sessionStorage.setItem('sessionFirstResults', JSON.stringify(nextFirst));
+    saveSessionFirstResults(nextFirst);
 
     if (!session) return;
     setResults(prev => ({ ...prev, [problemId]: isCorrect }));
@@ -126,7 +146,7 @@ export default function App() {
   function persistAnswer(problemId, payload) {
     const next = { ...roundAnswers, [problemId]: payload };
     setRoundAnswers(next);
-    sessionStorage.setItem('roundAnswers', JSON.stringify(next));
+    saveRoundAnswers(next);
   }
 
   async function handleResetResults(problemIds) {
@@ -160,22 +180,19 @@ export default function App() {
   useEffect(() => {
     if (loading || problems.length === 0 || restoredRef.current) return;
     restoredRef.current = true;
-    try {
-      if (sessionStorage.getItem('isPlaying') !== 'true') return;
-      const savedIds = JSON.parse(sessionStorage.getItem('orderedIds') ?? '[]');
-      const savedIndex = parseInt(sessionStorage.getItem('currentIndex') ?? '0');
-      const restored = savedIds.map(id => problems.find(p => p.id === id)).filter(Boolean);
-      if (restored.length > 0) {
-        setOrderedProblems(restored);
-        setCurrentIndex(savedIndex);
-        setRoundResults(JSON.parse(sessionStorage.getItem('roundResults') ?? '{}'));
-        setRoundAnswers(JSON.parse(sessionStorage.getItem('roundAnswers') ?? '{}'));
-        setSessionFirstResults(JSON.parse(sessionStorage.getItem('sessionFirstResults') ?? '{}'));
-        setShowSummary(sessionStorage.getItem('showSummary') === 'true');
-        setIsPlaying(true);
-        setPlayingKey(k => k + 1);
-      }
-    } catch { /* sessionStorage 読み込み失敗時は無視 */ }
+    const saved = loadRound();
+    if (!saved.isPlaying) return;
+    const restored = saved.orderedIds.map(id => problems.find(p => p.id === id)).filter(Boolean);
+    if (restored.length > 0) {
+      setOrderedProblems(restored);
+      setCurrentIndex(saved.currentIndex);
+      setRoundResults(saved.roundResults);
+      setRoundAnswers(saved.roundAnswers);
+      setSessionFirstResults(saved.sessionFirstResults);
+      setShowSummary(saved.showSummary);
+      setIsPlaying(true);
+      setPlayingKey(k => k + 1);
+    }
   }, [loading, problems]);
 
   const visibleProblems = allowedMajorCategories
@@ -208,21 +225,16 @@ export default function App() {
     setRoundAnswers({});
     setSessionFirstResults({});
     setShowSummary(false);
-    sessionStorage.setItem('isPlaying', 'true');
-    sessionStorage.setItem('orderedIds', JSON.stringify(ordered.map(p => p.id)));
-    sessionStorage.setItem('currentIndex', '0');
-    sessionStorage.setItem('roundResults', '{}');
-    sessionStorage.setItem('roundAnswers', '{}');
-    sessionStorage.setItem('sessionFirstResults', '{}');
-    sessionStorage.removeItem('showSummary');
+    saveRoundStart(ordered.map(p => p.id));
   }
 
   function finishRound() {
     setShowSummary(true);
-    sessionStorage.setItem('showSummary', 'true');
+    saveShowSummary(true);
   }
 
   // 今ラウンドで間違えた問題だけで新しいラウンドを開始する
+  // （sessionFirstResults は保持 = DBへの記録は1度目のまま）
   function retryWrong() {
     const wrong = orderedProblems.filter(p => roundResults[p.id] === false);
     if (wrong.length === 0) return;
@@ -233,11 +245,7 @@ export default function App() {
     setRoundAnswers({});
     setShowSummary(false);
     setPlayingKey(k => k + 1);
-    sessionStorage.setItem('orderedIds', JSON.stringify(ordered.map(p => p.id)));
-    sessionStorage.setItem('currentIndex', '0');
-    sessionStorage.setItem('roundResults', '{}');
-    sessionStorage.setItem('roundAnswers', '{}');
-    sessionStorage.removeItem('showSummary');
+    saveRoundRetry(ordered.map(p => p.id));
   }
 
   function backToCategories() {
@@ -248,13 +256,7 @@ export default function App() {
     setRoundAnswers({});
     setSessionFirstResults({});
     setShowSummary(false);
-    sessionStorage.removeItem('isPlaying');
-    sessionStorage.removeItem('orderedIds');
-    sessionStorage.removeItem('currentIndex');
-    sessionStorage.removeItem('roundResults');
-    sessionStorage.removeItem('roundAnswers');
-    sessionStorage.removeItem('sessionFirstResults');
-    sessionStorage.removeItem('showSummary');
+    clearRound();
   }
 
   function renderContent() {
@@ -281,11 +283,11 @@ export default function App() {
           categories={categories}
           problems={visibleProblems}
           randomMode={randomMode}
-          onToggleRandom={() => setRandomMode(m => { localStorage.setItem('randomMode', String(!m)); return !m; })}
+          onToggleRandom={toggleRandomMode}
           unansweredOnlyMode={unansweredOnlyMode}
-          onToggleUnansweredOnly={() => setUnansweredOnlyMode(m => { localStorage.setItem('unansweredOnlyMode', String(!m)); return !m; })}
+          onToggleUnansweredOnly={toggleUnansweredOnlyMode}
           wrongOnlyMode={wrongOnlyMode}
-          onToggleWrongOnly={() => setWrongOnlyMode(m => { localStorage.setItem('wrongOnlyMode', String(!m)); return !m; })}
+          onToggleWrongOnly={toggleWrongOnlyMode}
           onStart={startSelected}
           results={results}
           session={session}
@@ -310,8 +312,8 @@ export default function App() {
         index={currentIndex}
         total={orderedProblems.length}
         onBack={backToCategories}
-        onPrev={() => setCurrentIndex((i) => { sessionStorage.setItem('currentIndex', String(i - 1)); return i - 1; })}
-        onNext={() => setCurrentIndex((i) => { sessionStorage.setItem('currentIndex', String(i + 1)); return i + 1; })}
+        onPrev={() => setCurrentIndex((i) => { saveCurrentIndex(i - 1); return i - 1; })}
+        onNext={() => setCurrentIndex((i) => { saveCurrentIndex(i + 1); return i + 1; })}
         onFinish={finishRound}
         onAnswer={handleAnswer}
         savedAnswer={roundAnswers[orderedProblems[currentIndex].id]}

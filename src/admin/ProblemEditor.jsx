@@ -1,5 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { getTileImageUrl, getTileLabel } from '../utils/tileUtils'
+import { getTileImageUrl, getTileLabel, sortTiles } from '../utils/tileUtils'
+import { normalizeProblemType } from '../utils/judgeUtils'
+import { NAKI_TIMING_OPTIONS, MELD_TYPE_LABELS, MELD_TILE_COUNT, MELD_TYPES, getMeldTileRole } from '../utils/problemConstants'
+import { questionImagePath, QUESTION_IMAGE_BUCKET } from '../utils/questionImage'
+import QuestionImage from '../components/QuestionImage'
 import { supabase } from '../lib/supabase'
 
 const TILE_GROUPS = [
@@ -8,12 +12,6 @@ const TILE_GROUPS = [
   { label: '索子', tiles: ['1s','2s','3s','4s','5s','0s','6s','7s','8s','9s'] },
   { label: '字牌', tiles: ['1z','2z','3z','4z','5z','6z','7z'] },
 ]
-
-const SUIT_ORDER = { m: 0, p: 1, s: 2, z: 3 }
-
-const MELD_LABELS     = { chi: 'チー', pon: 'ポン', kan: '大明槓', kakan: '加槓', ankan: '暗槓' }
-const MELD_TILE_COUNT = { chi: 3, pon: 3, kan: 4, kakan: 4, ankan: 4 }
-const MELD_TYPES      = ['chi', 'pon', 'kan', 'kakan', 'ankan']
 
 // 共通パレット（画面下部固定）の送り先モード
 const PALETTE_MODE_LABELS = {
@@ -29,23 +27,6 @@ const PALETTE_MODE_LABELS = {
 
 const SCORE_WINDS    = ['東', '南', '西', '北']
 const DEFAULT_SCORES = { 東: 25000, 南: 25000, 西: 25000, 北: 25000, kyotaku: 0 }
-
-const NAKI_TIMING_OPTIONS = [
-  { value: 'early', label: '序盤から鳴く' },
-  { value: 'mid',   label: '中盤から鳴く' },
-  { value: 'late',  label: '終盤から鳴く' },
-  { value: 'no',    label: '鳴かない' },
-]
-
-function sortTiles(tiles) {
-  return [...tiles].sort((a, b) => {
-    const suitA = a.slice(-1), suitB = b.slice(-1)
-    if (suitA !== suitB) return SUIT_ORDER[suitA] - SUIT_ORDER[suitB]
-    const nA = a[0] === '0' ? 5.5 : parseInt(a[0])
-    const nB = b[0] === '0' ? 5.5 : parseInt(b[0])
-    return nA - nB
-  })
-}
 
 function TileImg({ tile, size = 44, onClick, className = '' }) {
   const url = getTileImageUrl(tile)
@@ -64,11 +45,10 @@ function MeldPreview({ meld }) {
   return (
     <div className="meld-preview">
       {tiles.map((t, i) => {
-        const isRotated = type !== 'ankan' && i === 0
-        const isBack    = type === 'ankan' && (i === 0 || i === 3)
-        if (isBack) return <div key={i} className="meld-preview-back" />
+        const role = getMeldTileRole(type, i)
+        if (role === 'back') return <div key={i} className="meld-preview-back" />
         return (
-          <div key={i} className={`meld-preview-tile${isRotated ? ' meld-preview-tile--rotated tile-rotated' : ''}`}>
+          <div key={i} className={`meld-preview-tile${role === 'rotated' ? ' meld-preview-tile--rotated tile-rotated' : ''}`}>
             <img src={getTileImageUrl(t)} alt={t} width={30} height={Math.round(30 * 60 / 44)} />
           </div>
         )
@@ -187,7 +167,8 @@ export default function ProblemEditor({
   const [reviewed,      setReviewed]      = useState(problem.reviewed ?? false)
   const [disabled,      setDisabled]      = useState(problem.disabled ?? false)
   const [addingMeld,    setAddingMeld]    = useState(null)
-  const [problemType,   setProblemType]   = useState(problem.problemType   ?? 'default')
+  // 旧タイプ image-quiz は default に正規化する（画像は全タイプ共通の付加情報になった）
+  const [problemType,   setProblemType]   = useState(normalizeProblemType(problem.problemType))
   const [discardedTile, setDiscardedTile] = useState(problem.discardedTile ?? null)
   const [nakiChoices,   setNakiChoices]   = useState(problem.nakiChoices   ?? [])
   const [tilesInput,       setTilesInput]       = useState('')
@@ -216,43 +197,49 @@ export default function ProblemEditor({
     setImageUploading(true)
     const ext = file.name.split('.').pop()
     const filename = `${problem.id}.${ext}`
-    const { error } = await supabase.storage.from('question-images').upload(filename, file, { upsert: true })
+    const { error } = await supabase.storage.from(QUESTION_IMAGE_BUCKET).upload(filename, file, { upsert: true })
     if (error) {
       alert(`アップロード失敗: ${error.message}`)
       setImageUploading(false)
       return
     }
-    const { data } = supabase.storage.from('question-images').getPublicUrl(filename)
-    setQuestionImageUrl(data.publicUrl)
+    // バケットは限定公開のため公開URLではなくファイル名を保存し、表示時に署名付きURLを発行する
+    setQuestionImageUrl(filename)
     setImageUploading(false)
   }
 
-  function insertTileCode(tile) {
-    const ta = explanationRef.current
+  async function handleImageDelete() {
+    if (!window.confirm('画像をStorageからも削除します。よろしいですか？\n（削除後は「保存」で問題からの参照も消してください）')) return
+    const path = questionImagePath(questionImageUrl)
+    if (path) {
+      const { error } = await supabase.storage.from(QUESTION_IMAGE_BUCKET).remove([path])
+      if (error) {
+        alert(`Storage上の削除に失敗: ${error.message}`)
+        return
+      }
+    }
+    setQuestionImageUrl(null)
+  }
+
+  // textarea のカーソル位置（未フォーカスなら末尾）に牌コードを挿入する共通処理
+  function insertAtCursor(ta, touched, value, setValue, tile) {
     if (!ta) return
-    const start = explanationTouchedRef.current ? ta.selectionStart : explanation.length
-    const end   = explanationTouchedRef.current ? ta.selectionEnd   : explanation.length
+    const start = touched ? ta.selectionStart : value.length
+    const end   = touched ? ta.selectionEnd   : value.length
     const code  = `[${tile}]`
-    const next  = explanation.slice(0, start) + code + explanation.slice(end)
-    setExplanation(next)
+    setValue(value.slice(0, start) + code + value.slice(end))
     requestAnimationFrame(() => {
       ta.focus()
       ta.setSelectionRange(start + code.length, start + code.length)
     })
   }
 
+  function insertTileCode(tile) {
+    insertAtCursor(explanationRef.current, explanationTouchedRef.current, explanation, setExplanation, tile)
+  }
+
   function insertNoteTileCode(tile) {
-    const ta = noteRef.current
-    if (!ta) return
-    const start = noteTouchedRef.current ? ta.selectionStart : note.length
-    const end   = noteTouchedRef.current ? ta.selectionEnd   : note.length
-    const code  = `[${tile}]`
-    const next  = note.slice(0, start) + code + note.slice(end)
-    setNote(next)
-    requestAnimationFrame(() => {
-      ta.focus()
-      ta.setSelectionRange(start + code.length, start + code.length)
-    })
+    insertAtCursor(noteRef.current, noteTouchedRef.current, note, setNote, tile)
   }
 
   function addTile(tile) {
@@ -410,7 +397,7 @@ export default function ProblemEditor({
 
   const paletteStatus = {
     hand:        `手牌: ${tiles.length}枚`,
-    meld:        addingMeld ? `${MELD_LABELS[addingMeld.type]}: ${addingMeld.tiles.length} / ${MELD_TILE_COUNT[addingMeld.type]}枚` : '',
+    meld:        addingMeld ? `${MELD_TYPE_LABELS[addingMeld.type]}: ${addingMeld.tiles.length} / ${MELD_TILE_COUNT[addingMeld.type]}枚` : '',
     dora:        `ドラ: ${dora ? getTileLabel(dora) : 'なし'}`,
     note:        '注釈のカーソル位置に挿入',
     explanation: '解説のカーソル位置に挿入',
@@ -474,14 +461,10 @@ export default function ProblemEditor({
         </div>
       </section>
 
-      {/* 問題画像：Supabase Storageアップロード（全タイプ共通） */}
+      {/* 問題画像：Supabase Storageアップロード（全タイプ共通・限定公開バケット） */}
       <section className="editor-section">
         <div className="editor-section-label">問題画像（任意）</div>
-        {questionImageUrl && (
-          <div className="editor-image-wrap">
-            <img src={questionImageUrl} alt="問題" className="editor-image" />
-          </div>
-        )}
+        <QuestionImage value={questionImageUrl} wrapClassName="editor-image-wrap" imgClassName="editor-image" />
         <div className="image-upload-row">
           <label className="image-upload-label">
             <input
@@ -496,18 +479,18 @@ export default function ProblemEditor({
             </span>
           </label>
           {questionImageUrl && (
-            <button className="dora-clear" onClick={() => setQuestionImageUrl(null)}>画像を削除</button>
+            <button className="dora-clear" onClick={handleImageDelete}>画像を削除</button>
           )}
         </div>
         {questionImageUrl && (
           <div className="editor-current" style={{ wordBreak: 'break-all', fontSize: 11 }}>
-            URL: {questionImageUrl}
+            ファイル: {questionImagePath(questionImageUrl)}
           </div>
         )}
       </section>
 
       {/* 参照用画像（scan-tilesで生成した問題のみ） */}
-      {problemType !== 'image-quiz' && problem.image && (
+      {problem.image && (
         <div className="editor-image-wrap">
           <img src={problem.image} alt="問題" className="editor-image" />
         </div>
@@ -534,7 +517,7 @@ export default function ProblemEditor({
             <div className="editor-melds-inline">
               {melds.map((meld, i) => (
                 <div key={i} className="editor-meld-inline-item">
-                  <span className="editor-meld-inline-label">{MELD_LABELS[meld.type]}</span>
+                  <span className="editor-meld-inline-label">{MELD_TYPE_LABELS[meld.type]}</span>
                   <MeldPreview meld={meld} />
                   <button className="editor-meld-inline-remove" onClick={() => removeMeld(i)}>×</button>
                 </div>
@@ -632,7 +615,7 @@ export default function ProblemEditor({
               <div className="meld-adding">
                 <div className="meld-adding-header">
                   <span className="meld-adding-title">
-                    {MELD_LABELS[addingMeld.type]}：下のパレットから牌を選択
+                    {MELD_TYPE_LABELS[addingMeld.type]}：下のパレットから牌を選択
                     （{addingMeld.tiles.length} / {MELD_TILE_COUNT[addingMeld.type]}枚）
                   </span>
                   <button className="meld-cancel-btn" onClick={() => setAddingMeld(null)}>キャンセル</button>
@@ -657,7 +640,7 @@ export default function ProblemEditor({
               <div className="meld-add-btns">
                 {MELD_TYPES.map(type => (
                   <button key={type} className="meld-add-btn" onClick={() => startAddMeld(type)}>
-                    {MELD_LABELS[type]}
+                    {MELD_TYPE_LABELS[type]}
                   </button>
                 ))}
               </div>

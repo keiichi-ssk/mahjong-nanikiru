@@ -20,6 +20,9 @@ function normalizeAllowedKeys(list) {
 export default function AdminApp() {
   const [session, setSession]         = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
+  // 管理者判定（allowed_users.is_admin）。どのメールに対する判定かをセットで持ち、
+  // ログアウト・アカウント切替時は描画側で自動的に「判定中」へ戻す
+  const [adminCheck, setAdminCheck]   = useState(null) // { email, isAdmin } | null
   const [problems, setProblems]       = useState([])
   const [selectedCat, setSelectedCat] = useState(null)
   const [selectedId, setSelectedId]   = useState(null)
@@ -44,16 +47,34 @@ export default function AdminApp() {
   }, [])
 
   useEffect(() => {
-    if (!session) return
-    supabase.from('problems').select('*').order('id')
-      .then(({ data }) => setProblems((data || []).map(fromDb)))
+    if (!session) return undefined
+    let cancelled = false
+    const email = session.user.email
+    supabase
+      .from('allowed_users')
+      .select('is_admin')
+      .eq('email', email)
+      .single()
+      .then(({ data, error }) => {
+        if (!cancelled) setAdminCheck({ email, isAdmin: !error && data?.is_admin === true })
+      })
+    return () => { cancelled = true }
   }, [session])
 
+  // null = 判定中。書き込みはRLSで管理者のみに制限済みだが、非管理者には画面自体を開かせない
+  const isAdmin = (session && adminCheck?.email === session.user.email) ? adminCheck.isAdmin : null
+
   useEffect(() => {
-    if (!session || activeTab !== 'users') return
+    if (!session || isAdmin !== true) return
+    supabase.from('problems').select('*').order('id')
+      .then(({ data }) => setProblems((data || []).map(fromDb)))
+  }, [session, isAdmin])
+
+  useEffect(() => {
+    if (!session || isAdmin !== true || activeTab !== 'users') return
     supabase.from('allowed_users').select('email, allowed_major_categories').order('email')
       .then(({ data }) => setAllowedUsers(data || []))
-  }, [session, activeTab])
+  }, [session, isAdmin, activeTab])
 
   async function handleToggleUserCategory(email, categoryKey, checked) {
     const user = allowedUsers.find(u => u.email === email)
@@ -212,8 +233,18 @@ export default function AdminApp() {
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [handlePrev, handleNext, selectedId])
 
+  function jumpToId() {
+    const id = parseInt(idJumpInput)
+    const target = problems.find(p => p.id === id)
+    if (target) {
+      setSelectedCat(target.section)
+      setSelectedId(target.id)
+      setIdJumpInput('')
+    }
+  }
+
   // ===== 認証ガード =====
-  if (authLoading) {
+  if (authLoading || (session && isAdmin === null)) {
     return <div className="admin-auth-screen">読み込み中...</div>
   }
 
@@ -230,6 +261,18 @@ export default function AdminApp() {
           })}
         >
           Googleでログイン
+        </button>
+      </div>
+    )
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="admin-auth-screen">
+        <h1 className="admin-auth-title">管理画面</h1>
+        <p className="admin-auth-desc">このアカウントには管理者権限がありません</p>
+        <button className="admin-auth-btn" onClick={() => supabase.auth.signOut()}>
+          ログアウト
         </button>
       </div>
     )
@@ -257,30 +300,9 @@ export default function AdminApp() {
             placeholder="IDで移動…"
             value={idJumpInput}
             onChange={e => setIdJumpInput(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter') {
-                const id = parseInt(idJumpInput)
-                const target = problems.find(p => p.id === id)
-                if (target) {
-                  setSelectedCat(target.section)
-                  setSelectedId(target.id)
-                  setIdJumpInput('')
-                }
-              }
-            }}
+            onKeyDown={e => e.key === 'Enter' && jumpToId()}
           />
-          <button
-            className="admin-id-jump-btn"
-            onClick={() => {
-              const id = parseInt(idJumpInput)
-              const target = problems.find(p => p.id === id)
-              if (target) {
-                setSelectedCat(target.section)
-                setSelectedId(target.id)
-                setIdJumpInput('')
-              }
-            }}
-          >移動</button>
+          <button className="admin-id-jump-btn" onClick={jumpToId}>移動</button>
         </div>
         <div className="admin-new-problem-form" style={{ display: activeTab === 'problems' ? undefined : 'none' }}>
           <div className="admin-new-problem-title">新規問題追加</div>

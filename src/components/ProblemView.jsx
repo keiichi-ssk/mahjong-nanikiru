@@ -1,17 +1,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import TileButton from './TileButton';
-import { getTileLabel, getTileImageUrl, randomSuitMap, remapProblem, getDoraIndicator } from '../utils/tileUtils';
+import QuestionImage from './QuestionImage';
+import { getTileLabel, getTileImageUrl, compareTiles, randomSuitMap, remapProblem, getDoraIndicator } from '../utils/tileUtils';
 import { getSituationText } from '../utils/categoryUtils';
 import { normalizeProblemType, isRiichiJudgmentProblem, judgeAnswer, judgeNakiTiming, judgeNakiChoice } from '../utils/judgeUtils';
-
-const MELD_TYPE_LABELS = { chi: 'チー', pon: 'ポン', kan: '大明槓', kakan: '加槓', ankan: '暗槓' };
-
-const NAKI_TIMING_OPTIONS = [
-  { value: 'early', label: '序盤から鳴く' },
-  { value: 'mid',   label: '中盤から鳴く' },
-  { value: 'late',  label: '終盤から鳴く' },
-  { value: 'no',    label: '鳴かない' },
-];
+import { NAKI_TIMING_OPTIONS, MELD_TYPE_LABELS, getMeldTileRole } from '../utils/problemConstants';
 
 function ExplanationText({ text, className = 'answer-explanation' }) {
   if (!text) return null;
@@ -42,18 +35,32 @@ function MeldDisplay({ meld }) {
       <div className="meld-type-badge">{MELD_TYPE_LABELS[type]}</div>
       <div className="meld-tiles">
         {tiles.map((tile, i) => {
-          const isRotated = type !== 'ankan' && i === 0;
-          const isBack = type === 'ankan' && (i === 0 || i === 3);
-          if (isBack) {
+          const role = getMeldTileRole(type, i);
+          if (role === 'back') {
             return <div key={i} className="meld-tile meld-tile--back" />;
           }
           return (
-            <div key={i} className={`meld-tile${isRotated ? ' meld-tile--rotated tile-rotated' : ''}`}>
+            <div key={i} className={`meld-tile${role === 'rotated' ? ' meld-tile--rotated tile-rotated' : ''}`}>
               <img src={getTileImageUrl(tile)} alt={getTileLabel(tile)} />
             </div>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// 解答パネルの共通枠。「正解！/不正解」の見出しと解説を描画し、
+// 正解の中身（牌・テキスト等）は children で受け取る
+function AnswerPanel({ isCorrect, explanation, children }) {
+  return (
+    <div className={`answer-panel ${isCorrect ? 'answer-panel--correct' : 'answer-panel--wrong'}`}>
+      <div className="answer-result">{isCorrect ? '正解！' : '不正解'}</div>
+      <div className="answer-tile">
+        <span className="answer-label">正解：</span>
+        {children}
+      </div>
+      <ExplanationText text={explanation} />
     </div>
   );
 }
@@ -119,7 +126,7 @@ function OtherDiscardDisplay({ otherDiscard }) {
 
 // 手牌が未設定でも他家捨て牌は独立して表示する（問題タイプ間で挙動を揃える）
 function HandDisplay({ tiles, melds, otherDiscard }) {
-  const hasMetlds = Array.isArray(melds) && melds.length > 0;
+  const hasMelds = Array.isArray(melds) && melds.length > 0;
   const hasHand = tiles && tiles.length > 0;
   return (
     <>
@@ -132,7 +139,7 @@ function HandDisplay({ tiles, melds, otherDiscard }) {
               </div>
             ))}
           </div>
-          {hasMetlds && (
+          {hasMelds && (
             <div className="melds-area">
               {melds.map((meld, i) => (
                 <MeldDisplay key={i} meld={meld} />
@@ -188,30 +195,18 @@ function NakiTimingView({ problem, onAnswer, savedAnswer, onPersist }) {
           ))}
         </div>
       ) : (
-        <div className={`answer-panel ${isCorrect ? 'answer-panel--correct' : 'answer-panel--wrong'}`}>
-          <div className="answer-result">{isCorrect ? '正解！' : '不正解'}</div>
-          <div className="answer-tile">
-            <span className="answer-label">正解：</span>
-            <span className="answer-tile-name">
-              {NAKI_TIMING_OPTIONS.find(o => o.value === problem.answer)?.label ?? '未設定'}
-            </span>
-          </div>
-          <ExplanationText text={problem.explanation} />
-        </div>
+        <AnswerPanel isCorrect={isCorrect} explanation={problem.explanation}>
+          <span className="answer-tile-name">
+            {NAKI_TIMING_OPTIONS.find(o => o.value === problem.answer)?.label ?? '未設定'}
+          </span>
+        </AnswerPanel>
       )}
     </>
   );
 }
 
-const SUIT_ORDER = { m: 0, p: 1, s: 2, z: 3 };
 function sortChoices(choices) {
-  return [...choices].sort((a, b) => {
-    const sA = a.tile.slice(-1), sB = b.tile.slice(-1);
-    if (sA !== sB) return SUIT_ORDER[sA] - SUIT_ORDER[sB];
-    const nA = a.tile[0] === '0' ? 5.5 : parseInt(a.tile[0]);
-    const nB = b.tile[0] === '0' ? 5.5 : parseInt(b.tile[0]);
-    return nA - nB;
-  });
+  return [...choices].sort((a, b) => compareTiles(a.tile, b.tile));
 }
 
 // ===== パターン2: 鳴き選択 =====
@@ -267,19 +262,14 @@ function NakiChoiceView({ problem, onAnswer, savedAnswer, onPersist }) {
           答え合わせ
         </button>
       ) : (
-        <div className={`answer-panel ${isCorrect ? 'answer-panel--correct' : 'answer-panel--wrong'}`}>
-          <div className="answer-result">{isCorrect ? '正解！' : '不正解'}</div>
-          <div className="answer-tile">
-            <span className="answer-label">正解：</span>
-            {sortedChoices.filter(c => c.correct).map(c => (
-              <div key={c.tile} className="tile-readonly">
-                <img src={getTileImageUrl(c.tile)} alt={getTileLabel(c.tile)} />
-              </div>
-            ))}
-            {correctTiles.size === 0 && <span className="answer-tile-name">なし（鳴かない）</span>}
-          </div>
-          <ExplanationText text={problem.explanation} />
-        </div>
+        <AnswerPanel isCorrect={isCorrect} explanation={problem.explanation}>
+          {sortedChoices.filter(c => c.correct).map(c => (
+            <div key={c.tile} className="tile-readonly">
+              <img src={getTileImageUrl(c.tile)} alt={getTileLabel(c.tile)} />
+            </div>
+          ))}
+          {correctTiles.size === 0 && <span className="answer-tile-name">なし（鳴かない）</span>}
+        </AnswerPanel>
       )}
     </>
   );
@@ -300,9 +290,10 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
     onPersistAnswer?.(problem.id, { suitMap, ...data });
   }
 
-  // image-quiz はスーツ置換すると画像と牌が食い違うためそのまま使う
+  // 問題画像付きの問題はスーツ置換すると画像と牌が食い違うためそのまま使う
+  // （image-quiz は旧タイプ。DB移行済みだが未移行データの保険として残す）
   const p = useMemo(() => {
-    if ((problem.problemType ?? 'default') === 'image-quiz') return problem;
+    if (problem.questionImageUrl || (problem.problemType ?? 'default') === 'image-quiz') return problem;
     return remapProblem(problem, suitMap);
   }, [problem, suitMap]);
 
@@ -310,7 +301,7 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
   const isRiichiJudgment = isRiichiJudgmentProblem(p);
   const needsRiichi = !isRiichiJudgment && p.riichi !== null && p.riichi !== undefined;
   const answered = selected !== null;
-  const hasMetlds = Array.isArray(p.melds) && p.melds.length > 0;
+  const hasMelds = Array.isArray(p.melds) && p.melds.length > 0;
 
   const answerIsKan = typeof p.answer === 'string' && p.answer.startsWith('ankan:');
   const answerKanTile = answerIsKan ? p.answer.slice(6) : null;
@@ -427,12 +418,8 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
         />
       )}
 
-      {/* ===== 問題画像（全タイプ共通） ===== */}
-      {p.questionImageUrl && (
-        <div className="question-image-wrap">
-          <img src={p.questionImageUrl} alt="問題" className="question-image" />
-        </div>
-      )}
+      {/* ===== 問題画像（全タイプ共通・署名付きURLで表示） ===== */}
+      <QuestionImage value={p.questionImageUrl} wrapClassName="question-image-wrap" imgClassName="question-image" />
 
       {/* ===== リーチ判断 ===== */}
       {isRiichiJudgment && (
@@ -449,16 +436,11 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
               </button>
             </div>
           ) : (
-            <div className={`answer-panel ${isCorrect ? 'answer-panel--correct' : 'answer-panel--wrong'}`}>
-              <div className="answer-result">{isCorrect ? '正解！' : '不正解'}</div>
-              <div className="answer-tile">
-                <span className="answer-label">正解：</span>
-                <span className="answer-tile-name">
-                  {p.riichi === true ? 'リーチ' : p.riichi === false ? 'ダマ' : '未設定'}
-                </span>
-              </div>
-              <ExplanationText text={p.explanation} />
-            </div>
+            <AnswerPanel isCorrect={isCorrect} explanation={p.explanation}>
+              <span className="answer-tile-name">
+                {p.riichi === true ? 'リーチ' : p.riichi === false ? 'ダマ' : '未設定'}
+              </span>
+            </AnswerPanel>
           )}
         </>
       )}
@@ -479,7 +461,7 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
                     />
                   ))}
                 </div>
-                {hasMetlds && (
+                {hasMelds && (
                   <div className="melds-area">
                     {p.melds.map((meld, i) => (
                       <MeldDisplay key={i} meld={meld} />
@@ -519,34 +501,29 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
             )}
 
             {answered && (
-              <div className={`answer-panel ${isCorrect ? 'answer-panel--correct' : 'answer-panel--wrong'}`}>
-                <div className="answer-result">{isCorrect ? '正解！' : '不正解'}</div>
-                <div className="answer-tile">
-                  <span className="answer-label">正解：</span>
-                  {answerIsKan ? (
-                    <>
-                      <span className="answer-tile-name">暗槓（</span>
-                      <div className="tile-readonly">
-                        <img src={getTileImageUrl(answerKanTile)} alt={getTileLabel(answerKanTile)} />
-                      </div>
-                      <span className="answer-tile-name">{getTileLabel(answerKanTile)}）</span>
-                    </>
-                  ) : (
-                    <>
-                      <div className="tile-readonly">
-                        <img src={getTileImageUrl(p.answer)} alt={getTileLabel(p.answer)} />
-                      </div>
-                      <span className="answer-tile-name">{getTileLabel(p.answer)}</span>
-                    </>
-                  )}
-                  {needsRiichi && (
-                    <span className="answer-riichi">
-                      {p.riichi ? '・リーチする' : '・リーチしない'}
-                    </span>
-                  )}
-                </div>
-                <ExplanationText text={p.explanation} />
-              </div>
+              <AnswerPanel isCorrect={isCorrect} explanation={p.explanation}>
+                {answerIsKan ? (
+                  <>
+                    <span className="answer-tile-name">暗槓（</span>
+                    <div className="tile-readonly">
+                      <img src={getTileImageUrl(answerKanTile)} alt={getTileLabel(answerKanTile)} />
+                    </div>
+                    <span className="answer-tile-name">{getTileLabel(answerKanTile)}）</span>
+                  </>
+                ) : (
+                  <>
+                    <div className="tile-readonly">
+                      <img src={getTileImageUrl(p.answer)} alt={getTileLabel(p.answer)} />
+                    </div>
+                    <span className="answer-tile-name">{getTileLabel(p.answer)}</span>
+                  </>
+                )}
+                {needsRiichi && (
+                  <span className="answer-riichi">
+                    {p.riichi ? '・リーチする' : '・リーチしない'}
+                  </span>
+                )}
+              </AnswerPanel>
             )}
           {(!p.tiles || p.tiles.length === 0) && (
             <div className="pending-notice">
