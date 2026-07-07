@@ -154,10 +154,10 @@ export default function AdminApp() {
     await saveOne(updated)
   }
 
+  // reviewed の扱い（自動チェックか手動状態の尊重か）は ProblemEditor 側で決定済み
   async function handleSaveAndNext(updated) {
-    const withReviewed = { ...updated, reviewed: true }
-    setProblems(problems.map(p => (p.id === withReviewed.id ? withReviewed : p)))
-    await saveOne(withReviewed)
+    setProblems(problems.map(p => (p.id === updated.id ? updated : p)))
+    await saveOne(updated)
     if (catIdx < catProblems.length - 1) {
       setSelectedId(catProblems[catIdx + 1].id)
     }

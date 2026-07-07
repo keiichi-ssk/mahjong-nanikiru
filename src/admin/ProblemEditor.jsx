@@ -187,6 +187,9 @@ export default function ProblemEditor({
 
   const explanationRef = useRef(null)
   const noteRef        = useRef(null)
+  // 修正済みチェックをこの編集画面で手動操作したか。
+  // 手動操作があれば「保存して次へ」の自動チェックよりそちらを尊重する
+  const reviewedTouchedRef = useRef(false)
   // 一度もフォーカスしていない textarea は selectionStart が 0 のため、
   // カーソル位置ではなく末尾に挿入する（フォーカス済みかをここで覚える）
   const explanationTouchedRef = useRef(false)
@@ -347,8 +350,11 @@ export default function ProblemEditor({
   }, [onSave, buildSaveData])
 
   const handleSaveAndNext = useCallback(() => {
-    onSaveAndNext(buildSaveData())
-  }, [onSaveAndNext, buildSaveData])
+    // 「保存して次へ」は修正完了とみなして自動で修正済みにする。
+    // ただしチェックボックスを手動操作した場合はその状態をそのまま保存する
+    const effectiveReviewed = reviewedTouchedRef.current ? reviewed : true
+    onSaveAndNext({ ...buildSaveData(), reviewed: effectiveReviewed })
+  }, [onSaveAndNext, buildSaveData, reviewed])
 
   useEffect(() => {
     function onKeyDown(e) {
@@ -426,7 +432,7 @@ export default function ProblemEditor({
           <input
             type="checkbox"
             checked={reviewed}
-            onChange={e => setReviewed(e.target.checked)}
+            onChange={e => { reviewedTouchedRef.current = true; setReviewed(e.target.checked) }}
           />
           修正済み
         </label>
