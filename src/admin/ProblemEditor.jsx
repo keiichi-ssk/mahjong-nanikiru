@@ -736,7 +736,7 @@ export default function ProblemEditor({
                       isSelf={jikaze === w}
                       value={scores[w] ?? 0}
                       onChange={v => setScores(prev => ({ ...prev, [w]: v }))}
-                      steps={[-1000, -100, 100, 1000]}
+                      steps={[-10000, -1000, -100, 100, 1000, 10000]}
                     />
                   ))}
                   <ScoreInputRow

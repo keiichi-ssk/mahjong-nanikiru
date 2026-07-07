@@ -1509,6 +1509,7 @@ kbd {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-wrap: wrap; /* ±10000追加でボタンが増えたため、狭い画面でははみ出さず折り返す */
 }
 
 .score-edit-wind {

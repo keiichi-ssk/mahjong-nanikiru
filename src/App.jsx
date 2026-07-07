@@ -62,8 +62,9 @@ async function signInWithGoogle() {
 }
 
 export default function App() {
-  const [problems, setProblems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // 問題一覧。どのログイン状態（key = ユーザーID or 'anon'）で取得したかをセットで持ち、
+  // key が現在のセッションと食い違う間は loading 扱いにする
+  const [problemsState, setProblemsState] = useState(null); // { key, problems } | null
   const [isPlaying, setIsPlaying] = useState(false);
   const [playingKey, setPlayingKey] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -73,9 +74,11 @@ export default function App() {
   const [wrongOnlyMode, toggleWrongOnlyMode] = useLocalStorageToggle('wrongOnlyMode', false);
   const restoredRef = useRef(false);
   const [session, setSession] = useState(null);
-  const [isAllowed, setIsAllowed] = useState(null);
-  const [allowedMajorCategories, setAllowedMajorCategories] = useState(null);
-  const [results, setResults] = useState({});
+  // アクセス許可情報。どのメールに対する取得結果かをセットで持ち、
+  // ログアウト・アカウント切替時は描画側の照合で自動的に未判定へ戻す
+  const [allowedInfo, setAllowedInfo] = useState(null); // { email, isAllowed, allowedMajorCategories } | null
+  // DB上の正誤記録。どのユーザーの記録かをセットで持つ（同上）
+  const [resultsState, setResultsState] = useState(null); // { userId, map } | null
   // 今ラウンド（現在の出題一巡）の正誤。サマリー表示と再挑戦の抽出に使う
   const [roundResults, setRoundResults] = useState({});
   // 今ラウンドの回答内容（選んだ牌・リーチ選択・スーツ置換マップ）。
@@ -95,31 +98,60 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!session) { setIsAllowed(null); setAllowedMajorCategories(null); return; }
+    if (!session) return undefined;
+    let cancelled = false;
+    const email = session.user.email;
     supabase
       .from('allowed_users')
       .select('email, allowed_major_categories')
-      .eq('email', session.user.email)
+      .eq('email', email)
       .single()
       .then(({ data }) => {
-        setIsAllowed(!!data);
-        setAllowedMajorCategories(data?.allowed_major_categories ?? null);
+        if (cancelled) return;
+        setAllowedInfo({
+          email,
+          isAllowed: !!data,
+          allowedMajorCategories: data?.allowed_major_categories ?? null,
+        });
       });
+    return () => { cancelled = true; };
   }, [session]);
 
+  // null = 未ログイン or 判定中
+  const currentAllowed = session && allowedInfo?.email === session.user.email ? allowedInfo : null;
+  const isAllowed = currentAllowed ? currentAllowed.isAllowed : null;
+  const allowedMajorCategories = currentAllowed?.allowedMajorCategories ?? null;
+
   useEffect(() => {
-    if (!session) { setResults({}); return; }
+    if (!session) return undefined;
+    let cancelled = false;
+    const userId = session.user.id;
     supabase
       .from('user_results')
       .select('problem_id, correct')
-      .eq('user_id', session.user.id)
+      .eq('user_id', userId)
       .then(({ data, error }) => {
         if (error) { console.error('[results fetch]', error); return; }
+        if (cancelled) return;
         const map = {};
         (data || []).forEach(r => { map[r.problem_id] = r.correct; });
-        setResults(map);
+        setResultsState({ userId, map });
       });
+    return () => { cancelled = true; };
   }, [session]);
+
+  const results = session && resultsState?.userId === session.user.id ? resultsState.map : {};
+  const sessionKey = session?.user?.id ?? 'anon';
+  const problems = problemsState?.problems ?? [];
+  const loading = problemsState?.key !== sessionKey;
+
+  // 取得済みの正誤マップへの楽観的更新（未取得・別ユーザーの状態には触らない）
+  function applyResultsUpdate(mutate) {
+    setResultsState(prev => {
+      if (!prev || !session || prev.userId !== session.user.id) return prev;
+      return { userId: prev.userId, map: mutate(prev.map) };
+    });
+  }
 
   async function handleAnswer(problemId, isCorrect) {
     const nextRound = { ...roundResults, [problemId]: isCorrect };
@@ -133,7 +165,7 @@ export default function App() {
     saveSessionFirstResults(nextFirst);
 
     if (!session) return;
-    setResults(prev => ({ ...prev, [problemId]: isCorrect }));
+    applyResultsUpdate(map => ({ ...map, [problemId]: isCorrect }));
     const { error } = await supabase
       .from('user_results')
       .upsert(
@@ -151,8 +183,8 @@ export default function App() {
 
   async function handleResetResults(problemIds) {
     if (!session || !problemIds.length) return;
-    setResults(prev => {
-      const next = { ...prev };
+    applyResultsUpdate(map => {
+      const next = { ...map };
       problemIds.forEach(id => delete next[id]);
       return next;
     });
@@ -166,24 +198,15 @@ export default function App() {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    supabase.from('problems').select('*').order('id')
-      .then(({ data, error }) => {
-        if (cancelled) return;
-        if (error) { setLoading(false); return; }
-        setProblems((data || []).map(fromDb).filter(p => !p.disabled));
-        setLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, [session]);
 
-  useEffect(() => {
-    if (loading || problems.length === 0 || restoredRef.current) return;
-    restoredRef.current = true;
-    const saved = loadRound();
-    if (!saved.isPlaying) return;
-    const restored = saved.orderedIds.map(id => problems.find(p => p.id === id)).filter(Boolean);
-    if (restored.length > 0) {
+    // リロード直後の初回ロード成功時に、sessionStorage から出題途中の状態を復元する
+    function restoreRound(loadedProblems) {
+      if (restoredRef.current) return;
+      restoredRef.current = true;
+      const saved = loadRound();
+      if (!saved.isPlaying) return;
+      const restored = saved.orderedIds.map(id => loadedProblems.find(p => p.id === id)).filter(Boolean);
+      if (restored.length === 0) return;
       setOrderedProblems(restored);
       setCurrentIndex(saved.currentIndex);
       setRoundResults(saved.roundResults);
@@ -193,7 +216,17 @@ export default function App() {
       setIsPlaying(true);
       setPlayingKey(k => k + 1);
     }
-  }, [loading, problems]);
+
+    supabase.from('problems').select('*').order('id')
+      .then(({ data, error }) => {
+        if (cancelled) return;
+        const fetched = error ? null : (data || []).map(fromDb).filter(p => !p.disabled);
+        // 取得失敗時は前回の一覧を維持したままロード完了扱いにする（従来挙動）
+        setProblemsState(prev => ({ key: sessionKey, problems: fetched ?? prev?.problems ?? [] }));
+        if (fetched && fetched.length > 0) restoreRound(fetched);
+      });
+    return () => { cancelled = true; };
+  }, [sessionKey]);
 
   const visibleProblems = allowedMajorCategories
     ? problems.filter(p => isSectionAllowed(allowedMajorCategories, p.section))
