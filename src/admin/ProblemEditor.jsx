@@ -260,6 +260,8 @@ export default function ProblemEditor({
       if (answer === removed && !next.includes(removed)) setAnswer('')
       return next
     })
+    // 手牌を編集し始めたので、パレットからの追加先も手牌に合わせる
+    setPaletteMode('hand')
   }
 
   function startAddMeld(type) { setAddingMeld({ type, tiles: [] }) }
