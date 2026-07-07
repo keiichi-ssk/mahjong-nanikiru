@@ -162,7 +162,11 @@ export default function ProblemEditor({
   )
   const [dora,          setDora]          = useState(problem.dora ?? (inheritFromPrev ? prevProblem.dora ?? null : null))
   const [riichi,        setRiichi]        = useState(problem.riichi ?? (inheritFromPrev ? prevProblem.riichi ?? null : null))
-  const [melds,         setMelds]         = useState(problem.melds ?? [])
+  // melds は未設定が null ではなく [] なので、?? ではなく件数で引き継ぎ判定する
+  const [melds,         setMelds]         = useState(() => {
+    const own = problem.melds ?? []
+    return (own.length === 0 && inheritFromPrev) ? (prevProblem.melds ?? []) : own
+  })
   const [explanation,   setExplanation]   = useState(problem.explanation ?? '')
   const [reviewed,      setReviewed]      = useState(problem.reviewed ?? false)
   const [disabled,      setDisabled]      = useState(problem.disabled ?? false)
