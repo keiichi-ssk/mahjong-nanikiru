@@ -1197,11 +1197,19 @@
 }
 
 /* ===== 他家捨て牌表示 ===== */
+/* 複数人分（最大3人）は横に並べ、幅が足りなければ折り返す */
+.other-discard-displays {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 10px 16px;
+  margin-top: 4px;
+}
+
 .other-discard-display {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  margin-top: 4px;
 }
 
 .other-discard-label {
@@ -1214,11 +1222,19 @@
 }
 
 /* 6枚ごとの折返しは grid の列数で実現（JS側での行分割は不要） */
+/* 6枚ごとの行を縦に積む。行ごとに独立して詰めるので、
+   リーチ宣言牌（横向き）があっても他の行に余白は出ない（縦の列は揃わない） */
 .other-discard-tiles {
-  display: grid;
-  grid-template-columns: repeat(6, max-content);
-  gap: 3px 2px;
-  align-items: end;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+
+.other-discard-tiles-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
 }
 
 .other-discard-tile {

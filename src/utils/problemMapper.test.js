@@ -23,7 +23,10 @@ const fullRow = {
   jikaze: '南',
   junme: 8,
   note: '3巡目に[1p]が2枚切れ。',
-  other_discard: { player: '西', tiles: ['1z', '9m'], riichiIndex: null },
+  other_discard: [
+    { player: '西', tiles: ['1z', '9m'], riichiIndex: null },
+    { player: '北', tiles: ['5p'], riichiIndex: 0 },
+  ],
   scores: { 東: 25000, 南: 31200, 西: 18800, 北: 24000, kyotaku: 1000 },
 };
 
@@ -35,7 +38,16 @@ describe('fromDb（DB行 → アプリ内オブジェクト）', () => {
     expect(p.discardedTile).toBeNull();
     expect(p.nakiChoices).toEqual([]);
     expect(p.questionImageUrl).toBeNull();
-    expect(p.otherDiscard).toEqual(fullRow.other_discard);
+    expect(p.otherDiscards).toEqual(fullRow.other_discard);
+  });
+
+  it('other_discard の旧形式（単一オブジェクト）は1要素の配列に正規化される', () => {
+    const legacy = { ...fullRow, other_discard: { player: '西', tiles: ['1z'], riichiIndex: null } };
+    expect(fromDb(legacy).otherDiscards).toEqual([{ player: '西', tiles: ['1z'], riichiIndex: null }]);
+  });
+
+  it('other_discard の空配列は null に正規化される', () => {
+    expect(fromDb({ ...fullRow, other_discard: [] }).otherDiscards).toBeNull();
   });
 
   it('dora の空文字は null に正規化される（未設定判定・引き継ぎのため）', () => {
@@ -50,7 +62,7 @@ describe('fromDb（DB行 → アプリ内オブジェクト）', () => {
     delete legacy.scores;
     const q = fromDb(legacy);
     expect(q.questionImageUrl).toBeNull();
-    expect(q.otherDiscard).toBeNull();
+    expect(q.otherDiscards).toBeNull();
     expect(q.scores).toBeNull();
   });
 });
@@ -64,13 +76,13 @@ describe('toDb（アプリ内オブジェクト → DB行）', () => {
       discardedTile: '3p',
       nakiChoices: [{ tile: '3p', correct: true }],
       questionImageUrl: 'https://example.com/x.png',
-      otherDiscard: { player: '南', tiles: ['1m'], riichiIndex: 0 },
+      otherDiscards: [{ player: '南', tiles: ['1m'], riichiIndex: 0 }],
     });
     expect(row.problem_type).toBe('naki-choice');
     expect(row.discarded_tile).toBe('3p');
     expect(row.naki_choices).toEqual([{ tile: '3p', correct: true }]);
     expect(row.question_image_url).toBe('https://example.com/x.png');
-    expect(row.other_discard).toEqual({ player: '南', tiles: ['1m'], riichiIndex: 0 });
+    expect(row.other_discard).toEqual([{ player: '南', tiles: ['1m'], riichiIndex: 0 }]);
   });
 
   it('未設定フィールドにデフォルト値が入る', () => {

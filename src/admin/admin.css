@@ -991,6 +991,36 @@
 .naki-choice-remove-btn:hover { border-color: #e74c3c; color: #e74c3c; }
 
 /* ===== 他家捨て牌 ===== */
+/* 家ごとのブロック（最大3人）。選択中のブロックがパレットからの牌の追加先になる */
+.other-discard-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border: 1px solid #2a3a5a;
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  cursor: pointer;
+}
+
+.other-discard-block--active {
+  border-color: #f5c842;
+  cursor: default;
+}
+
+.other-discard-add-block {
+  background: none;
+  border: 1px dashed #556;
+  color: #99a;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.other-discard-add-block:hover { border-color: #f5c842; color: #f5c842; }
+
 .other-discard-tiles-list {
   display: flex;
   flex-wrap: wrap;

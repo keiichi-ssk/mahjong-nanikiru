@@ -107,25 +107,43 @@ function ScoreDisplay({ scores, jikaze }) {
   );
 }
 
-function OtherDiscardDisplay({ otherDiscard }) {
-  if (!otherDiscard || !otherDiscard.player || !otherDiscard.tiles || otherDiscard.tiles.length === 0) return null;
+function OtherDiscardDisplay({ otherDiscards }) {
+  const valid = (otherDiscards ?? []).filter(od => od && od.player && od.tiles && od.tiles.length > 0);
+  if (valid.length === 0) return null;
   return (
-    <div className="other-discard-display">
-      <span className="other-discard-label">{otherDiscard.player}家捨て牌</span>
-      {/* 6枚ごとの折返しは CSS grid（repeat(6, max-content)）に任せる */}
-      <div className="other-discard-tiles">
-        {otherDiscard.tiles.map((tile, i) => (
-          <div key={i} className={`other-discard-tile${otherDiscard.riichiIndex === i ? ' other-discard-tile--rotated tile-rotated' : ''}`}>
-            <img src={getTileImageUrl(tile)} alt={getTileLabel(tile)} />
+    // 人数分を横に並べる（画面幅が足りなければ折り返す）
+    <div className="other-discard-displays">
+      {valid.map((od, idx) => {
+        // 6枚ごとに行分割する。各行は独立した flex で詰めて並べるため、
+        // リーチ宣言牌（横向き・幅広）があっても他の行に余白は生じない（縦の列は揃わない）
+        const rows = [];
+        for (let r = 0; r < od.tiles.length; r += 6) rows.push(od.tiles.slice(r, r + 6));
+        return (
+          <div key={idx} className="other-discard-display">
+            <span className="other-discard-label">{od.player}家捨て牌</span>
+            <div className="other-discard-tiles">
+              {rows.map((row, ri) => (
+                <div key={ri} className="other-discard-tiles-row">
+                  {row.map((tile, ci) => {
+                    const i = ri * 6 + ci; // リーチ宣言牌は分割前の通し index で判定
+                    return (
+                      <div key={i} className={`other-discard-tile${od.riichiIndex === i ? ' other-discard-tile--rotated tile-rotated' : ''}`}>
+                        <img src={getTileImageUrl(tile)} alt={getTileLabel(tile)} />
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
           </div>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }
 
 // 手牌が未設定でも他家捨て牌は独立して表示する（問題タイプ間で挙動を揃える）
-function HandDisplay({ tiles, melds, otherDiscard }) {
+function HandDisplay({ tiles, melds, otherDiscards }) {
   const hasMelds = Array.isArray(melds) && melds.length > 0;
   const hasHand = tiles && tiles.length > 0;
   return (
@@ -148,7 +166,7 @@ function HandDisplay({ tiles, melds, otherDiscard }) {
           )}
         </div>
       )}
-      <OtherDiscardDisplay otherDiscard={otherDiscard} />
+      <OtherDiscardDisplay otherDiscards={otherDiscards} />
     </>
   );
 }
@@ -180,7 +198,7 @@ function NakiTimingView({ problem, onAnswer, savedAnswer, onPersist }) {
         </div>
       )}
 
-      <HandDisplay tiles={problem.tiles} melds={problem.melds} otherDiscard={problem.otherDiscard} />
+      <HandDisplay tiles={problem.tiles} melds={problem.melds} otherDiscards={problem.otherDiscards} />
 
       {!answered ? (
         <div className="naki-timing-btns">
@@ -238,7 +256,7 @@ function NakiChoiceView({ problem, onAnswer, savedAnswer, onPersist }) {
 
   return (
     <>
-      <HandDisplay tiles={problem.tiles} melds={problem.melds} otherDiscard={problem.otherDiscard} />
+      <HandDisplay tiles={problem.tiles} melds={problem.melds} otherDiscards={problem.otherDiscards} />
 
       <p className="naki-choice-instruction">鳴く牌をすべて選んでください（複数選択可）</p>
 
@@ -424,7 +442,7 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
       {/* ===== リーチ判断 ===== */}
       {isRiichiJudgment && (
         <>
-          <HandDisplay tiles={p.tiles} melds={p.melds} otherDiscard={p.otherDiscard} />
+          <HandDisplay tiles={p.tiles} melds={p.melds} otherDiscards={p.otherDiscards} />
 
           {!answered ? (
             <div className="riichi-choice-btns">
@@ -480,7 +498,7 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
               )}
             </div>
           )}
-          <OtherDiscardDisplay otherDiscard={p.otherDiscard} />
+          <OtherDiscardDisplay otherDiscards={p.otherDiscards} />
           {quadTiles.length > 0 && (
               <div className="ankan-options">
                 {quadTiles.map(kanTile => {

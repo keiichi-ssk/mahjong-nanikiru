@@ -103,7 +103,10 @@ describe('remapProblem（スーツ置換）', () => {
     nakiChoices: [{ tile: '6s', correct: true }, { tile: '8p', correct: false }],
     explanation: 'ここは[3m]切り。[1z]は残す。',
     note: '上家が[7p]を切った直後。',
-    otherDiscard: { player: '東', tiles: ['1m', '9p', '5z'], riichiIndex: 1 },
+    otherDiscards: [
+      { player: '東', tiles: ['1m', '9p', '5z'], riichiIndex: 1 },
+      { player: '西', tiles: ['2s'], riichiIndex: null },
+    ],
   };
 
   const remapped = remapProblem(problem, suitMap);
@@ -139,12 +142,11 @@ describe('remapProblem（スーツ置換）', () => {
     expect(remapped.note).toBe('上家が[7s]を切った直後。');
   });
 
-  it('otherDiscard の牌が置換され player / riichiIndex は維持される', () => {
-    expect(remapped.otherDiscard).toEqual({
-      player: '東',
-      tiles: ['1p', '9s', '5z'],
-      riichiIndex: 1,
-    });
+  it('otherDiscards の各要素の牌が置換され player / riichiIndex は維持される', () => {
+    expect(remapped.otherDiscards).toEqual([
+      { player: '東', tiles: ['1p', '9s', '5z'], riichiIndex: 1 },
+      { player: '西', tiles: ['2m'], riichiIndex: null },
+    ]);
   });
 
   it('牌以外のフィールドは変化しない', () => {
@@ -160,7 +162,7 @@ describe('remapProblem（スーツ置換）', () => {
     expect(r.answer).toBe('1p');
     expect(r.dora).toBeNull();
     expect(r.melds).toBeUndefined();
-    expect(r.otherDiscard).toBeUndefined();
+    expect(r.otherDiscards).toBeUndefined();
   });
 
   it('恒等マップなら元と同じ内容になる', () => {

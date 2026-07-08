@@ -186,7 +186,7 @@ export default function AdminApp() {
       nakiChoices:      [],
       questionImageUrl: null,
       note:             '',
-      otherDiscard:     null,
+      otherDiscards:    null,
     }
   }
 

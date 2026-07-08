@@ -185,12 +185,22 @@ export default function ProblemEditor({
   const [junme,            setJunme]            = useState(problem.junme  ?? (inheritFromPrev ? prevProblem.junme  ?? null : null))
   const [scores,           setScores]           = useState(problem.scores ?? (inheritFromPrev ? prevProblem.scores ?? null : null))
   const [note,             setNote]             = useState(problem.note ?? '')
-  const otherDiscardBase = problem.otherDiscard ?? (inheritFromPrev ? prevProblem.otherDiscard ?? null : null)
-  const [otherDiscardPlayer,     setOtherDiscardPlayer]     = useState(otherDiscardBase?.player ?? null)
-  const [otherDiscardTiles,      setOtherDiscardTiles]      = useState(otherDiscardBase?.tiles ?? [])
-  const [otherDiscardRiichiIndex, setOtherDiscardRiichiIndex] = useState(otherDiscardBase?.riichiIndex ?? null)
-  // 捨て牌のドラッグ＆ドロップ並べ替え（drag=掴んでいる牌のindex、drop=挿入位置0〜length。移動にならない位置はnull）
-  const [sutehaiDragIndex, setSutehaiDragIndex] = useState(null)
+  // 他家捨て牌は最大3人分の配列。各要素は {player, tiles, riichiIndex}（編集中は不完全な要素も許容し、保存時に除外する）
+  const otherDiscardsBase = problem.otherDiscards ?? (inheritFromPrev ? prevProblem.otherDiscards ?? null : null)
+  const [otherDiscards, setOtherDiscards] = useState(() => {
+    const base = (otherDiscardsBase ?? []).map(od => ({
+      player:      od?.player ?? null,
+      tiles:       od?.tiles ?? [],
+      riichiIndex: od?.riichiIndex ?? null,
+    }))
+    // データが無くても1人目の空ブロックを出しておく（未設定のままなら保存時に除外されて null になる）
+    return base.length > 0 ? base : [{ player: null, tiles: [], riichiIndex: null }]
+  })
+  // パレットからの牌追加先ブロック（ブロック削除でずれるため描画時に clamp する）
+  const [sutehaiActiveIdx, setSutehaiActiveIdx] = useState(0)
+  const activeSutehaiIdx = Math.min(sutehaiActiveIdx, otherDiscards.length - 1) // ブロックが無ければ -1
+  // 捨て牌のドラッグ＆ドロップ並べ替え（drag={block, index}、drop=同ブロック内の挿入位置0〜length。移動にならない位置はnull）
+  const [sutehaiDrag,      setSutehaiDrag]      = useState(null)
   const [sutehaiDropIndex, setSutehaiDropIndex] = useState(null)
 
   const explanationRef = useRef(null)
@@ -296,45 +306,65 @@ export default function ProblemEditor({
     setMelds(prev => prev.filter((_, i) => i !== index))
   }
 
+  function updateOtherDiscard(blockIdx, updater) {
+    setOtherDiscards(prev => prev.map((od, i) => i === blockIdx ? updater(od) : od))
+  }
+
+  function addOtherDiscardBlock() {
+    if (otherDiscards.length >= 3) return
+    setOtherDiscards(prev => [...prev, { player: null, tiles: [], riichiIndex: null }])
+    setSutehaiActiveIdx(otherDiscards.length) // 追加したブロックを牌の追加先にする
+  }
+
+  function removeOtherDiscardBlock(blockIdx) {
+    setOtherDiscards(prev => prev.filter((_, i) => i !== blockIdx))
+    setSutehaiActiveIdx(prev => prev > blockIdx ? prev - 1 : prev === blockIdx ? 0 : prev)
+  }
+
   function addOtherDiscardTile(tile) {
-    setOtherDiscardTiles(prev => [...prev, tile])
+    if (activeSutehaiIdx < 0) return
+    updateOtherDiscard(activeSutehaiIdx, od => ({ ...od, tiles: [...od.tiles, tile] }))
   }
 
-  function removeOtherDiscardTile(index) {
-    setOtherDiscardTiles(prev => prev.filter((_, i) => i !== index))
-    setOtherDiscardRiichiIndex(prev => {
-      if (prev === null) return null
-      if (prev === index) return null
-      return prev > index ? prev - 1 : prev
-    })
+  function removeOtherDiscardTile(blockIdx, index) {
+    updateOtherDiscard(blockIdx, od => ({
+      ...od,
+      tiles: od.tiles.filter((_, i) => i !== index),
+      riichiIndex: od.riichiIndex === null || od.riichiIndex === index
+        ? null
+        : od.riichiIndex > index ? od.riichiIndex - 1 : od.riichiIndex,
+    }))
   }
 
-  function moveOtherDiscardTile(from, insertAt) {
+  function moveOtherDiscardTile(blockIdx, from, insertAt) {
     // insertAt は移動前の配列基準の挿入位置（0〜length）。from を取り除いた後の位置に補正する
     const to = insertAt > from ? insertAt - 1 : insertAt
     if (from === to) return
-    setOtherDiscardTiles(prev => {
-      const next = [...prev]
+    updateOtherDiscard(blockIdx, od => {
+      const next = [...od.tiles]
       const [moved] = next.splice(from, 1)
       next.splice(to, 0, moved)
-      return next
-    })
-    // リーチ宣言牌の位置を並べ替えに追従させる
-    setOtherDiscardRiichiIndex(prev => {
-      if (prev === null) return null
-      if (prev === from) return to
-      const idx = prev > from ? prev - 1 : prev
-      return idx >= to ? idx + 1 : idx
+      // リーチ宣言牌の位置を並べ替えに追従させる
+      let riichi = od.riichiIndex
+      if (riichi !== null) {
+        if (riichi === from) {
+          riichi = to
+        } else {
+          const idx = riichi > from ? riichi - 1 : riichi
+          riichi = idx >= to ? idx + 1 : idx
+        }
+      }
+      return { ...od, tiles: next, riichiIndex: riichi }
     })
   }
 
   // ドラッグ中の挿入位置を更新する。移動しても並びが変わらない位置（自分の前後）はインジケーターを出さない
   function updateSutehaiDropIndex(pos) {
-    setSutehaiDropIndex(pos === sutehaiDragIndex || pos === sutehaiDragIndex + 1 ? null : pos)
+    setSutehaiDropIndex(pos === sutehaiDrag?.index || pos === sutehaiDrag?.index + 1 ? null : pos)
   }
 
-  function toggleOtherDiscardRiichi(index) {
-    setOtherDiscardRiichiIndex(prev => prev === index ? null : index)
+  function toggleOtherDiscardRiichi(blockIdx, index) {
+    updateOtherDiscard(blockIdx, od => ({ ...od, riichiIndex: od.riichiIndex === index ? null : index }))
   }
 
   function addNakiChoice(tile) {
@@ -371,22 +401,35 @@ export default function ProblemEditor({
     scores,
     note,
     // アプリ側（OtherDiscardDisplay）は家と牌の両方が揃わないと表示しないため、
-    // 片方だけの不完全な設定は保存せず null にする（画面には警告を出す）。
-    // 家が自風（＝自分）の設定も明らかな誤りなので同様に保存しない
-    otherDiscard: (otherDiscardPlayer && otherDiscardTiles.length > 0 && otherDiscardPlayer !== jikaze)
-      ? { player: otherDiscardPlayer, tiles: otherDiscardTiles, riichiIndex: otherDiscardRiichiIndex }
-      : null,
-  }), [problem, tiles, answer, dora, riichi, melds, explanation, reviewed, disabled, problemType, discardedTile, nakiChoices, questionImageUrl, bakaze, kyoku, jikaze, junme, scores, note, otherDiscardPlayer, otherDiscardTiles, otherDiscardRiichiIndex])
+    // 片方だけの不完全なブロックは保存しない（画面には警告を出す）。
+    // 家が自風（＝自分）のブロック・家が重複するブロック（後のもの）も同様に除外し、0件なら null 保存
+    otherDiscards: (() => {
+      const seen = new Set()
+      const valid = otherDiscards.filter(od => {
+        if (!od.player || od.tiles.length === 0 || od.player === jikaze || seen.has(od.player)) return false
+        seen.add(od.player)
+        return true
+      })
+      return valid.length > 0 ? valid : null
+    })(),
+  }), [problem, tiles, answer, dora, riichi, melds, explanation, reviewed, disabled, problemType, discardedTile, nakiChoices, questionImageUrl, bakaze, kyoku, jikaze, junme, scores, note, otherDiscards])
 
-  const otherDiscardIncomplete =
-    (otherDiscardPlayer !== null && otherDiscardTiles.length === 0) ||
-    (otherDiscardPlayer === null && otherDiscardTiles.length > 0)
-  // 家が自風（＝自分）と同じ設定は誤りなので警告し、保存もスキップする（buildSaveData 側で null 化）
-  const otherDiscardSelfPlayer =
-    otherDiscardPlayer !== null && otherDiscardPlayer === jikaze
+  const otherDiscardIncomplete = otherDiscards.some(od =>
+    (od.player !== null && od.tiles.length === 0) ||
+    (od.player === null && od.tiles.length > 0)
+  )
+  // 家が自風（＝自分）と同じ設定は誤りなので警告し、保存もスキップする（buildSaveData 側で除外）
+  const otherDiscardSelfPlayer = otherDiscards.some(od =>
+    od.player !== null && od.player === jikaze
+  )
+  // 同じ家のブロックが複数ある場合も誤り。警告し、後のブロックは保存されない
+  const otherDiscardDuplicatePlayer = otherDiscards.some((od, i) =>
+    od.player !== null && otherDiscards.slice(0, i).some(o => o.player === od.player)
+  )
   // リーチ宣言牌の設定漏れは警告のみ（リーチしていない他家の捨て牌もあり得るため保存はされる）
-  const otherDiscardRiichiMissing =
-    otherDiscardPlayer !== null && otherDiscardTiles.length > 0 && otherDiscardRiichiIndex === null
+  const otherDiscardRiichiMissing = otherDiscards.some(od =>
+    od.player !== null && od.tiles.length > 0 && od.riichiIndex === null
+  )
 
   const handleSave = useCallback(() => {
     onSave(buildSaveData())
@@ -448,7 +491,9 @@ export default function ProblemEditor({
     dora:        `ドラ: ${dora ? getTileLabel(dora) : 'なし'}`,
     note:        '注釈のカーソル位置に挿入',
     explanation: '解説のカーソル位置に挿入',
-    sutehai:     `${otherDiscardPlayer ? `${otherDiscardPlayer}家` : ''}捨て牌: ${otherDiscardTiles.length}枚`,
+    sutehai:     activeSutehaiIdx >= 0
+      ? `${otherDiscards[activeSutehaiIdx].player ? `${otherDiscards[activeSutehaiIdx].player}家` : `${activeSutehaiIdx + 1}人目`}捨て牌: ${otherDiscards[activeSutehaiIdx].tiles.length}枚`
+      : '「家を追加」を押してください',
     depai:       `出牌: ${discardedTile ? getTileLabel(discardedTile) : '未設定'}`,
     nakiChoice:  `選択肢: ${nakiChoices.length}件`,
   }[effectiveMode]
@@ -810,75 +855,100 @@ export default function ProblemEditor({
         {/* 他家捨て牌タブ */}
         {paletteTab === 'sutehai' && (
           <div className="palette-tab-content">
-            <div className="editor-section-label">家</div>
-            <WindSelector value={otherDiscardPlayer} onChange={setOtherDiscardPlayer} winds={['東', '南', '西', '北']} suffix="家" />
-
-            <div className="palette-tab-divider" />
-            <div className="editor-section-label">
-              捨て牌（クリックでリーチ宣言牌に設定/解除、×で削除）
-              {otherDiscardTiles.length > 0 && (
-                <button
-                  className="dora-clear"
-                  onClick={() => { setOtherDiscardTiles([]); setOtherDiscardRiichiIndex(null) }}
-                >
-                  全削除
-                </button>
-              )}
-            </div>
-            <div
-              className="other-discard-tiles-list"
-              onDragOver={e => {
-                // 牌の隙間・末尾の空き領域では末尾への挿入とみなす（牌上は各アイテム側で処理）
-                if (sutehaiDragIndex === null) return
-                e.preventDefault()
-                updateSutehaiDropIndex(otherDiscardTiles.length)
-              }}
-              onDrop={e => {
-                e.preventDefault()
-                if (sutehaiDragIndex !== null && sutehaiDropIndex !== null) {
-                  moveOtherDiscardTile(sutehaiDragIndex, sutehaiDropIndex)
-                }
-                setSutehaiDragIndex(null)
-                setSutehaiDropIndex(null)
-              }}
-            >
-              {otherDiscardTiles.map((t, i) => (
-                <div
-                  key={i}
-                  className={
-                    `other-discard-tile-item${otherDiscardRiichiIndex === i ? ' other-discard-tile-item--riichi' : ''}` +
-                    `${sutehaiDragIndex === i ? ' other-discard-tile-item--dragging' : ''}` +
-                    `${sutehaiDropIndex === i ? ' other-discard-tile-item--drop-before' : ''}` +
-                    `${sutehaiDropIndex === i + 1 && i === otherDiscardTiles.length - 1 ? ' other-discard-tile-item--drop-after' : ''}`
-                  }
-                  draggable
-                  onDragStart={e => {
-                    e.dataTransfer.effectAllowed = 'move'
-                    e.dataTransfer.setData('text/plain', '') // Firefoxはこれが無いとドラッグが始まらない
-                    setSutehaiDragIndex(i)
-                  }}
-                  onDragEnd={() => { setSutehaiDragIndex(null); setSutehaiDropIndex(null) }}
-                  onDragOver={e => {
-                    if (sutehaiDragIndex === null) return
-                    e.preventDefault()
-                    e.stopPropagation()
-                    // カーソルが牌の左半分なら前、右半分なら後ろに挿入
-                    const rect = e.currentTarget.getBoundingClientRect()
-                    updateSutehaiDropIndex(e.clientX < rect.left + rect.width / 2 ? i : i + 1)
-                  }}
-                >
-                  <button className="other-discard-tile-remove" onClick={() => removeOtherDiscardTile(i)}>×</button>
-                  <div
-                    className={`other-discard-tile-img-wrap${otherDiscardRiichiIndex === i ? ' tile-rotated' : ''}`}
-                    onClick={() => toggleOtherDiscardRiichi(i)}
-                    title={getTileLabel(t)}
+            {otherDiscards.map((od, bi) => (
+              <div
+                key={bi}
+                className={`other-discard-block${activeSutehaiIdx === bi ? ' other-discard-block--active' : ''}`}
+                onClick={() => setSutehaiActiveIdx(bi)}
+              >
+                <div className="editor-section-label">
+                  家{otherDiscards.length > 1 ? `（${bi + 1}人目${activeSutehaiIdx === bi ? '・牌の追加先' : ''}）` : ''}
+                  <button
+                    className="dora-clear"
+                    onClick={e => { e.stopPropagation(); removeOtherDiscardBlock(bi) }}
                   >
-                    <img src={getTileImageUrl(t)} alt={getTileLabel(t)} />
-                  </div>
+                    この家を削除
+                  </button>
                 </div>
-              ))}
-              {otherDiscardTiles.length === 0 && <span className="editor-empty">牌を追加してください</span>}
-            </div>
+                <WindSelector
+                  value={od.player}
+                  onChange={v => updateOtherDiscard(bi, o => ({ ...o, player: v }))}
+                  winds={['東', '南', '西', '北']}
+                  suffix="家"
+                />
+
+                <div className="editor-section-label">
+                  捨て牌（クリックでリーチ宣言牌に設定/解除、×で削除）
+                  {od.tiles.length > 0 && (
+                    <button
+                      className="dora-clear"
+                      onClick={() => updateOtherDiscard(bi, o => ({ ...o, tiles: [], riichiIndex: null }))}
+                    >
+                      全削除
+                    </button>
+                  )}
+                </div>
+                <div
+                  className="other-discard-tiles-list"
+                  onDragOver={e => {
+                    // 牌の隙間・末尾の空き領域では末尾への挿入とみなす（牌上は各アイテム側で処理）
+                    if (sutehaiDrag?.block !== bi) return
+                    e.preventDefault()
+                    updateSutehaiDropIndex(od.tiles.length)
+                  }}
+                  onDrop={e => {
+                    e.preventDefault()
+                    if (sutehaiDrag?.block === bi && sutehaiDropIndex !== null) {
+                      moveOtherDiscardTile(bi, sutehaiDrag.index, sutehaiDropIndex)
+                    }
+                    setSutehaiDrag(null)
+                    setSutehaiDropIndex(null)
+                  }}
+                >
+                  {od.tiles.map((t, i) => (
+                    <div
+                      key={i}
+                      className={
+                        `other-discard-tile-item${od.riichiIndex === i ? ' other-discard-tile-item--riichi' : ''}` +
+                        `${sutehaiDrag?.block === bi && sutehaiDrag.index === i ? ' other-discard-tile-item--dragging' : ''}` +
+                        `${sutehaiDrag?.block === bi && sutehaiDropIndex === i ? ' other-discard-tile-item--drop-before' : ''}` +
+                        `${sutehaiDrag?.block === bi && sutehaiDropIndex === i + 1 && i === od.tiles.length - 1 ? ' other-discard-tile-item--drop-after' : ''}`
+                      }
+                      draggable
+                      onDragStart={e => {
+                        e.dataTransfer.effectAllowed = 'move'
+                        e.dataTransfer.setData('text/plain', '') // Firefoxはこれが無いとドラッグが始まらない
+                        setSutehaiDrag({ block: bi, index: i })
+                      }}
+                      onDragEnd={() => { setSutehaiDrag(null); setSutehaiDropIndex(null) }}
+                      onDragOver={e => {
+                        if (sutehaiDrag?.block !== bi) return
+                        e.preventDefault()
+                        e.stopPropagation()
+                        // カーソルが牌の左半分なら前、右半分なら後ろに挿入
+                        const rect = e.currentTarget.getBoundingClientRect()
+                        updateSutehaiDropIndex(e.clientX < rect.left + rect.width / 2 ? i : i + 1)
+                      }}
+                    >
+                      <button className="other-discard-tile-remove" onClick={() => removeOtherDiscardTile(bi, i)}>×</button>
+                      <div
+                        className={`other-discard-tile-img-wrap${od.riichiIndex === i ? ' tile-rotated' : ''}`}
+                        onClick={() => toggleOtherDiscardRiichi(bi, i)}
+                        title={getTileLabel(t)}
+                      >
+                        <img src={getTileImageUrl(t)} alt={getTileLabel(t)} />
+                      </div>
+                    </div>
+                  ))}
+                  {od.tiles.length === 0 && <span className="editor-empty">牌を追加してください</span>}
+                </div>
+              </div>
+            ))}
+            {otherDiscards.length < 3 && (
+              <button className="other-discard-add-block" onClick={addOtherDiscardBlock}>
+                ＋ 家を追加（最大3人）
+              </button>
+            )}
             {otherDiscardIncomplete && (
               <div className="other-discard-warning">
                 ⚠ 家と捨て牌の両方を設定してください。片方だけの設定は保存されません。
@@ -887,6 +957,11 @@ export default function ProblemEditor({
             {otherDiscardSelfPlayer && (
               <div className="other-discard-warning">
                 ⚠ 家が状況設定の自風（{jikaze}家＝自分）と同じです。この設定は保存されません。
+              </div>
+            )}
+            {otherDiscardDuplicatePlayer && (
+              <div className="other-discard-warning">
+                ⚠ 同じ家が複数設定されています。重複した家は最初の1つだけ保存されます。
               </div>
             )}
             {otherDiscardRiichiMissing && (
@@ -1062,12 +1137,17 @@ export default function ProblemEditor({
       <div className="editor-save-area">
         {otherDiscardIncomplete && (
           <span className="editor-save-warning">
-            ⚠ 他家捨て牌が未完成（家と牌の両方が必要）のため保存されません
+            ⚠ 他家捨て牌に未完成の家（家と牌の両方が必要）があり、その分は保存されません
           </span>
         )}
         {otherDiscardSelfPlayer && (
           <span className="editor-save-warning">
-            ⚠ 他家捨て牌の家が自風と同じため保存されません
+            ⚠ 他家捨て牌の家が自風と同じものは保存されません
+          </span>
+        )}
+        {otherDiscardDuplicatePlayer && (
+          <span className="editor-save-warning">
+            ⚠ 他家捨て牌に同じ家が複数あり、最初の1つだけ保存されます
           </span>
         )}
         {otherDiscardRiichiMissing && (
