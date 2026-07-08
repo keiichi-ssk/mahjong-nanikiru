@@ -160,7 +160,8 @@ export default function ProblemEditor({
   const [answer,        setAnswer]        = useState(
     problem.answer || (inheritFromPrev ? (prevProblem.answer || '') : '')
   )
-  const [dora,          setDora]          = useState(problem.dora ?? (inheritFromPrev ? prevProblem.dora ?? null : null))
+  // ドラは「なし」を許さない。自分の値 → 前の問題からの引き継ぎ → 北(4z) の順で初期化する
+  const [dora,          setDora]          = useState(problem.dora ?? (inheritFromPrev ? prevProblem.dora ?? null : null) ?? '4z')
   const [riichi,        setRiichi]        = useState(problem.riichi ?? (inheritFromPrev ? prevProblem.riichi ?? null : null))
   // melds は未設定が null ではなく [] なので、?? ではなく件数で引き継ぎ判定する
   const [melds,         setMelds]         = useState(() => {
@@ -694,7 +695,6 @@ export default function ProblemEditor({
             <div className="palette-tab-status">
               現在のドラ: <strong>{dora ? getTileLabel(dora) : 'なし'}</strong>
               {dora && <img src={getTileImageUrl(dora)} alt={getTileLabel(dora)} className="palette-tab-status-tile" />}
-              <button className="dora-clear" onClick={() => setDora(null)}>なし</button>
               <button className="palette-mode-jump" onClick={() => setPaletteMode('dora')}>下のパレットで選ぶ ↓</button>
             </div>
 
