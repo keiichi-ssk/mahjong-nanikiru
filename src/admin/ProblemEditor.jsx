@@ -341,8 +341,9 @@ export default function ProblemEditor({
     scores,
     note,
     // アプリ側（OtherDiscardDisplay）は家と牌の両方が揃わないと表示しないため、
-    // 片方だけの不完全な設定は保存せず null にする（画面には警告を出す）
-    otherDiscard: (otherDiscardPlayer && otherDiscardTiles.length > 0)
+    // 片方だけの不完全な設定は保存せず null にする（画面には警告を出す）。
+    // 家が自風（＝自分）の設定も明らかな誤りなので同様に保存しない
+    otherDiscard: (otherDiscardPlayer && otherDiscardTiles.length > 0 && otherDiscardPlayer !== jikaze)
       ? { player: otherDiscardPlayer, tiles: otherDiscardTiles, riichiIndex: otherDiscardRiichiIndex }
       : null,
   }), [problem, tiles, answer, dora, riichi, melds, explanation, reviewed, disabled, problemType, discardedTile, nakiChoices, questionImageUrl, bakaze, kyoku, jikaze, junme, scores, note, otherDiscardPlayer, otherDiscardTiles, otherDiscardRiichiIndex])
@@ -350,6 +351,12 @@ export default function ProblemEditor({
   const otherDiscardIncomplete =
     (otherDiscardPlayer !== null && otherDiscardTiles.length === 0) ||
     (otherDiscardPlayer === null && otherDiscardTiles.length > 0)
+  // 家が自風（＝自分）と同じ設定は誤りなので警告し、保存もスキップする（buildSaveData 側で null 化）
+  const otherDiscardSelfPlayer =
+    otherDiscardPlayer !== null && otherDiscardPlayer === jikaze
+  // リーチ宣言牌の設定漏れは警告のみ（リーチしていない他家の捨て牌もあり得るため保存はされる）
+  const otherDiscardRiichiMissing =
+    otherDiscardPlayer !== null && otherDiscardTiles.length > 0 && otherDiscardRiichiIndex === null
 
   const handleSave = useCallback(() => {
     onSave(buildSaveData())
@@ -821,6 +828,16 @@ export default function ProblemEditor({
                 ⚠ 家と捨て牌の両方を設定してください。片方だけの設定は保存されません。
               </div>
             )}
+            {otherDiscardSelfPlayer && (
+              <div className="other-discard-warning">
+                ⚠ 家が状況設定の自風（{jikaze}家＝自分）と同じです。この設定は保存されません。
+              </div>
+            )}
+            {otherDiscardRiichiMissing && (
+              <div className="other-discard-warning">
+                ⚠ リーチ宣言牌が設定されていません。捨て牌をクリックして指定してください。
+              </div>
+            )}
           </div>
         )}
 
@@ -990,6 +1007,16 @@ export default function ProblemEditor({
         {otherDiscardIncomplete && (
           <span className="editor-save-warning">
             ⚠ 他家捨て牌が未完成（家と牌の両方が必要）のため保存されません
+          </span>
+        )}
+        {otherDiscardSelfPlayer && (
+          <span className="editor-save-warning">
+            ⚠ 他家捨て牌の家が自風と同じため保存されません
+          </span>
+        )}
+        {otherDiscardRiichiMissing && (
+          <span className="editor-save-warning">
+            ⚠ リーチ宣言牌が未設定です
           </span>
         )}
         <button className="editor-save-btn" onClick={handleSave}>
