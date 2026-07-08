@@ -267,23 +267,25 @@ export default function ProblemEditor({
   function startAddMeld(type) { setAddingMeld({ type, tiles: [] }) }
 
   function addTileToMeld(tile) {
-    setAddingMeld(prev => {
-      if (!prev) return null
-      const maxCount = MELD_TILE_COUNT[prev.type]
-      if (prev.tiles.length >= maxCount) return prev
-      return { ...prev, tiles: [...prev.tiles, tile] }
-    })
+    if (!addingMeld) return
+    const maxCount = MELD_TILE_COUNT[addingMeld.type]
+    if (addingMeld.tiles.length >= maxCount) return
+    // ポン・カン系は同一牌で構成されるため、1枚選んだら全スロットを一括で埋める。
+    // 赤5は1枚しか存在しないので、赤5(0x)を選んだ場合は残りを通常の5で埋める
+    const nextTiles = addingMeld.type === 'chi'
+      ? [...addingMeld.tiles, tile]
+      : [tile, ...Array(maxCount - 1).fill(tile[0] === '0' ? `5${tile[1]}` : tile)]
+    if (nextTiles.length === maxCount) {
+      // 枚数が揃った時点で自動確定（確定ボタンは無い）
+      setMelds(prev => [...prev, { type: addingMeld.type, tiles: nextTiles }])
+      setAddingMeld(null)
+    } else {
+      setAddingMeld({ ...addingMeld, tiles: nextTiles })
+    }
   }
 
   function removeTileFromMeld(index) {
     setAddingMeld(prev => prev ? { ...prev, tiles: prev.tiles.filter((_, i) => i !== index) } : null)
-  }
-
-  function confirmMeld() {
-    if (!addingMeld) return
-    if (addingMeld.tiles.length < MELD_TILE_COUNT[addingMeld.type]) return
-    setMelds(prev => [...prev, { type: addingMeld.type, tiles: addingMeld.tiles }])
-    setAddingMeld(null)
   }
 
   function removeMeld(index) {
@@ -379,8 +381,6 @@ export default function ProblemEditor({
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [handleSaveAndNext])
-
-  const isAddingComplete = addingMeld && addingMeld.tiles.length === MELD_TILE_COUNT[addingMeld.type]
 
   const [paletteTab,  setPaletteTab]  = useState('hand')
   const [paletteMode, setPaletteMode] = useState('hand')
@@ -634,7 +634,7 @@ export default function ProblemEditor({
               <div className="meld-adding">
                 <div className="meld-adding-header">
                   <span className="meld-adding-title">
-                    {MELD_TYPE_LABELS[addingMeld.type]}：下のパレットから牌を選択
+                    {MELD_TYPE_LABELS[addingMeld.type]}：下のパレットから牌を選択（揃うと自動で追加）
                     （{addingMeld.tiles.length} / {MELD_TILE_COUNT[addingMeld.type]}枚）
                   </span>
                   <button className="meld-cancel-btn" onClick={() => setAddingMeld(null)}>キャンセル</button>
@@ -647,13 +647,6 @@ export default function ProblemEditor({
                     <div key={`empty-${i}`} className="meld-tile-slot" />
                   ))}
                 </div>
-                <button
-                  className={`meld-confirm-btn${isAddingComplete ? ' meld-confirm-btn--ready' : ''}`}
-                  onClick={confirmMeld}
-                  disabled={!isAddingComplete}
-                >
-                  副露を追加
-                </button>
               </div>
             ) : (
               <div className="meld-add-btns">
