@@ -1044,6 +1044,25 @@
    flex中央揃えを持つ共通実装に寄せることで、回転画像が枠からずれる問題も防ぐ */
 .other-discard-tile-item--riichi .other-discard-tile-img-wrap { --tile-w: 36px; --tile-h: 48px; }
 
+/* ドラッグ＆ドロップ並べ替え */
+.other-discard-tile-item--dragging { opacity: 0.35; }
+
+/* 挿入位置インジケーター（牌間の gap 8px の中央に縦線を出す） */
+.other-discard-tile-item--drop-before::before,
+.other-discard-tile-item--drop-after::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 3px;
+  border-radius: 2px;
+  background: #f5c842;
+  pointer-events: none;
+}
+
+.other-discard-tile-item--drop-before::before { left: -6px; }
+.other-discard-tile-item--drop-after::after { right: -6px; }
+
 /* 不完全な他家捨て牌設定（家か牌の片方だけ）の警告 */
 .other-discard-warning {
   margin-top: 8px;

@@ -188,6 +188,9 @@ export default function ProblemEditor({
   const [otherDiscardPlayer,     setOtherDiscardPlayer]     = useState(otherDiscardBase?.player ?? null)
   const [otherDiscardTiles,      setOtherDiscardTiles]      = useState(otherDiscardBase?.tiles ?? [])
   const [otherDiscardRiichiIndex, setOtherDiscardRiichiIndex] = useState(otherDiscardBase?.riichiIndex ?? null)
+  // 捨て牌のドラッグ＆ドロップ並べ替え（drag=掴んでいる牌のindex、drop=挿入位置0〜length。移動にならない位置はnull）
+  const [sutehaiDragIndex, setSutehaiDragIndex] = useState(null)
+  const [sutehaiDropIndex, setSutehaiDropIndex] = useState(null)
 
   const explanationRef = useRef(null)
   const noteRef        = useRef(null)
@@ -303,6 +306,30 @@ export default function ProblemEditor({
       if (prev === index) return null
       return prev > index ? prev - 1 : prev
     })
+  }
+
+  function moveOtherDiscardTile(from, insertAt) {
+    // insertAt は移動前の配列基準の挿入位置（0〜length）。from を取り除いた後の位置に補正する
+    const to = insertAt > from ? insertAt - 1 : insertAt
+    if (from === to) return
+    setOtherDiscardTiles(prev => {
+      const next = [...prev]
+      const [moved] = next.splice(from, 1)
+      next.splice(to, 0, moved)
+      return next
+    })
+    // リーチ宣言牌の位置を並べ替えに追従させる
+    setOtherDiscardRiichiIndex(prev => {
+      if (prev === null) return null
+      if (prev === from) return to
+      const idx = prev > from ? prev - 1 : prev
+      return idx >= to ? idx + 1 : idx
+    })
+  }
+
+  // ドラッグ中の挿入位置を更新する。移動しても並びが変わらない位置（自分の前後）はインジケーターを出さない
+  function updateSutehaiDropIndex(pos) {
+    setSutehaiDropIndex(pos === sutehaiDragIndex || pos === sutehaiDragIndex + 1 ? null : pos)
   }
 
   function toggleOtherDiscardRiichi(index) {
@@ -798,11 +825,47 @@ export default function ProblemEditor({
                 </button>
               )}
             </div>
-            <div className="other-discard-tiles-list">
+            <div
+              className="other-discard-tiles-list"
+              onDragOver={e => {
+                // 牌の隙間・末尾の空き領域では末尾への挿入とみなす（牌上は各アイテム側で処理）
+                if (sutehaiDragIndex === null) return
+                e.preventDefault()
+                updateSutehaiDropIndex(otherDiscardTiles.length)
+              }}
+              onDrop={e => {
+                e.preventDefault()
+                if (sutehaiDragIndex !== null && sutehaiDropIndex !== null) {
+                  moveOtherDiscardTile(sutehaiDragIndex, sutehaiDropIndex)
+                }
+                setSutehaiDragIndex(null)
+                setSutehaiDropIndex(null)
+              }}
+            >
               {otherDiscardTiles.map((t, i) => (
                 <div
                   key={i}
-                  className={`other-discard-tile-item${otherDiscardRiichiIndex === i ? ' other-discard-tile-item--riichi' : ''}`}
+                  className={
+                    `other-discard-tile-item${otherDiscardRiichiIndex === i ? ' other-discard-tile-item--riichi' : ''}` +
+                    `${sutehaiDragIndex === i ? ' other-discard-tile-item--dragging' : ''}` +
+                    `${sutehaiDropIndex === i ? ' other-discard-tile-item--drop-before' : ''}` +
+                    `${sutehaiDropIndex === i + 1 && i === otherDiscardTiles.length - 1 ? ' other-discard-tile-item--drop-after' : ''}`
+                  }
+                  draggable
+                  onDragStart={e => {
+                    e.dataTransfer.effectAllowed = 'move'
+                    e.dataTransfer.setData('text/plain', '') // Firefoxはこれが無いとドラッグが始まらない
+                    setSutehaiDragIndex(i)
+                  }}
+                  onDragEnd={() => { setSutehaiDragIndex(null); setSutehaiDropIndex(null) }}
+                  onDragOver={e => {
+                    if (sutehaiDragIndex === null) return
+                    e.preventDefault()
+                    e.stopPropagation()
+                    // カーソルが牌の左半分なら前、右半分なら後ろに挿入
+                    const rect = e.currentTarget.getBoundingClientRect()
+                    updateSutehaiDropIndex(e.clientX < rect.left + rect.width / 2 ? i : i + 1)
+                  }}
                 >
                   <button className="other-discard-tile-remove" onClick={() => removeOtherDiscardTile(i)}>×</button>
                   <div
