@@ -1197,13 +1197,18 @@
 }
 
 /* ===== 他家捨て牌表示 ===== */
-/* 家ごとに1行（捨て牌の右に副露）。複数人分（最大3人）は縦に積む */
+/* 複数人分（最大3人）は横に並べ、幅が足りなければ折り返す */
 .other-discard-displays {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: flex-start;
-  gap: 10px;
+  gap: 10px 16px;
   margin-top: 4px;
+}
+
+/* 副露している家がいる問題は1家1行の縦積み（捨て牌＋副露で横幅を取るため。JSX側で判定して付与） */
+.other-discard-displays--column {
+  flex-direction: column;
 }
 
 /* 捨て牌と副露はどちらが高くても下端で揃える（ラベルだけ上に留める） */

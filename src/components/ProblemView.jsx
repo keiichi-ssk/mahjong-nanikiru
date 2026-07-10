@@ -111,9 +111,11 @@ function ScoreDisplay({ scores, jikaze }) {
 function OtherDiscardDisplay({ otherDiscards }) {
   const valid = (otherDiscards ?? []).filter(od => od && od.player && od.tiles && od.tiles.length > 0);
   if (valid.length === 0) return null;
+  // 副露している家が1人でもいれば全員を縦積みにする（捨て牌＋副露で1行が長くなるため）。
+  // 誰も副露していなければ従来どおり横並び（幅が足りなければ折り返す）
+  const hasMelds = valid.some(od => Array.isArray(od.melds) && od.melds.length > 0);
   return (
-    // 家ごとに1行（捨て牌の右に副露）。複数人分（最大3人）は縦に積む
-    <div className="other-discard-displays">
+    <div className={`other-discard-displays${hasMelds ? ' other-discard-displays--column' : ''}`}>
       {valid.map((od, idx) => {
         // 6枚ごとに行分割する。各行は独立した flex で詰めて並べるため、
         // リーチ宣言牌（横向き・幅広）があっても他の行に余白は生じない（縦の列は揃わない）
