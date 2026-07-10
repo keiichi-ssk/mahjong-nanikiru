@@ -111,7 +111,13 @@ export function remapProblem(problem, suitMap) {
       ? problem.note.replace(/\[([0-9][mps])\]/g, (_, code) => `[${t(code)}]`)
       : problem.note,
     otherDiscards: problem.otherDiscards
-      ? problem.otherDiscards.map(od => ({ ...od, tiles: ts(od.tiles) }))
+      ? problem.otherDiscards.map(od => ({
+          ...od,
+          tiles: ts(od.tiles),
+          melds: od.melds
+            ? od.melds.map(meld => ({ ...meld, tiles: ts(meld.tiles) }))
+            : od.melds,
+        }))
       : problem.otherDiscards,
   };
 }

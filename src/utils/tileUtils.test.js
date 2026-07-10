@@ -104,7 +104,7 @@ describe('remapProblem（スーツ置換）', () => {
     explanation: 'ここは[3m]切り。[1z]は残す。',
     note: '上家が[7p]を切った直後。',
     otherDiscards: [
-      { player: '東', tiles: ['1m', '9p', '5z'], riichiIndex: 1 },
+      { player: '東', tiles: ['1m', '9p', '5z'], riichiIndex: 1, melds: [{ type: 'pon', tiles: ['3p', '3p', '3p'] }] },
       { player: '西', tiles: ['2s'], riichiIndex: null },
     ],
   };
@@ -142,9 +142,9 @@ describe('remapProblem（スーツ置換）', () => {
     expect(remapped.note).toBe('上家が[7s]を切った直後。');
   });
 
-  it('otherDiscards の各要素の牌が置換され player / riichiIndex は維持される', () => {
+  it('otherDiscards の各要素の牌（副露含む）が置換され player / riichiIndex は維持される', () => {
     expect(remapped.otherDiscards).toEqual([
-      { player: '東', tiles: ['1p', '9s', '5z'], riichiIndex: 1 },
+      { player: '東', tiles: ['1p', '9s', '5z'], riichiIndex: 1, melds: [{ type: 'pon', tiles: ['3s', '3s', '3s'] }] },
       { player: '西', tiles: ['2m'], riichiIndex: null },
     ]);
   });

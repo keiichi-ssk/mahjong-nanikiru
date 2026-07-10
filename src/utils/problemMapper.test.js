@@ -24,7 +24,7 @@ const fullRow = {
   junme: 8,
   note: '3巡目に[1p]が2枚切れ。',
   other_discard: [
-    { player: '西', tiles: ['1z', '9m'], riichiIndex: null },
+    { player: '西', tiles: ['1z', '9m'], riichiIndex: null, melds: [{ type: 'pon', tiles: ['5p', '5p', '5p'] }] },
     { player: '北', tiles: ['5p'], riichiIndex: 0 },
   ],
   scores: { 東: 25000, 南: 31200, 西: 18800, 北: 24000, kyotaku: 1000 },

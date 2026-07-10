@@ -28,11 +28,12 @@ function ExplanationText({ text, className = 'answer-explanation' }) {
   );
 }
 
-function MeldDisplay({ meld }) {
+// showType=false でチー/ポン等の種類バッジを省略できる（他家捨て牌の横に出すときは牌だけ表示する）
+function MeldDisplay({ meld, showType = true }) {
   const { type, tiles } = meld;
   return (
     <div className="meld-set">
-      <div className="meld-type-badge">{MELD_TYPE_LABELS[type]}</div>
+      {showType && <div className="meld-type-badge">{MELD_TYPE_LABELS[type]}</div>}
       <div className="meld-tiles">
         {tiles.map((tile, i) => {
           const role = getMeldTileRole(type, i);
@@ -111,7 +112,7 @@ function OtherDiscardDisplay({ otherDiscards }) {
   const valid = (otherDiscards ?? []).filter(od => od && od.player && od.tiles && od.tiles.length > 0);
   if (valid.length === 0) return null;
   return (
-    // 人数分を横に並べる（画面幅が足りなければ折り返す）
+    // 家ごとに1行（捨て牌の右に副露）。複数人分（最大3人）は縦に積む
     <div className="other-discard-displays">
       {valid.map((od, idx) => {
         // 6枚ごとに行分割する。各行は独立した flex で詰めて並べるため、
@@ -135,6 +136,13 @@ function OtherDiscardDisplay({ otherDiscards }) {
                 </div>
               ))}
             </div>
+            {Array.isArray(od.melds) && od.melds.length > 0 && (
+              <div className="other-discard-melds">
+                {od.melds.map((meld, mi) => (
+                  <MeldDisplay key={mi} meld={meld} showType={false} />
+                ))}
+              </div>
+            )}
           </div>
         );
       })}

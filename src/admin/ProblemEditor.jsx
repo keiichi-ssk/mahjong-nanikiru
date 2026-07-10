@@ -57,6 +57,29 @@ function MeldPreview({ meld }) {
   )
 }
 
+// 副露入力中パネル（手牌・他家捨て牌の家ブロックで共用）。牌は下のパレットから追加し、揃うと自動確定する
+function MeldAddingPanel({ meld, onCancel, onRemoveTile }) {
+  return (
+    <div className="meld-adding">
+      <div className="meld-adding-header">
+        <span className="meld-adding-title">
+          {MELD_TYPE_LABELS[meld.type]}：下のパレットから牌を選択（揃うと自動で追加）
+          （{meld.tiles.length} / {MELD_TILE_COUNT[meld.type]}枚）
+        </span>
+        <button className="meld-cancel-btn" onClick={onCancel}>キャンセル</button>
+      </div>
+      <div className="meld-selected-tiles">
+        {meld.tiles.map((t, i) => (
+          <TileImg key={i} tile={t} size={36} onClick={() => onRemoveTile(i)} className="editor-tile" />
+        ))}
+        {Array.from({ length: MELD_TILE_COUNT[meld.type] - meld.tiles.length }).map((_, i) => (
+          <div key={`empty-${i}`} className="meld-tile-slot" />
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // 牌パレット（萬子/筒子/索子/字牌の4行）。tileClassName は牌ごとにクラスを変えたいとき関数で渡す
 function TilePalette({ size = 36, onTileClick, tileClassName }) {
   return TILE_GROUPS.map(group => (
@@ -185,16 +208,17 @@ export default function ProblemEditor({
   const [junme,            setJunme]            = useState(problem.junme  ?? (inheritFromPrev ? prevProblem.junme  ?? null : null))
   const [scores,           setScores]           = useState(problem.scores ?? (inheritFromPrev ? prevProblem.scores ?? null : null))
   const [note,             setNote]             = useState(problem.note ?? '')
-  // 他家捨て牌は最大3人分の配列。各要素は {player, tiles, riichiIndex}（編集中は不完全な要素も許容し、保存時に除外する）
+  // 他家捨て牌は最大3人分の配列。各要素は {player, tiles, riichiIndex, melds}（編集中は不完全な要素も許容し、保存時に除外する）
   const otherDiscardsBase = problem.otherDiscards ?? (inheritFromPrev ? prevProblem.otherDiscards ?? null : null)
   const [otherDiscards, setOtherDiscards] = useState(() => {
     const base = (otherDiscardsBase ?? []).map(od => ({
       player:      od?.player ?? null,
       tiles:       od?.tiles ?? [],
       riichiIndex: od?.riichiIndex ?? null,
+      melds:       od?.melds ?? [], // 旧データには無いフィールドなのでここで補う
     }))
     // データが無くても1人目の空ブロックを出しておく（未設定のままなら保存時に除外されて null になる）
-    return base.length > 0 ? base : [{ player: null, tiles: [], riichiIndex: null }]
+    return base.length > 0 ? base : [{ player: null, tiles: [], riichiIndex: null, melds: [] }]
   })
   // パレットからの牌追加先ブロック（ブロック削除でずれるため描画時に clamp する）
   const [sutehaiActiveIdx, setSutehaiActiveIdx] = useState(0)
@@ -278,7 +302,13 @@ export default function ProblemEditor({
     setPaletteMode('hand')
   }
 
-  function startAddMeld(type) { setAddingMeld({ type, tiles: [] }) }
+  // 副露追加は手牌と他家捨て牌の家ブロックで共用する。target は 'hand' または家ブロックの index
+  function startAddMeld(type) { setAddingMeld({ type, tiles: [], target: 'hand' }) }
+
+  function startAddOtherDiscardMeld(blockIdx, type) {
+    setSutehaiActiveIdx(blockIdx)
+    setAddingMeld({ type, tiles: [], target: blockIdx })
+  }
 
   function addTileToMeld(tile) {
     if (!addingMeld) return
@@ -291,7 +321,12 @@ export default function ProblemEditor({
       : [tile, ...Array(maxCount - 1).fill(tile[0] === '0' ? `5${tile[1]}` : tile)]
     if (nextTiles.length === maxCount) {
       // 枚数が揃った時点で自動確定（確定ボタンは無い）
-      setMelds(prev => [...prev, { type: addingMeld.type, tiles: nextTiles }])
+      const meld = { type: addingMeld.type, tiles: nextTiles }
+      if (addingMeld.target === 'hand') {
+        setMelds(prev => [...prev, meld])
+      } else {
+        updateOtherDiscard(addingMeld.target, od => ({ ...od, melds: [...od.melds, meld] }))
+      }
       setAddingMeld(null)
     } else {
       setAddingMeld({ ...addingMeld, tiles: nextTiles })
@@ -306,19 +341,29 @@ export default function ProblemEditor({
     setMelds(prev => prev.filter((_, i) => i !== index))
   }
 
+  function removeOtherDiscardMeld(blockIdx, meldIdx) {
+    updateOtherDiscard(blockIdx, od => ({ ...od, melds: od.melds.filter((_, i) => i !== meldIdx) }))
+  }
+
   function updateOtherDiscard(blockIdx, updater) {
     setOtherDiscards(prev => prev.map((od, i) => i === blockIdx ? updater(od) : od))
   }
 
   function addOtherDiscardBlock() {
     if (otherDiscards.length >= 3) return
-    setOtherDiscards(prev => [...prev, { player: null, tiles: [], riichiIndex: null }])
+    setOtherDiscards(prev => [...prev, { player: null, tiles: [], riichiIndex: null, melds: [] }])
     setSutehaiActiveIdx(otherDiscards.length) // 追加したブロックを牌の追加先にする
   }
 
   function removeOtherDiscardBlock(blockIdx) {
     setOtherDiscards(prev => prev.filter((_, i) => i !== blockIdx))
     setSutehaiActiveIdx(prev => prev > blockIdx ? prev - 1 : prev === blockIdx ? 0 : prev)
+    // 削除したブロックへ副露を追加中ならキャンセルし、後ろのブロックが対象なら index を詰める
+    setAddingMeld(prev => {
+      if (!prev || prev.target === 'hand') return prev
+      if (prev.target === blockIdx) return null
+      return prev.target > blockIdx ? { ...prev, target: prev.target - 1 } : prev
+    })
   }
 
   function addOtherDiscardTile(tile) {
@@ -414,9 +459,10 @@ export default function ProblemEditor({
     })(),
   }), [problem, tiles, answer, dora, riichi, melds, explanation, reviewed, disabled, problemType, discardedTile, nakiChoices, questionImageUrl, bakaze, kyoku, jikaze, junme, scores, note, otherDiscards])
 
+  // 副露だけ設定しても「家＋捨て牌」が揃わない限り保存されない（保存条件は捨て牌ベースのまま）
   const otherDiscardIncomplete = otherDiscards.some(od =>
     (od.player !== null && od.tiles.length === 0) ||
-    (od.player === null && od.tiles.length > 0)
+    (od.player === null && (od.tiles.length > 0 || od.melds.length > 0))
   )
   // 家が自風（＝自分）と同じ設定は誤りなので警告し、保存もスキップする（buildSaveData 側で除外）
   const otherDiscardSelfPlayer = otherDiscards.some(od =>
@@ -485,9 +531,16 @@ export default function ProblemEditor({
     }
   }
 
+  // 副露の追加先ラベル（手牌 or ◯家）。ステータス表示でどこに追加中かを示す
+  const meldTargetLabel = !addingMeld ? ''
+    : addingMeld.target === 'hand' ? '手牌'
+    : otherDiscards[addingMeld.target]?.player
+      ? `${otherDiscards[addingMeld.target].player}家`
+      : `${addingMeld.target + 1}人目`
+
   const paletteStatus = {
     hand:        `手牌: ${tiles.length}枚`,
-    meld:        addingMeld ? `${MELD_TYPE_LABELS[addingMeld.type]}: ${addingMeld.tiles.length} / ${MELD_TILE_COUNT[addingMeld.type]}枚` : '',
+    meld:        addingMeld ? `${meldTargetLabel}の${MELD_TYPE_LABELS[addingMeld.type]}: ${addingMeld.tiles.length} / ${MELD_TILE_COUNT[addingMeld.type]}枚` : '',
     dora:        `ドラ: ${dora ? getTileLabel(dora) : 'なし'}`,
     note:        '注釈のカーソル位置に挿入',
     explanation: '解説のカーソル位置に挿入',
@@ -703,24 +756,12 @@ export default function ProblemEditor({
 
             <div className="palette-tab-divider" />
             <div className="editor-section-label">副露（鳴き）</div>
-            {addingMeld ? (
-              <div className="meld-adding">
-                <div className="meld-adding-header">
-                  <span className="meld-adding-title">
-                    {MELD_TYPE_LABELS[addingMeld.type]}：下のパレットから牌を選択（揃うと自動で追加）
-                    （{addingMeld.tiles.length} / {MELD_TILE_COUNT[addingMeld.type]}枚）
-                  </span>
-                  <button className="meld-cancel-btn" onClick={() => setAddingMeld(null)}>キャンセル</button>
-                </div>
-                <div className="meld-selected-tiles">
-                  {addingMeld.tiles.map((t, i) => (
-                    <TileImg key={i} tile={t} size={36} onClick={() => removeTileFromMeld(i)} className="editor-tile" />
-                  ))}
-                  {Array.from({ length: MELD_TILE_COUNT[addingMeld.type] - addingMeld.tiles.length }).map((_, i) => (
-                    <div key={`empty-${i}`} className="meld-tile-slot" />
-                  ))}
-                </div>
-              </div>
+            {addingMeld?.target === 'hand' ? (
+              <MeldAddingPanel
+                meld={addingMeld}
+                onCancel={() => setAddingMeld(null)}
+                onRemoveTile={removeTileFromMeld}
+              />
             ) : (
               <div className="meld-add-btns">
                 {MELD_TYPES.map(type => (
@@ -942,6 +983,34 @@ export default function ProblemEditor({
                   ))}
                   {od.tiles.length === 0 && <span className="editor-empty">牌を追加してください</span>}
                 </div>
+
+                <div className="editor-section-label">副露（鳴き）</div>
+                {od.melds.length > 0 && (
+                  <div className="editor-melds-inline">
+                    {od.melds.map((meld, mi) => (
+                      <div key={mi} className="editor-meld-inline-item">
+                        <span className="editor-meld-inline-label">{MELD_TYPE_LABELS[meld.type]}</span>
+                        <MeldPreview meld={meld} />
+                        <button className="editor-meld-inline-remove" onClick={() => removeOtherDiscardMeld(bi, mi)}>×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {addingMeld?.target === bi ? (
+                  <MeldAddingPanel
+                    meld={addingMeld}
+                    onCancel={() => setAddingMeld(null)}
+                    onRemoveTile={removeTileFromMeld}
+                  />
+                ) : (
+                  <div className="meld-add-btns">
+                    {MELD_TYPES.map(type => (
+                      <button key={type} className="meld-add-btn" onClick={() => startAddOtherDiscardMeld(bi, type)}>
+                        {MELD_TYPE_LABELS[type]}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
             {otherDiscards.length < 3 && (
@@ -951,7 +1020,7 @@ export default function ProblemEditor({
             )}
             {otherDiscardIncomplete && (
               <div className="other-discard-warning">
-                ⚠ 家と捨て牌の両方を設定してください。片方だけの設定は保存されません。
+                ⚠ 家と捨て牌の両方を設定してください。揃っていない家は（副露も含めて）保存されません。
               </div>
             )}
             {otherDiscardSelfPlayer && (
@@ -1137,7 +1206,7 @@ export default function ProblemEditor({
       <div className="editor-save-area">
         {otherDiscardIncomplete && (
           <span className="editor-save-warning">
-            ⚠ 他家捨て牌に未完成の家（家と牌の両方が必要）があり、その分は保存されません
+            ⚠ 他家捨て牌に未完成の家（家と捨て牌の両方が必要）があり、その分は副露も含めて保存されません
           </span>
         )}
         {otherDiscardSelfPlayer && (

@@ -1197,18 +1197,19 @@
 }
 
 /* ===== 他家捨て牌表示 ===== */
-/* 複数人分（最大3人）は横に並べ、幅が足りなければ折り返す */
+/* 家ごとに1行（捨て牌の右に副露）。複数人分（最大3人）は縦に積む */
 .other-discard-displays {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   align-items: flex-start;
-  gap: 10px 16px;
+  gap: 10px;
   margin-top: 4px;
 }
 
+/* 捨て牌と副露はどちらが高くても下端で揃える（ラベルだけ上に留める） */
 .other-discard-display {
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   gap: 8px;
 }
 
@@ -1219,6 +1220,7 @@
   white-space: nowrap;
   flex-shrink: 0;
   padding-top: 4px;
+  align-self: flex-start;
 }
 
 /* 6枚ごとの折返しは grid の列数で実現（JS側での行分割は不要） */
@@ -1256,6 +1258,40 @@
 
 /* リーチ宣言牌（横向き）：実装はファイル末尾の .tile-rotated ユーティリティ */
 .other-discard-tile--rotated { --tile-w: 22px; --tile-h: 30px; }
+
+/* 他家の副露（捨て牌の右・種類バッジなし）。MeldDisplay を捨て牌と同じ 22×30px に縮小して使う。
+   モバイル用 media query の .meld-tile 系の再指定より優先されるよう、明示サイズも上書きする */
+.other-discard-melds {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-left: 12px; /* 捨て牌との間隔（親の gap 8px に追加） */
+}
+
+.other-discard-melds .meld-tile img {
+  width: 22px;
+  height: 30px;
+  border-radius: 3px;
+  padding: 1px;
+}
+
+.other-discard-melds .meld-tile--rotated {
+  --tile-w: 22px;
+  --tile-h: 30px;
+  width: 30px;
+  height: 22px;
+}
+
+.other-discard-melds .meld-tile--rotated img {
+  width: 22px;
+  height: 30px;
+}
+
+.other-discard-melds .meld-tile--back {
+  width: 22px;
+  height: 30px;
+}
 
 /* ===== 鳴きタイミング 選択ボタン ===== */
 .naki-timing-btns {
