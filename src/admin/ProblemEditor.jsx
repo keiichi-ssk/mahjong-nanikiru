@@ -966,7 +966,7 @@ export default function ProblemEditor({
             )}
             {otherDiscardRiichiMissing && (
               <div className="other-discard-warning">
-                ⚠ リーチ宣言牌が設定されていません。捨て牌をクリックして指定してください。
+                ⚠ リーチ宣言牌が設定されていません。指定する場合は捨て牌をクリックしてください（リーチしていない家なら未設定のまま保存できます）。
               </div>
             )}
           </div>
@@ -1152,7 +1152,7 @@ export default function ProblemEditor({
         )}
         {otherDiscardRiichiMissing && (
           <span className="editor-save-warning">
-            ⚠ リーチ宣言牌が未設定です
+            ⚠ リーチ宣言牌が未設定です（このままでも保存されます）
           </span>
         )}
         <button className="editor-save-btn" onClick={handleSave}>
