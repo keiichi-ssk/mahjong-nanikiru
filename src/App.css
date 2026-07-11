@@ -768,10 +768,15 @@
 }
 
 .problem-situation {
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
-  letter-spacing: 0.05em;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text-bright);
+  letter-spacing: 0.08em;
   white-space: nowrap;
+  padding: 4px 12px;
+  border: 1px solid rgba(136, 192, 208, 0.35);
+  border-radius: 6px;
+  background: rgba(136, 192, 208, 0.1);
 }
 
 .problem-note {
