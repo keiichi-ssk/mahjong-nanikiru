@@ -440,6 +440,10 @@
 
 .editor-melds-inline {
   display: flex;
+  /* 出題画面と同じく、最初に鳴いた副露（配列先頭）が右端に来る表示順にする。
+     row-reverse では flex-end が左端になるため、全体は従来どおり左寄せ */
+  flex-direction: row-reverse;
+  justify-content: flex-end;
   align-items: flex-end;
   gap: 8px;
   border-left: 2px solid #2a3a5a;

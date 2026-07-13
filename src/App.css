@@ -868,6 +868,10 @@
 /* ===== 鳴き牌エリア ===== */
 .melds-area {
   display: flex;
+  /* 最初に鳴いた副露（配列先頭）が右端に来るよう表示順だけ反転する。
+     row-reverse では flex-end が左端になるため、全体は従来どおり左寄せ */
+  flex-direction: row-reverse;
+  justify-content: flex-end;
   align-items: flex-end;
   gap: 8px;
   flex-shrink: 0;
@@ -1273,6 +1277,10 @@
    モバイル用 media query の .meld-tile 系の再指定より優先されるよう、明示サイズも上書きする */
 .other-discard-melds {
   display: flex;
+  /* 最初に鳴いた副露（配列先頭）が右端に来るよう表示順だけ反転する。
+     row-reverse では flex-end が左端になるため、全体は従来どおり左寄せ */
+  flex-direction: row-reverse;
+  justify-content: flex-end;
   align-items: flex-end;
   gap: 10px;
   flex-wrap: wrap;
