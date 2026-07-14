@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import ProblemEditor from './ProblemEditor'
 import { BOOKS, ALL_MAJOR_CATEGORIES, majorCategoryKey, sectionNumber, sectionLabel } from '../utils/categoryUtils'
 import { fromDb, toDb } from '../utils/problemMapper'
+import { questionImagePath, QUESTION_IMAGE_BUCKET } from '../utils/questionImage'
 import categoriesData from '../data/categories.json'
 
 // allowed_major_categories の値を複合キー（"書籍::大カテゴリ"）に正規化する。
@@ -152,6 +153,33 @@ export default function AdminApp() {
   async function handleSave(updated) {
     setProblems(problems.map(p => (p.id === updated.id ? updated : p)))
     await saveOne(updated)
+  }
+
+  async function handleDelete(id) {
+    const target = problems.find(p => p.id === id)
+    setSaveStatus('削除中...')
+    // RLSで弾かれるとエラーではなく「0行削除の正常応答」が返るため、
+    // .select() で実際に消えた行を受け取って偽の成功表示を防ぐ
+    const { data, error } = await supabase.from('problems').delete().eq('id', id).select('id')
+    if (error) {
+      setSaveStatus(`削除失敗 ✗ ${error.message}`)
+    } else if (!data || data.length === 0) {
+      setSaveStatus('削除できませんでした ✗（権限を確認してください）')
+    } else {
+      // 問題画像はベストエフォートで削除（失敗しても問題の削除自体は成立）
+      const imagePath = questionImagePath(target?.questionImageUrl)
+      if (imagePath) {
+        supabase.storage.from(QUESTION_IMAGE_BUCKET).remove([imagePath])
+          .then(({ error: imgErr }) => {
+            if (imgErr) console.warn('[handleDelete] 問題画像の削除に失敗:', imgErr)
+          })
+      }
+      const next = catProblems[catIdx + 1] ?? catProblems[catIdx - 1] ?? null
+      setProblems(prev => prev.filter(p => p.id !== id))
+      setSelectedId(next ? next.id : null)
+      setSaveStatus('削除しました ✓')
+    }
+    setTimeout(() => setSaveStatus(''), 3000)
   }
 
   // reviewed の扱い（自動チェックか手動状態の尊重か）は ProblemEditor 側で決定済み
@@ -434,6 +462,7 @@ export default function AdminApp() {
             prevProblem={catIdx > 0 ? catProblems[catIdx - 1] : null}
             onSave={handleSave}
             onSaveAndNext={handleSaveAndNext}
+            onDelete={handleDelete}
             onPrev={handlePrev}
             onNext={handleNext}
             hasPrev={catIdx > 0}

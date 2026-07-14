@@ -171,7 +171,7 @@ function parseTilesText(text) {
 }
 
 export default function ProblemEditor({
-  problem, prevProblem, onSave, onSaveAndNext, onPrev, onNext, hasPrev, hasNext, catIdx, catTotal,
+  problem, prevProblem, onSave, onSaveAndNext, onDelete, onPrev, onNext, hasPrev, hasNext, catIdx, catTotal,
 }) {
   // 手牌が未設定（新規追加直後）の問題は、手牌・正解・状況設定（ドラ・場風・自風・巡目）を
   // ひとつ前の問題から引き継いでおく。手牌がすでにある問題は自分自身の値を優先する。
@@ -1244,6 +1244,16 @@ export default function ProblemEditor({
         </button>
         <button className="editor-save-next-btn" onClick={handleSaveAndNext} disabled={!hasNext}>
           保存して次へ → <kbd>Ctrl+S</kbd>
+        </button>
+        <button
+          className="editor-delete-btn"
+          onClick={() => {
+            if (window.confirm(`問題 #${problem.id} を削除しますか？\nこの問題の全ユーザーの正誤記録も削除されます。この操作は取り消せません。`)) {
+              onDelete(problem.id)
+            }
+          }}
+        >
+          この問題を削除
         </button>
       </div>
 

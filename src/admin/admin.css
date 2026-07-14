@@ -785,6 +785,24 @@
 .editor-save-next-btn:hover:not(:disabled) { opacity: 0.85; }
 .editor-save-next-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
+/* 削除は誤クリック防止のため保存ボタン群から右端に離して配置する */
+.editor-delete-btn {
+  margin-left: auto;
+  background: transparent;
+  color: #e74c3c;
+  border: 1px solid #e74c3c;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.editor-delete-btn:hover {
+  background: #e74c3c;
+  color: #fff;
+}
+
 /* ===== 手牌テキスト入力 ===== */
 .tiles-text-input-row {
   display: flex;
