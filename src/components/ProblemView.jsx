@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { Fragment, useState, useEffect, useMemo, useRef } from 'react';
 import TileButton from './TileButton';
 import QuestionImage from './QuestionImage';
 import { getTileLabel, getTileImageUrl, compareTiles, randomSuitMap, remapProblem, getDoraIndicator } from '../utils/tileUtils';
 import { getSituationText } from '../utils/categoryUtils';
-import { normalizeProblemType, isRiichiJudgmentProblem, judgeAnswer, judgeNakiTiming, judgeNakiChoice } from '../utils/judgeUtils';
+import { normalizeProblemType, isRiichiJudgmentProblem, judgeAnswer, judgeNakiTiming, judgeNakiChoice, parseAnswers } from '../utils/judgeUtils';
 import { NAKI_TIMING_OPTIONS, MELD_TYPE_LABELS, getMeldTileRole } from '../utils/problemConstants';
 
 function ExplanationText({ text, className = 'answer-explanation' }) {
@@ -331,8 +331,10 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
   const answered = selected !== null;
   const hasMelds = Array.isArray(p.melds) && p.melds.length > 0;
 
-  const answerIsKan = typeof p.answer === 'string' && p.answer.startsWith('ankan:');
-  const answerKanTile = answerIsKan ? p.answer.slice(6) : null;
+  // 正解はカンマ区切りで複数持てる。牌切りと暗槓（ankan:）が混在してもよい
+  const answers = parseAnswers(p.answer);
+  const answerTiles = answers.filter(a => !a.startsWith('ankan:'));
+  const answerKanTiles = answers.filter(a => a.startsWith('ankan:')).map(a => a.slice(6));
 
   const quadTiles = useMemo(() => {
     const counts = {};
@@ -369,18 +371,14 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
 
   function getTileState(tile) {
     if (!answered) return null;
-    if (answerIsKan) {
-      if (tile === selected) return 'wrong';
-      return 'disabled';
-    }
-    if (tile === p.answer) return 'correct';
+    if (answerTiles.includes(tile)) return 'correct';
     if (tile === selected) return 'wrong';
     return 'disabled';
   }
 
   function getKanBtnState(kanTile) {
     if (!answered) return null;
-    if (answerKanTile === kanTile) return 'correct';
+    if (answerKanTiles.includes(kanTile)) return 'correct';
     if (selected === `ankan:${kanTile}`) return 'wrong';
     return 'disabled';
   }
@@ -530,22 +528,21 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
 
             {answered && (
               <AnswerPanel isCorrect={isCorrect} explanation={p.explanation}>
-                {answerIsKan ? (
-                  <>
-                    <span className="answer-tile-name">暗槓（</span>
-                    <div className="tile-readonly">
-                      <img src={getTileImageUrl(answerKanTile)} alt={getTileLabel(answerKanTile)} />
-                    </div>
-                    <span className="answer-tile-name">{getTileLabel(answerKanTile)}）</span>
-                  </>
-                ) : (
-                  <>
-                    <div className="tile-readonly">
-                      <img src={getTileImageUrl(p.answer)} alt={getTileLabel(p.answer)} />
-                    </div>
-                    <span className="answer-tile-name">{getTileLabel(p.answer)}</span>
-                  </>
-                )}
+                {answers.length === 0 && <span className="answer-tile-name">未設定</span>}
+                {answers.map((a, i) => {
+                  const isKan = a.startsWith('ankan:');
+                  const tile = isKan ? a.slice(6) : a;
+                  return (
+                    <Fragment key={`${a}-${i}`}>
+                      {i > 0 && <span className="answer-tile-name">・</span>}
+                      {isKan && <span className="answer-tile-name">暗槓（</span>}
+                      <div className="tile-readonly">
+                        <img src={getTileImageUrl(tile)} alt={getTileLabel(tile)} />
+                      </div>
+                      <span className="answer-tile-name">{getTileLabel(tile)}{isKan ? '）' : ''}</span>
+                    </Fragment>
+                  );
+                })}
                 {needsRiichi && (
                   <span className="answer-riichi">
                     {p.riichi ? '・リーチする' : '・リーチしない'}

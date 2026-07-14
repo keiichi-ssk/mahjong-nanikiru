@@ -5,7 +5,31 @@ import {
   judgeAnswer,
   judgeNakiTiming,
   judgeNakiChoice,
+  parseAnswers,
 } from './judgeUtils';
+
+describe('parseAnswers', () => {
+  it('単一正解は1要素の配列になる', () => {
+    expect(parseAnswers('8s')).toEqual(['8s']);
+    expect(parseAnswers('ankan:5m')).toEqual(['ankan:5m']);
+  });
+
+  it('カンマ区切りの複数正解を配列に分解する', () => {
+    expect(parseAnswers('3m,6m')).toEqual(['3m', '6m']);
+    expect(parseAnswers('3m,ankan:5p')).toEqual(['3m', 'ankan:5p']);
+  });
+
+  it('空白・空要素は除去する', () => {
+    expect(parseAnswers(' 3m , 6m ')).toEqual(['3m', '6m']);
+    expect(parseAnswers('3m,,6m,')).toEqual(['3m', '6m']);
+  });
+
+  it('空文字・null・undefined は空配列', () => {
+    expect(parseAnswers('')).toEqual([]);
+    expect(parseAnswers(null)).toEqual([]);
+    expect(parseAnswers(undefined)).toEqual([]);
+  });
+});
 
 describe('normalizeProblemType', () => {
   it('image-quiz は default 扱い', () => {
@@ -80,6 +104,26 @@ describe('judgeAnswer: default（何切る）', () => {
     const p = { ...base, answer: 'ankan:5m' };
     expect(judgeAnswer(p, { selected: 'ankan:5m' })).toBe(true);
     expect(judgeAnswer(p, { selected: '5m' })).toBe(false);
+  });
+
+  it('複数正解（カンマ区切り）はいずれかに一致すれば正解', () => {
+    const p = { ...base, answer: '3m,6m' };
+    expect(judgeAnswer(p, { selected: '3m' })).toBe(true);
+    expect(judgeAnswer(p, { selected: '6m' })).toBe(true);
+    expect(judgeAnswer(p, { selected: '8s' })).toBe(false);
+  });
+
+  it('複数正解に暗槓が混在してもよい', () => {
+    const p = { ...base, answer: '3m,ankan:5p' };
+    expect(judgeAnswer(p, { selected: '3m' })).toBe(true);
+    expect(judgeAnswer(p, { selected: 'ankan:5p' })).toBe(true);
+    expect(judgeAnswer(p, { selected: '5p' })).toBe(false);
+  });
+
+  it('複数正解でも riichi 指定があればリーチ選択の一致が必要', () => {
+    const p = { ...base, answer: '3m,6m', riichi: true };
+    expect(judgeAnswer(p, { selected: '6m', selectedRiichi: true })).toBe(true);
+    expect(judgeAnswer(p, { selected: '6m', selectedRiichi: null })).toBe(false);
   });
 
   it('image-quiz も default と同じ判定', () => {

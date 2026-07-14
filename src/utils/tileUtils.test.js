@@ -126,6 +126,11 @@ describe('remapProblem（スーツ置換）', () => {
     expect(p.answer).toBe('ankan:5p');
   });
 
+  it('カンマ区切りの複数正解 answer は各要素が置換される', () => {
+    const p = remapProblem({ ...problem, answer: '3m,6m,ankan:5p' }, suitMap);
+    expect(p.answer).toBe('3p,6p,ankan:5s');
+  });
+
   it('melds の牌が置換され type は維持される', () => {
     expect(remapped.melds).toEqual([{ type: 'pon', tiles: ['4p', '4p', '4p'] }]);
   });

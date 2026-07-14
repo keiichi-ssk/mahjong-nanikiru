@@ -83,10 +83,13 @@ function remapTile(tile, suitMap) {
   return tile[0] + suitMap[suit];
 }
 
+// answer はカンマ区切りで複数正解を持てる（judgeUtils.parseAnswers と同じ形式）
 function remapAnswer(answer, suitMap) {
   if (!answer) return answer;
-  if (answer.startsWith('ankan:')) return `ankan:${remapTile(answer.slice(6), suitMap)}`;
-  return remapTile(answer, suitMap);
+  return answer.split(',').map(token => {
+    if (token.startsWith('ankan:')) return `ankan:${remapTile(token.slice(6), suitMap)}`;
+    return remapTile(token, suitMap);
+  }).join(',');
 }
 
 export function remapProblem(problem, suitMap) {

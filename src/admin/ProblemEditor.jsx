@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { getTileImageUrl, getTileLabel, sortTiles } from '../utils/tileUtils'
-import { normalizeProblemType } from '../utils/judgeUtils'
+import { normalizeProblemType, parseAnswers } from '../utils/judgeUtils'
 import { NAKI_TIMING_OPTIONS, MELD_TYPE_LABELS, MELD_TILE_COUNT, MELD_TYPES, getMeldTileRole } from '../utils/problemConstants'
 import { questionImagePath, QUESTION_IMAGE_BUCKET } from '../utils/questionImage'
 import QuestionImage from '../components/QuestionImage'
@@ -295,11 +295,23 @@ export default function ProblemEditor({
     setTiles(prev => {
       const removed = prev[index]
       const next    = prev.filter((_, i) => i !== index)
-      if (answer === removed && !next.includes(removed)) setAnswer('')
+      // 手牌から消えた牌は正解リストからも外す（複数正解のうち該当分だけ）
+      if (!next.includes(removed)) {
+        setAnswer(a => parseAnswers(a).filter(tok => tok !== removed).join(','))
+      }
       return next
     })
     // 手牌を編集し始めたので、パレットからの追加先も手牌に合わせる
     setPaletteMode('hand')
+  }
+
+  // 正解はカンマ区切りで複数持てる。クリックで追加/解除をトグルする
+  function toggleAnswer(token) {
+    setAnswer(prev => {
+      const list = parseAnswers(prev)
+      const next = list.includes(token) ? list.filter(a => a !== token) : [...list, token]
+      return next.join(',')
+    })
   }
 
   // 副露追加は手牌と他家捨て牌の家ブロックで共用する。target は 'hand' または家ブロックの index
@@ -460,6 +472,9 @@ export default function ProblemEditor({
   }), [problem, tiles, answer, dora, riichi, melds, explanation, reviewed, disabled, problemType, discardedTile, nakiChoices, questionImageUrl, bakaze, kyoku, jikaze, junme, scores, note, otherDiscards])
 
   // 副露だけ設定しても「家＋捨て牌」が揃わない限り保存されない（保存条件は捨て牌ベースのまま）
+  // 正解の配列表現（表示・選択状態の判定用。answer 本体はカンマ区切り文字列のまま）
+  const answerList = parseAnswers(answer)
+
   const otherDiscardIncomplete = otherDiscards.some(od =>
     (od.player !== null && od.tiles.length === 0) ||
     (od.player === null && (od.tiles.length > 0 || od.melds.length > 0))
@@ -653,7 +668,7 @@ export default function ProblemEditor({
                 key={i}
                 tile={t}
                 onClick={() => removeTile(i)}
-                className={`editor-tile ${answer === t ? 'tile--answer' : ''}`}
+                className={`editor-tile ${answerList.includes(t) ? 'tile--answer' : ''}`}
               />
             ))}
             {tiles.length === 0 && <span className="editor-empty">牌を追加してください</span>}
@@ -1047,13 +1062,13 @@ export default function ProblemEditor({
             {/* 通常（何切る） */}
             {problemType === 'default' && (
               <>
-                <div className="editor-section-label">正解牌（手牌からクリックで選択）</div>
+                <div className="editor-section-label">正解牌（クリックで追加/解除・複数選択可）</div>
                 <div className="editor-tiles">
                   {[...new Set(tiles)].map(t => (
                     <TileImg
                       key={t} tile={t}
-                      onClick={() => setAnswer(t)}
-                      className={`editor-tile ${answer === t ? 'tile--answer' : ''}`}
+                      onClick={() => toggleAnswer(t)}
+                      className={`editor-tile ${answerList.includes(t) ? 'tile--answer' : ''}`}
                     />
                   ))}
                 </div>
@@ -1067,8 +1082,8 @@ export default function ProblemEditor({
                       {quadTiles.map(t => (
                         <button
                           key={t}
-                          className={`editor-ankan-btn${answer === `ankan:${t}` ? ' editor-ankan-btn--active' : ''}`}
-                          onClick={() => setAnswer(`ankan:${t}`)}
+                          className={`editor-ankan-btn${answerList.includes(`ankan:${t}`) ? ' editor-ankan-btn--active' : ''}`}
+                          onClick={() => toggleAnswer(`ankan:${t}`)}
                         >
                           カン
                           <img src={getTileImageUrl(t)} alt={getTileLabel(t)} />
@@ -1079,10 +1094,10 @@ export default function ProblemEditor({
                 })()}
                 <div className="editor-current">
                   現在の正解: <strong>
-                    {answer
-                      ? answer.startsWith('ankan:')
-                        ? `暗槓（${getTileLabel(answer.slice(6))}）`
-                        : getTileLabel(answer)
+                    {answerList.length > 0
+                      ? answerList
+                          .map(a => a.startsWith('ankan:') ? `暗槓（${getTileLabel(a.slice(6))}）` : getTileLabel(a))
+                          .join('・')
                       : '未設定'}
                   </strong>
                 </div>

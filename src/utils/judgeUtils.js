@@ -6,6 +6,13 @@ export function normalizeProblemType(problemType) {
   return (problemType === 'image-quiz' || !problemType) ? 'default' : problemType;
 }
 
+// answer はカンマ区切りで複数正解を持てる（例 "3m,6m"、"3m,ankan:5p"）。
+// 単一正解・空文字・null もこの関数で配列に正規化する
+export function parseAnswers(answer) {
+  if (typeof answer !== 'string') return [];
+  return answer.split(',').map(s => s.trim()).filter(Boolean);
+}
+
 // リーチ判断問題か。'1_リーチ判断' との section 比較は旧形式データとの互換用
 export function isRiichiJudgmentProblem(problem) {
   const type = normalizeProblemType(problem.problemType);
@@ -19,7 +26,7 @@ export function judgeAnswer(problem, { selected, selectedRiichi = null }) {
     return selectedRiichi === problem.riichi;
   }
   const needsRiichi = problem.riichi !== null && problem.riichi !== undefined;
-  return selected === problem.answer
+  return parseAnswers(problem.answer).includes(selected)
     && (!needsRiichi || (selectedRiichi ?? false) === problem.riichi);
 }
 
