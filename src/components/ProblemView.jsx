@@ -3,7 +3,8 @@ import TileButton from './TileButton';
 import QuestionImage from './QuestionImage';
 import { getTileLabel, getTileImageUrl, compareTiles, randomSuitMap, remapProblem, getDoraIndicator } from '../utils/tileUtils';
 import { getSituationText } from '../utils/categoryUtils';
-import { normalizeProblemType, isRiichiJudgmentProblem, judgeAnswer, judgeNakiTiming, judgeNakiChoice, parseAnswers } from '../utils/judgeUtils';
+import { normalizeProblemType, isRiichiJudgmentProblem, judgeAnswer, judgeNakiTiming, judgeNakiChoice, judgeBetaori, parseAnswers } from '../utils/judgeUtils';
+import { useDragReorder } from '../utils/useDragReorder';
 import { NAKI_TIMING_OPTIONS, MELD_TYPE_LABELS, getMeldTileRole } from '../utils/problemConstants';
 
 function ExplanationText({ text, className = 'answer-explanation' }) {
@@ -52,13 +53,14 @@ function MeldDisplay({ meld, showType = true }) {
 }
 
 // 解答パネルの共通枠。「正解！/不正解」の見出しと解説を描画し、
-// 正解の中身（牌・テキスト等）は children で受け取る
-function AnswerPanel({ isCorrect, explanation, children }) {
+// 正解の中身（牌・テキスト等）は children で受け取る。
+// showLabel: false にすると「正解：」ラベルを出さない（betaori のように children 側でラベルを持つ場合）
+function AnswerPanel({ isCorrect, explanation, children, showLabel = true }) {
   return (
     <div className={`answer-panel ${isCorrect ? 'answer-panel--correct' : 'answer-panel--wrong'}`}>
       <div className="answer-result">{isCorrect ? '正解！' : '不正解'}</div>
       <div className="answer-tile">
-        <span className="answer-label">正解：</span>
+        {showLabel && <span className="answer-label">正解：</span>}
         {children}
       </div>
       <ExplanationText text={explanation} />
@@ -303,6 +305,169 @@ function NakiChoiceView({ problem, onAnswer, savedAnswer, onPersist }) {
   );
 }
 
+// ===== パターン3: ベタオリ（安全な順に並べる） =====
+// answer はカンマ区切りの「順序付きリスト」（安全な順・default タイプの複数正解 OR とは意味が異なる）。
+// 牌をタップした順に ①②③… を付け、再タップで解除。正解と同じ枚数選んだら答え合わせできる
+function BetaoriView({ problem, onAnswer, savedAnswer, onPersist }) {
+  const answers = parseAnswers(problem.answer);
+  const [selectedOrder, setSelectedOrder] = useState(() => savedAnswer?.betaoriTiles ?? []);
+  const [answered, setAnswered] = useState(savedAnswer?.betaoriTiles != null);
+  const hasMelds = Array.isArray(problem.melds) && problem.melds.length > 0;
+
+  function toggleSelect(tile) {
+    if (answered) return;
+    setSelectedOrder(prev => {
+      if (prev.includes(tile)) return prev.filter(t => t !== tile);
+      if (prev.length >= answers.length) return prev;
+      return [...prev, tile];
+    });
+  }
+
+  function moveSelected(from, to) {
+    setSelectedOrder(prev => {
+      const next = [...prev];
+      const [moved] = next.splice(from, 1);
+      next.splice(to, 0, moved);
+      return next;
+    });
+  }
+
+  // 「あなたの並び」行のドラッグ並べ替え（マウス・タッチ両対応・捨て牌設定と同じ操作感）
+  const { containerRef: orderRef, dragIndex: orderDragIndex, dropIndex: orderDropIndex, handlers: orderDragHandlers } =
+    useDragReorder(moveSelected, { disabled: answered });
+
+  // 同一牌が手牌に複数あるときは1つの牌コードとして扱い、バッジ・状態は最初の1枚にだけ付ける
+  function isFirstOccurrence(tile, i) {
+    return problem.tiles.indexOf(tile) === i;
+  }
+
+  function getTileState(tile, i) {
+    if (!isFirstOccurrence(tile, i)) return answered ? 'disabled' : null;
+    const pos = selectedOrder.indexOf(tile);
+    if (!answered) return pos >= 0 ? 'selected' : null;
+    if (pos >= 0) return answers[pos] === tile ? 'correct' : 'wrong';
+    return answers.includes(tile) ? 'missed' : 'disabled';
+  }
+
+  const isCorrect = answered && judgeBetaori(problem, selectedOrder);
+  const canSubmit = answers.length > 0 && selectedOrder.length === answers.length;
+
+  if (answers.length === 0 || !problem.tiles || problem.tiles.length === 0) {
+    return (
+      <div className="pending-notice">
+        この問題の回答・解説は準備中です
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <p className="naki-choice-instruction">
+        安全に切れる順に{answers.length}枚選んでください（①が最も安全・もう一度タップで解除）
+      </p>
+
+      <div className="tile-selector-row">
+        <div className="hand-and-melds">
+          <div className="tile-selector" style={{ '--hand-count': problem.tiles.length }}>
+            {problem.tiles.map((tile, i) => {
+              const pos = isFirstOccurrence(tile, i) ? selectedOrder.indexOf(tile) : -1;
+              return (
+                <TileButton
+                  key={`${tile}-${i}`}
+                  tile={tile}
+                  onClick={() => toggleSelect(tile)}
+                  state={getTileState(tile, i)}
+                  badge={pos >= 0 ? pos + 1 : null}
+                />
+              );
+            })}
+          </div>
+          {hasMelds && (
+            <div className="melds-area">
+              {problem.melds.map((meld, i) => (
+                <MeldDisplay key={i} meld={meld} />
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+      <OtherDiscardDisplay otherDiscards={problem.otherDiscards} />
+
+      {selectedOrder.length > 0 && !answered && (
+        <div className="betaori-order-row">
+          <span className="betaori-order-label">あなたの並び（ドラッグで入れ替え）</span>
+          <div className="betaori-order-tiles" ref={orderRef}>
+            {selectedOrder.map((t, i) => (
+              <div
+                key={t}
+                data-drag-index={i}
+                className={
+                  'betaori-order-tile' +
+                  (orderDragIndex === i ? ' betaori-order-tile--dragging' : '') +
+                  (orderDropIndex === i ? ' betaori-order-tile--drop-before' : '') +
+                  (orderDropIndex === i + 1 && i === selectedOrder.length - 1 ? ' betaori-order-tile--drop-after' : '')
+                }
+                {...orderDragHandlers}
+              >
+                <img src={getTileImageUrl(t)} alt={getTileLabel(t)} draggable={false} />
+                <span className="tile-order-badge">{i + 1}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!answered ? (
+        <button
+          className="naki-choice-submit-btn"
+          disabled={!canSubmit}
+          onClick={() => {
+            setAnswered(true);
+            onAnswer?.(judgeBetaori(problem, selectedOrder));
+            onPersist?.({ betaoriTiles: selectedOrder });
+          }}
+        >
+          {canSubmit ? '答え合わせ' : `答え合わせ（あと${answers.length - selectedOrder.length}枚）`}
+        </button>
+      ) : (
+        <AnswerPanel isCorrect={isCorrect} explanation={problem.explanation} showLabel={false}>
+          {/* 正解とあなたの回答を、同じ順位の牌が縦に揃うように表示する（ラベル幅を固定して列を合わせる） */}
+          <div className="betaori-answer-compare">
+            <div className="betaori-answer-line">
+              <span className="betaori-answer-line-label">正解：</span>
+              {answers.map((a, i) => (
+                <Fragment key={`${a}-${i}`}>
+                  {i > 0 && <span className="answer-tile-name">→</span>}
+                  <div className="tile-readonly betaori-answer-tile">
+                    <img src={getTileImageUrl(a)} alt={getTileLabel(a)} />
+                    <span className="tile-order-badge">{i + 1}</span>
+                  </div>
+                </Fragment>
+              ))}
+            </div>
+            {!isCorrect && (
+              <div className="betaori-answer-line">
+                <span className="betaori-answer-line-label">あなたの回答：</span>
+                {selectedOrder.map((t, i) => (
+                  <Fragment key={`${t}-${i}`}>
+                    {i > 0 && <span className="answer-tile-name">→</span>}
+                    <div
+                      className={`tile-readonly betaori-answer-tile ${answers[i] === t ? 'tile-readonly--ok' : 'tile-readonly--ng'}`}
+                    >
+                      <img src={getTileImageUrl(t)} alt={getTileLabel(t)} />
+                      <span className="tile-order-badge">{i + 1}</span>
+                    </div>
+                  </Fragment>
+                ))}
+              </div>
+            )}
+          </div>
+        </AnswerPanel>
+      )}
+    </>
+  );
+}
+
 // ===== メイン =====
 export default function ProblemView({ problem, index, total, onBack, onPrev, onNext, onFinish, onAnswer, savedAnswer, onPersistAnswer }) {
   // savedAnswer があれば回答済み状態（選択牌・リーチ・スーツ置換）を復元する。
@@ -346,7 +511,8 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
 
   useEffect(() => {
     if (!answered || restoredRef.current) return;
-    if (problemType === 'naki-timing' || problemType === 'naki-choice') return;
+    // これらのタイプは各 View 内で onAnswer / persist を行う
+    if (problemType === 'naki-timing' || problemType === 'naki-choice' || problemType === 'betaori') return;
     onAnswer?.(problem.id, isCorrect);
     persistAnswer({ selected, selectedRiichi });
   }, [answered]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -437,6 +603,16 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
       {/* ===== 鳴き選択 ===== */}
       {problemType === 'naki-choice' && (
         <NakiChoiceView
+          problem={p}
+          onAnswer={isCorrect => onAnswer?.(problem.id, isCorrect)}
+          savedAnswer={savedAnswer}
+          onPersist={persistAnswer}
+        />
+      )}
+
+      {/* ===== ベタオリ（安全な順に並べる） ===== */}
+      {problemType === 'betaori' && (
+        <BetaoriView
           problem={p}
           onAnswer={isCorrect => onAnswer?.(problem.id, isCorrect)}
           savedAnswer={savedAnswer}

@@ -1,7 +1,8 @@
 import { getTileImageUrl, getTileLabel } from '../utils/tileUtils';
 import { useTap } from '../utils/useTap';
 
-export default function TileButton({ tile, onClick, state }) {
+// badge: 牌の右上に重ねる短いテキスト（ベタオリの選択順 ①②③… 等）。null なら非表示
+export default function TileButton({ tile, onClick, state, badge = null }) {
   const imageUrl = getTileImageUrl(tile);
   const label = getTileLabel(tile);
   const disabled = state !== null && state !== 'selected';
@@ -24,6 +25,7 @@ export default function TileButton({ tile, onClick, state }) {
       ) : (
         <span className="tile-fallback">{label}</span>
       )}
+      {badge != null && <span className="tile-order-badge">{badge}</span>}
     </button>
   );
 }

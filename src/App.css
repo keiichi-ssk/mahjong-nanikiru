@@ -1017,6 +1017,126 @@
     0 0 8px rgba(208, 135, 112, 0.45);
 }
 
+/* ベタオリ問題の選択順バッジ（牌の右上に重ねる・タップ判定には影響しない） */
+.tile-order-badge {
+  position: absolute;
+  top: -8px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 8px;
+  background: var(--color-primary);
+  color: var(--color-text-bright);
+  font-size: 0.7rem;
+  font-weight: bold;
+  line-height: 16px;
+  text-align: center;
+  pointer-events: none;
+  z-index: 2;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+}
+
+/* ===== ベタオリ: あなたの並び（ドラッグ並べ替え） ===== */
+.betaori-order-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 4px 0 12px;
+}
+
+.betaori-order-label {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+}
+
+.betaori-order-tiles {
+  display: flex;
+  gap: 6px;
+}
+
+/* ドラッグ対象。touch-action: none で指ドラッグ中のページスクロールを抑止する */
+.betaori-order-tile {
+  position: relative;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 55px;
+  background: linear-gradient(160deg, #ffffff 0%, #f0efec 100%);
+  border: 2px solid #b8c0cc;
+  border-radius: 6px;
+  padding: 1px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.08),
+    1px 2px 0 #b06820,
+    2px 4px 6px rgba(0, 0, 0, 0.22);
+}
+
+.betaori-order-tile img {
+  width: 88%;
+  height: auto;
+  pointer-events: none;
+}
+
+/* 掴んでいる牌は薄く表示（捨て牌設定のドラッグと同じ操作感） */
+.betaori-order-tile--dragging {
+  cursor: grabbing;
+  opacity: 0.35;
+}
+
+/* 挿入位置インジケーター（牌間の gap 6px の中央に縦線を出す・捨て牌設定と共通の見た目） */
+.betaori-order-tile--drop-before::before,
+.betaori-order-tile--drop-after::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 3px;
+  border-radius: 2px;
+  background: #f5c842;
+  pointer-events: none;
+}
+
+.betaori-order-tile--drop-before::before { left: -5px; }
+.betaori-order-tile--drop-after::after { right: -5px; }
+
+/* ベタオリ解答パネル: 正解とあなたの回答を縦に揃えて比較表示する。
+   ラベル幅を固定することで、同じ順位（1〜n番目）の牌が上下で同じ列に並ぶ */
+.betaori-answer-compare {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.betaori-answer-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.betaori-answer-line-label {
+  width: 7.5em;
+  flex-shrink: 0;
+  font-size: 0.9rem;
+  color: var(--color-text-secondary);
+}
+
+.betaori-answer-tile {
+  position: relative;
+}
+
+/* あなたの回答の正誤色分け（順位が正しい牌=緑・違う牌=赤） */
+.tile-readonly--ok { border: 2px solid #a3be8c; }
+.tile-readonly--ng { border: 2px solid #bf616a; }
+
 .tile-image {
   width: 34px;
   height: 49px;
@@ -1076,6 +1196,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .answer-label {
@@ -1364,8 +1485,9 @@
   margin-bottom: 16px;
 }
 
-.naki-choice-submit-btn:hover { background: var(--color-primary-hover); }
-.naki-choice-submit-btn:active { transform: scale(0.98); }
+.naki-choice-submit-btn:hover:not(:disabled) { background: var(--color-primary-hover); }
+.naki-choice-submit-btn:active:not(:disabled) { transform: scale(0.98); }
+.naki-choice-submit-btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ===== ドラ表示（手牌右端インライン） ===== */
 .dora-inline {

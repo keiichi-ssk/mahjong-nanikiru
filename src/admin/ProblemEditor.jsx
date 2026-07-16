@@ -3,6 +3,7 @@ import { getTileImageUrl, getTileLabel, sortTiles } from '../utils/tileUtils'
 import { normalizeProblemType, parseAnswers } from '../utils/judgeUtils'
 import { NAKI_TIMING_OPTIONS, MELD_TYPE_LABELS, MELD_TILE_COUNT, MELD_TYPES, getMeldTileRole } from '../utils/problemConstants'
 import { questionImagePath, QUESTION_IMAGE_BUCKET } from '../utils/questionImage'
+import { useDragReorder } from '../utils/useDragReorder'
 import QuestionImage from '../components/QuestionImage'
 import { supabase } from '../lib/supabase'
 
@@ -475,6 +476,16 @@ export default function ProblemEditor({
   // 正解の配列表現（表示・選択状態の判定用。answer 本体はカンマ区切り文字列のまま）
   const answerList = parseAnswers(answer)
 
+  // ベタオリの正解順プレビューのドラッグ並べ替え
+  function moveAnswer(from, to) {
+    const list = [...answerList]
+    const [moved] = list.splice(from, 1)
+    list.splice(to, 0, moved)
+    setAnswer(list.join(','))
+  }
+  const { containerRef: answerOrderRef, dragIndex: answerDragIndex, dropIndex: answerDropIndex, handlers: answerDragHandlers } =
+    useDragReorder(moveAnswer)
+
   const otherDiscardIncomplete = otherDiscards.some(od =>
     (od.player !== null && od.tiles.length === 0) ||
     (od.player === null && (od.tiles.length > 0 || od.melds.length > 0))
@@ -609,6 +620,7 @@ export default function ProblemEditor({
             { value: 'riichi-judgment',  label: 'リーチ判断' },
             { value: 'naki-timing',      label: '鳴きタイミング' },
             { value: 'naki-choice',      label: '鳴き選択' },
+            { value: 'betaori',          label: 'ベタオリ' },
           ].map(opt => (
             <button
               key={opt.value}
@@ -1199,6 +1211,54 @@ export default function ProblemEditor({
                   </div>
                 )}
                 {nakiChoices.length === 0 && <span className="editor-empty">下のパレットから選択肢を追加してください</span>}
+              </>
+            )}
+
+            {/* ベタオリ（安全な順に並べる） */}
+            {problemType === 'betaori' && (
+              <>
+                <div className="editor-section-label">正解牌（安全な順にクリック・再クリックで解除。①が最も安全）</div>
+                <div className="editor-tiles">
+                  {[...new Set(tiles)].map(t => {
+                    const pos = answerList.indexOf(t)
+                    return (
+                      <span key={t} className="editor-order-tile">
+                        <TileImg
+                          tile={t}
+                          onClick={() => toggleAnswer(t)}
+                          className={`editor-tile ${pos >= 0 ? 'tile--answer' : ''}`}
+                        />
+                        {pos >= 0 && <span className="editor-order-badge">{pos + 1}</span>}
+                      </span>
+                    )
+                  })}
+                  {tiles.length === 0 && <span className="editor-empty">先に手牌を設定してください</span>}
+                </div>
+                <div className="editor-current">
+                  現在の正解（ドラッグで入れ替え・{answerList.length}枚 — 出題画面でもこの枚数を選ばせます）:
+                </div>
+                {answerList.length > 0 ? (
+                  <div className="editor-order-list" ref={answerOrderRef}>
+                    {answerList.map((a, i) => (
+                      <div
+                        key={a}
+                        data-drag-index={i}
+                        className={
+                          'editor-order-tile editor-order-tile--draggable' +
+                          (answerDragIndex === i ? ' editor-order-tile--dragging' : '') +
+                          (answerDropIndex === i ? ' editor-order-tile--drop-before' : '') +
+                          (answerDropIndex === i + 1 && i === answerList.length - 1 ? ' editor-order-tile--drop-after' : '')
+                        }
+                        {...answerDragHandlers}
+                      >
+                        <img src={getTileImageUrl(a)} alt={getTileLabel(a)} draggable={false} />
+                        <span className="editor-order-badge">{i + 1}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="editor-empty">未設定（上の手牌をクリックして安全な順に追加）</span>
+                )}
               </>
             )}
 

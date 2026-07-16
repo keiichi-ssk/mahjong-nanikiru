@@ -370,6 +370,81 @@
   box-shadow: 0 0 8px rgba(46, 204, 113, 0.5);
 }
 
+/* ベタオリの正解順バッジ（牌の右上に重ねる） */
+.editor-order-tile {
+  position: relative;
+  display: inline-flex;
+}
+
+/* ベタオリ正解順プレビュー（ドラッグ並べ替え可能） */
+.editor-order-list {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.editor-order-tile--draggable {
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 50px;
+  background: #fff;
+  border: 2px solid #ccc;
+  border-radius: 6px;
+  padding: 2px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.editor-order-tile--draggable img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  pointer-events: none;
+}
+
+/* 掴んでいる牌は薄く表示（捨て牌のドラッグと同じ操作感） */
+.editor-order-tile--dragging {
+  cursor: grabbing;
+  opacity: 0.35;
+}
+
+/* 挿入位置インジケーター（捨て牌の並べ替えと共通の見た目・gap 6px の中央に縦線） */
+.editor-order-tile--drop-before::before,
+.editor-order-tile--drop-after::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  bottom: -2px;
+  width: 3px;
+  border-radius: 2px;
+  background: #f5c842;
+  pointer-events: none;
+}
+
+.editor-order-tile--drop-before::before { left: -5px; }
+.editor-order-tile--drop-after::after { right: -5px; }
+
+.editor-order-badge {
+  position: absolute;
+  top: -7px;
+  right: -5px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 3px;
+  border-radius: 8px;
+  background: #2ecc71;
+  color: #000;
+  font-size: 0.7rem;
+  font-weight: bold;
+  line-height: 16px;
+  text-align: center;
+  pointer-events: none;
+  z-index: 2;
+}
+
 .tile-code {
   font-size: 0.7rem;
   color: #333;

@@ -5,6 +5,7 @@ import {
   judgeAnswer,
   judgeNakiTiming,
   judgeNakiChoice,
+  judgeBetaori,
   parseAnswers,
 } from './judgeUtils';
 
@@ -160,6 +161,40 @@ describe('judgeNakiTiming', () => {
     expect(judgeNakiTiming(p, 'mid')).toBe(true);
     expect(judgeNakiTiming(p, 'early')).toBe(false);
     expect(judgeNakiTiming(p, 'no')).toBe(false);
+  });
+});
+
+describe('judgeBetaori', () => {
+  const p = { problemType: 'betaori', answer: '1z,6z,1m' };
+
+  it('順序まで一致すれば正解', () => {
+    expect(judgeBetaori(p, ['1z', '6z', '1m'])).toBe(true);
+  });
+
+  it('牌が同じでも順序が違えば不正解', () => {
+    expect(judgeBetaori(p, ['6z', '1z', '1m'])).toBe(false);
+    expect(judgeBetaori(p, ['1m', '6z', '1z'])).toBe(false);
+  });
+
+  it('枚数が足りない・多いは不正解', () => {
+    expect(judgeBetaori(p, ['1z', '6z'])).toBe(false);
+    expect(judgeBetaori(p, ['1z', '6z', '1m', '9m'])).toBe(false);
+  });
+
+  it('赤5（0m）と通常5（5m）は別牌として判定する', () => {
+    const red = { problemType: 'betaori', answer: '1z,0m' };
+    expect(judgeBetaori(red, ['1z', '0m'])).toBe(true);
+    expect(judgeBetaori(red, ['1z', '5m'])).toBe(false);
+  });
+
+  it('answer 未設定は常に不正解', () => {
+    expect(judgeBetaori({ answer: '' }, [])).toBe(false);
+    expect(judgeBetaori({ answer: null }, ['1z'])).toBe(false);
+  });
+
+  it('selectedTiles が null/undefined でも落ちない', () => {
+    expect(judgeBetaori(p, null)).toBe(false);
+    expect(judgeBetaori(p, undefined)).toBe(false);
   });
 });
 

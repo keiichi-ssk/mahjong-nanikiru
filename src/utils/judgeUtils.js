@@ -35,6 +35,16 @@ export function judgeNakiTiming(problem, selected) {
   return selected === problem.answer;
 }
 
+// betaori: 安全な順に並べた牌の完全一致（枚数・順序とも）。
+// betaori の answer はカンマ区切りの「順序付きリスト」（default タイプの OR とは意味が異なる）
+export function judgeBetaori(problem, selectedTiles) {
+  const answers = parseAnswers(problem.answer);
+  const sel = Array.isArray(selectedTiles) ? selectedTiles : [...(selectedTiles ?? [])];
+  return answers.length > 0
+    && sel.length === answers.length
+    && answers.every((a, i) => sel[i] === a);
+}
+
 // naki-choice: correct フラグ付き牌の集合と選択集合の完全一致。
 // selectedTiles は Set でも配列でもよい
 export function judgeNakiChoice(nakiChoices, selectedTiles) {
