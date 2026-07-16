@@ -1148,13 +1148,13 @@ export default function ProblemEditor({
                     <button className="dora-clear" onClick={() => setDiscardedTile(null)}>クリア</button>
                   )}
                 </div>
-                <div className="editor-current">
+                <div className="editor-current palette-tab-status">
                   現在の出牌: <strong>{discardedTile ? getTileLabel(discardedTile) : '未設定'}</strong>
                   {discardedTile && (
                     <img
                       src={getTileImageUrl(discardedTile)}
                       alt={getTileLabel(discardedTile)}
-                      style={{ width: 32, verticalAlign: 'middle', marginLeft: 8 }}
+                      className="palette-tab-status-tile"
                     />
                   )}
                 </div>
