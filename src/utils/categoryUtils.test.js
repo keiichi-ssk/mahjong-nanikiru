@@ -26,7 +26,8 @@ const GOLDEN_RANGES = [
   { book: '新科学する麻雀実践編', major: 'テンパイの技術',   min: 25, max: 29 },
   { book: '新科学する麻雀実践編', major: '対リーチ押し引き', min: 30, max: 36 },
   { book: '新科学する麻雀実践編', major: '対副露押し引き',   min: 37, max: 44 },
-  { book: '新科学する麻雀実践編', major: 'ベタオリの技術',   min: 45, max: 46 },
+  { book: '新科学する麻雀実践編', major: 'メンゼンイーシャンテン', min: 45, max: 45 },
+  { book: '新科学する麻雀実践編', major: 'ベタオリの技術',   min: 46, max: 46 },
 ];
 
 describe('getBookLabel / getMajorCategory: 全46件のゴールデン突合', () => {
@@ -113,10 +114,11 @@ describe('groupByBook: CategoryList 互換の戻り値形状', () => {
   });
 
   it('大カテゴリの並びは定義順を保つ', () => {
-    const result = groupByBook(['46', '30', '25']);
+    const result = groupByBook(['46', '45', '30', '25']);
     expect(result[1].majorGroups.map(g => g.label)).toEqual([
       'テンパイの技術',
       '対リーチ押し引き',
+      'メンゼンイーシャンテン',
       'ベタオリの技術',
     ]);
   });
@@ -171,7 +173,8 @@ describe('isSectionAllowed: 権限判定', () => {
 
   it('複合キーとレガシーの混在配列', () => {
     const allowed = ['新科学する麻雀実践編::ベタオリの技術', '鳴きの技術'];
-    expect(isSectionAllowed(allowed, '45')).toBe(true);
+    expect(isSectionAllowed(allowed, '46')).toBe(true);
+    expect(isSectionAllowed(allowed, '45')).toBe(false); // 45 はメンゼンイーシャンテンに変更済み（2026-07-16）
     expect(isSectionAllowed(allowed, '18')).toBe(true);
     expect(isSectionAllowed(allowed, '1')).toBe(false);
   });
@@ -203,6 +206,7 @@ describe('BOOKS: categories.json からの導出', () => {
       'テンパイの技術',
       '対リーチ押し引き',
       '対副露押し引き',
+      'メンゼンイーシャンテン',
       'ベタオリの技術',
     ]);
   });
@@ -217,12 +221,13 @@ describe('BOOKS: categories.json からの導出', () => {
     );
   });
 
-  it('ALL_MAJOR_CATEGORIES は全9大カテゴリの複合キーを持つ', () => {
-    expect(ALL_MAJOR_CATEGORIES).toHaveLength(9);
+  it('ALL_MAJOR_CATEGORIES は全10大カテゴリの複合キーを持つ', () => {
+    expect(ALL_MAJOR_CATEGORIES).toHaveLength(10);
     expect(ALL_MAJOR_CATEGORIES.map(c => c.key)).toContain('現代麻雀技術論::テンパイの技術');
     expect(ALL_MAJOR_CATEGORIES.map(c => c.key)).toContain('新科学する麻雀実践編::テンパイの技術');
+    expect(ALL_MAJOR_CATEGORIES.map(c => c.key)).toContain('新科学する麻雀実践編::メンゼンイーシャンテン');
     // キーに重複が無い
-    expect(new Set(ALL_MAJOR_CATEGORIES.map(c => c.key)).size).toBe(9);
+    expect(new Set(ALL_MAJOR_CATEGORIES.map(c => c.key)).size).toBe(10);
   });
 });
 
