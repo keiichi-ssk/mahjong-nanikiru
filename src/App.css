@@ -2001,40 +2001,41 @@
     height: auto;
   }
 
-  /* 手牌＋鳴き牌エリア */
+  /* 手牌＋鳴き牌エリア: PCと同じく副露も手牌と同じ1行に置く。
+     --hand-count には副露を含めた合計換算枚数がJSX側（handRowUnits）で入るため、
+     .tile-button / .tile-readonly の可変幅計算がそのまま全体を1行に収める。
+     それでも収まらない極端なケースはデスクトップ指定の overflow-x: auto で横スクロール */
   .hand-and-melds {
-    flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
+    --mob-tile-w: clamp(19px, calc((100vw - 20px - (var(--hand-count, 14) - 1) * 2px) / var(--hand-count, 14)), 40px);
+  }
+
+  .hand-and-melds .tile-button,
+  .hand-and-melds .tile-readonly {
+    width: var(--mob-tile-w);
   }
 
   .melds-area {
-    border-left: none;
-    border-top: 1px solid var(--color-border);
-    padding-left: 0;
-    padding-top: 8px;
-    width: 100%;
-    flex-wrap: wrap;
+    padding-left: 5px;
+    gap: 4px;
+    /* 副露牌は手牌の0.9倍幅（デスクトップの 40px:36px と同じ比率）。縦横比 36:49 を維持 */
+    --mob-meld-w: calc(var(--mob-tile-w, 40px) * 0.9);
+    --mob-meld-h: calc(var(--mob-meld-w) * 49 / 36);
   }
 
-  /* 鳴き牌サイズ縮小 */
   .meld-tile img {
-    width: 36px;
-    height: 49px;
+    width: var(--mob-meld-w, 36px);
+    height: var(--mob-meld-h, 49px);
   }
 
   .meld-tile--rotated {
-    width: 49px;
-    height: 36px;
-  }
-
-  .meld-tile--rotated img {
-    width: 36px;
-    height: 49px;
+    --tile-w: var(--mob-meld-w, 36px);
+    --tile-h: var(--mob-meld-h, 49px);
   }
 
   .meld-tile--back {
-    width: 36px;
-    height: 49px;
+    width: var(--mob-meld-w, 36px);
+    height: var(--mob-meld-h, 49px);
   }
 
   /* リーチ/ダマ 2択ボタン */
@@ -2046,6 +2047,26 @@
   /* 回答パネル */
   .answer-panel {
     padding: 14px;
+  }
+
+  /* ベタオリ「あなたの並び」: 牌を枚数（--order-count はJSX側で正解枚数を指定）に応じて
+     縮小し1行に収める。折り返しはしない（ドラッグ並べ替えの挿入位置判定が横位置のみのため、
+     2行に折り返すと並べ替えが壊れる） */
+  .betaori-order-tile {
+    width: clamp(22px, calc((100vw - 32px - (var(--order-count, 6) - 1) * 6px) / var(--order-count, 6)), 40px);
+    height: auto;
+    aspect-ratio: 40 / 55;
+  }
+
+  /* ベタオリ解答比較: ラベルを1行目に独立させ、牌列は折り返し可能にする。
+     「正解」「あなたの回答」の牌はどちらも行頭から始まるため、折り返さない限り縦の列揃えは保たれる */
+  .betaori-answer-line {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+
+  .betaori-answer-line-label {
+    width: 100%;
   }
 
   /* ナビゲーション：画面下部に固定（親指で届く位置） */

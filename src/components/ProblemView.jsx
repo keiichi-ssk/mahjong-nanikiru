@@ -154,6 +154,18 @@ function OtherDiscardDisplay({ otherDiscards }) {
   );
 }
 
+// スマホ表示で手牌と副露を1行に収めるための「牌何枚分の幅か」の換算値。
+// App.css のモバイル media query が --hand-count としてこの値で牌幅を割り出す。
+// 副露牌は手牌の0.9倍幅だがそのまま1枚と数え、横向き牌の広がりと区切り線・
+// 隙間ぶんは副露1組につき +0.5 枚で見込む（やや小さめに出る安全側の概算。
+// それでも収まらない極端な副露数は .hand-and-melds の overflow-x: auto に逃がす）
+function handRowUnits(tiles, melds) {
+  const hand = tiles?.length ?? 0;
+  if (!Array.isArray(melds) || melds.length === 0) return hand;
+  const meldTiles = melds.reduce((sum, m) => sum + m.tiles.length, 0);
+  return hand + meldTiles + melds.length * 0.5;
+}
+
 // 手牌が未設定でも他家捨て牌は独立して表示する（問題タイプ間で挙動を揃える）
 function HandDisplay({ tiles, melds, otherDiscards }) {
   const hasMelds = Array.isArray(melds) && melds.length > 0;
@@ -161,8 +173,8 @@ function HandDisplay({ tiles, melds, otherDiscards }) {
   return (
     <>
       {hasHand && (
-        <div className="hand-and-melds">
-          <div className="tile-display-readonly" style={{ '--hand-count': tiles.length }}>
+        <div className="hand-and-melds" style={{ '--hand-count': handRowUnits(tiles, melds) }}>
+          <div className="tile-display-readonly">
             {tiles.map((tile, i) => (
               <div key={`${tile}-${i}`} className="tile-readonly">
                 <img src={getTileImageUrl(tile)} alt={getTileLabel(tile)} />
@@ -367,8 +379,8 @@ function BetaoriView({ problem, onAnswer, savedAnswer, onPersist }) {
       </p>
 
       <div className="tile-selector-row">
-        <div className="hand-and-melds">
-          <div className="tile-selector" style={{ '--hand-count': problem.tiles.length }}>
+        <div className="hand-and-melds" style={{ '--hand-count': handRowUnits(problem.tiles, problem.melds) }}>
+          <div className="tile-selector">
             {problem.tiles.map((tile, i) => {
               const pos = isFirstOccurrence(tile, i) ? selectedOrder.indexOf(tile) : -1;
               return (
@@ -396,7 +408,8 @@ function BetaoriView({ problem, onAnswer, savedAnswer, onPersist }) {
       {selectedOrder.length > 0 && !answered && (
         <div className="betaori-order-row">
           <span className="betaori-order-label">あなたの並び（ドラッグで入れ替え）</span>
-          <div className="betaori-order-tiles" ref={orderRef}>
+          {/* --order-count: スマホで1行に収めるための牌幅計算用（選択中に牌サイズが変わらないよう最終枚数で固定） */}
+          <div className="betaori-order-tiles" ref={orderRef} style={{ '--order-count': answers.length }}>
             {selectedOrder.map((t, i) => (
               <div
                 key={t}
@@ -652,8 +665,8 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
         <>
           {p.tiles && p.tiles.length > 0 && (
             <div className="tile-selector-row">
-              <div className="hand-and-melds">
-                <div className="tile-selector" style={{ '--hand-count': p.tiles.length }}>
+              <div className="hand-and-melds" style={{ '--hand-count': handRowUnits(p.tiles, p.melds) }}>
+                <div className="tile-selector">
                   {p.tiles.map((tile, i) => (
                     <TileButton
                       key={`${tile}-${i}`}
