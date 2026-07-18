@@ -2038,6 +2038,49 @@
     height: var(--mob-meld-h, 49px);
   }
 
+  /* 他家捨て牌: 副露も同じ行に収める。--od-units はJSX側（discardRowUnits）で
+     捨て牌の列数＋副露の牌換算値が入る。固定分（左右余白20px＋ラベル約60px＋
+     ラベル後gap8px＋副露margin8px）を引いた幅を牌数で割り、22pxを上限に縮小する */
+  .other-discard-display {
+    --od-tile-w: clamp(14px, calc((100vw - 96px - (var(--od-units, 6) - 1) * 2px) / var(--od-units, 6)), 22px);
+    --od-tile-h: calc(var(--od-tile-w) * 30 / 22);
+    overflow-x: auto; /* 副露が極端に多く収まらないケースは行ごとの横スクロール */
+  }
+
+  .other-discard-tile img {
+    width: var(--od-tile-w);
+    height: var(--od-tile-h);
+  }
+
+  .other-discard-tile--rotated {
+    --tile-w: var(--od-tile-w);
+    --tile-h: var(--od-tile-h);
+  }
+
+  /* 副露は2行にまたがらせない（1行維持・隙間も詰める） */
+  .other-discard-melds {
+    flex-wrap: nowrap;
+    gap: 6px;
+    margin-left: 8px;
+  }
+
+  .other-discard-melds .meld-tile img {
+    width: var(--od-tile-w);
+    height: var(--od-tile-h);
+  }
+
+  .other-discard-melds .meld-tile--rotated {
+    --tile-w: var(--od-tile-w);
+    --tile-h: var(--od-tile-h);
+    width: var(--od-tile-h);
+    height: var(--od-tile-w);
+  }
+
+  .other-discard-melds .meld-tile--back {
+    width: var(--od-tile-w);
+    height: var(--od-tile-h);
+  }
+
   /* リーチ/ダマ 2択ボタン */
   .riichi-choice-btn {
     font-size: 1.2rem;

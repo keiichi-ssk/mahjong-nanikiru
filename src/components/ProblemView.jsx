@@ -110,6 +110,21 @@ function ScoreDisplay({ scores, jikaze }) {
   );
 }
 
+// スマホ表示で1家分（捨て牌＋副露）を1行に収めるための「牌何枚分の幅か」の換算値。
+// App.css のモバイル media query が --od-units としてこの値で牌幅を割り出す。
+// リーチ宣言牌・副露の横向き牌は縦横比（30/22）ぶん広く、副露の隙間は1組につき
+// +0.5 枚で見込む（収まらない極端なケースは行ごとの横スクロールに逃がす）
+function discardRowUnits(od) {
+  const rotatedExtra = 30 / 22 - 1;
+  const cols = Math.min(6, od.tiles.length) + (od.riichiIndex != null ? rotatedExtra : 0);
+  const melds = Array.isArray(od.melds) ? od.melds : [];
+  const meldUnits = melds.reduce(
+    (sum, m) => sum + m.tiles.length + (m.type === 'ankan' ? 0 : rotatedExtra),
+    0
+  );
+  return cols + meldUnits + melds.length * 0.5;
+}
+
 function OtherDiscardDisplay({ otherDiscards }) {
   const valid = (otherDiscards ?? []).filter(od => od && od.player && od.tiles && od.tiles.length > 0);
   if (valid.length === 0) return null;
@@ -124,7 +139,7 @@ function OtherDiscardDisplay({ otherDiscards }) {
         const rows = [];
         for (let r = 0; r < od.tiles.length; r += 6) rows.push(od.tiles.slice(r, r + 6));
         return (
-          <div key={idx} className="other-discard-display">
+          <div key={idx} className="other-discard-display" style={{ '--od-units': discardRowUnits(od) }}>
             <span className="other-discard-label">{od.player}家捨て牌</span>
             <div className="other-discard-tiles">
               {rows.map((row, ri) => (
