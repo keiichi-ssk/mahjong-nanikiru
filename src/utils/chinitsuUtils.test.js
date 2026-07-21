@@ -119,6 +119,29 @@ describe('computeBestDiscards', () => {
   });
 });
 
+describe('スーツ指定（萬子・索子）', () => {
+  it('generateChinitsuHand は指定スーツのみで生成される', () => {
+    expect(generateChinitsuHand('m').every(t => /^[1-9]m$/.test(t))).toBe(true);
+    expect(generateChinitsuHand('s').every(t => /^[1-9]s$/.test(t))).toBe(true);
+    expect(generateChinitsuHand().every(t => /^[1-9]p$/.test(t))).toBe(true); // デフォルトは筒子
+  });
+
+  it('analyzeDiscard は手牌のスーツを自動判別し、待ちを同じスーツで返す', () => {
+    // 筒子のテストケースと同形の萬子手牌。待ちも萬子で返ること
+    const hand14 = ['1m', '1m', '2m', '2m', '2m', '3m', '5m', '6m', '8m', '8m', '8m', '9m', '9m', '9m'];
+    const result = analyzeDiscard(hand14, '3m');
+    expect(result.isTenpai).toBe(true);
+    expect(result.waits).toEqual(['4m', '7m']);
+    expect(result.ukeire).toBe(8);
+  });
+
+  it('judgeChinitsu は索子の手牌でも同様に判定する', () => {
+    const hand14 = ['1s', '1s', '1s', '3s', '3s', '3s', '5s', '5s', '5s', '7s', '7s', '7s', '9s', '9s'];
+    expect(judgeChinitsu(hand14, '9s', 'tenpai', ['8s', '9s'])).toBe(true);
+    expect(judgeChinitsu(hand14, '1s', 'tenpai', ['1s', '9s'])).toBe(false);
+  });
+});
+
 describe('judgeChinitsu', () => {
   const hand14 = ['1p', '1p', '1p', '3p', '3p', '3p', '5p', '5p', '5p', '7p', '7p', '7p', '9p', '9p'];
 

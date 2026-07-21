@@ -279,25 +279,20 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
   return (
     <div className="category-list">
 
-      {onStartChinitsu && (
-        <div className="chinitsu-entry-card" role="button" tabIndex={0} onClick={onStartChinitsu}
-          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onStartChinitsu()}>
-          <span className="chinitsu-entry-title">清一色 何切る道場</span>
-          <span className="chinitsu-entry-desc">ランダム生成される清一色の手牌で、テンパイ・ノーテンと待ち牌の判断を鍛える</span>
+      {session && (
+        <div className="toggle-rows">
+          <ToggleRow label="シャッフル出題" checked={randomMode} onToggle={onToggleRandom} />
+          <ToggleRow label="未回答のみ" checked={unansweredOnlyMode} onToggle={onToggleUnansweredOnly} />
+          <ToggleRow label="間違いのみ" checked={wrongOnlyMode} onToggle={onToggleWrongOnly} />
         </div>
       )}
 
-      <div className="toggle-rows">
-        <ToggleRow label="シャッフル出題" checked={randomMode} onToggle={onToggleRandom} />
-        {session && (
-          <>
-            <ToggleRow label="未回答のみ" checked={unansweredOnlyMode} onToggle={onToggleUnansweredOnly} />
-            <ToggleRow label="間違いのみ" checked={wrongOnlyMode} onToggle={onToggleWrongOnly} />
-          </>
-        )}
-      </div>
-
       <div className="book-tabs">
+        {onStartChinitsu && (
+          <button className="book-tab" onClick={onStartChinitsu}>
+            清一色 何切る道場
+          </button>
+        )}
         {books.map(({ label: bookLabel, majorGroups }) => {
           const bookSections = majorGroups.flatMap(g => g.sections);
           const selectedCount = bookSections.filter(s => checkedSections.has(s)).length;

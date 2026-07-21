@@ -1,4 +1,6 @@
-// 清一色トレーニングモード用の判定エンジン(筒子1p〜9pのみ・純粋関数)。
+// 清一色トレーニングモード用の判定エンジン(単一スーツ1〜9のみ・純粋関数)。
+// 生成時にスーツ(m/p/s)を指定でき、判定側は手牌の1枚目からスーツを自動判別する
+// (清一色なので手牌全体が同一スーツである前提)。内部計算はすべて数字(ランク)ベース。
 // 毎回ランダム生成される手牌に対し、捨て牌選択後のテンパイ／ノーテンと待ち牌をその場で計算する。
 // 通常形(4面子+雀頭)と七対子形のどちらのテンパイも判定できる。単一スーツのみのため国士無双は対象外。
 //
@@ -10,8 +12,12 @@ import { sortTiles } from './tileUtils';
 
 const RANKS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 
-function tileCode(rank) {
-  return `${rank}p`;
+function tileCode(rank, suit) {
+  return `${rank}${suit}`;
+}
+
+function suitOf(hand) {
+  return hand[0][1];
 }
 
 function rankOf(tile) {
@@ -64,10 +70,10 @@ function isComplete14(counts) {
   return twos === 7 && zeros === 2;
 }
 
-// 1p〜9p各4枚(計36枚)からランダムに14枚を抽出する
-export function generateChinitsuHand() {
+// 指定スーツの1〜9各4枚(計36枚)からランダムに14枚を抽出する
+export function generateChinitsuHand(suit = 'p') {
   const deck = [];
-  for (const r of RANKS) for (let i = 0; i < 4; i++) deck.push(tileCode(r));
+  for (const r of RANKS) for (let i = 0; i < 4; i++) deck.push(tileCode(r, suit));
   for (let i = deck.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [deck[i], deck[j]] = [deck[j], deck[i]];
@@ -84,6 +90,7 @@ export function isWinningHand(hand14) {
 // ukeire は待ち牌ごとの残り枚数(4 - 自分の手牌内の枚数)の合計。
 // value は各待ち牌で上がった場合の役の高さ(簡易比較・後述)のうち最大のもの
 export function analyzeDiscard(hand14, discardedTile) {
+  const suit = suitOf(hand14);
   const counts13 = countsFromTiles(hand14);
   counts13[rankOf(discardedTile)]--;
 
@@ -95,7 +102,7 @@ export function analyzeDiscard(hand14, discardedTile) {
     const counts14 = [...counts13];
     counts14[r]++;
     if (isComplete14(counts14)) {
-      waits.push(tileCode(r));
+      waits.push(tileCode(r, suit));
       ukeire += 4 - counts13[r];
       value = Math.max(value, bestWinValue(counts13, r));
     }
