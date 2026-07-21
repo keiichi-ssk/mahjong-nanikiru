@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TileButton from './TileButton';
 import { getTileImageUrl, getTileLabel, compareTiles, sortTiles } from '../utils/tileUtils';
 import { generateChinitsuHand, analyzeDiscard, computeBestDiscards, judgeChinitsu, isWinningHand } from '../utils/chinitsuUtils';
-import { loadMissedProblems, addMissedProblem, removeMissedProblem } from '../utils/chinitsuStorage';
+import {
+  loadMissedProblems, addMissedProblem, removeMissedProblem,
+  saveChinitsuRound, loadChinitsuRound,
+} from '../utils/chinitsuStorage';
 
 // スーツ選択は各スーツの5の牌を代表としてボタン表示する
 const SUITS = [
@@ -36,7 +39,12 @@ function TileList({ tiles }) {
 export default function ChinitsuTrainer({ onBack }) {
   // 出題スーツ(m/p/s)。localStorageに保存して次回以降も維持する
   const [suit, setSuit] = useState(loadSuit);
-  const [round, setRound] = useState(() => newRound(loadSuit()));
+  // リロードしても同じ手牌が続くよう、保存済みの1問があればそれを復元する
+  const [round, setRound] = useState(() => loadChinitsuRound() ?? newRound(loadSuit()));
+
+  useEffect(() => {
+    saveChinitsuRound(round);
+  }, [round]);
   const [result, setResult] = useState(null);
   const [tally, setTally] = useState({ correct: 0, total: 0 });
   // reviewQueue: null = 通常のランダム出題。配列なら復習モード（現在の1問の後に控えている手牌の残り）
@@ -162,7 +170,7 @@ export default function ChinitsuTrainer({ onBack }) {
     <div className="problem-view">
       <div className="problem-header">
         {onBack ? (
-          <button className="btn-back" onClick={onBack}>← カテゴリへ</button>
+          <button className="btn-back" onClick={onBack}>← 戻る</button>
         ) : (
           <span />
         )}

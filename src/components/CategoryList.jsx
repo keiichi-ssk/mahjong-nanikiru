@@ -187,6 +187,8 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
   }
   // 出題数。null = 全問（選択カテゴリが変わっても常に全問に追従する）
   const [questionCount, setQuestionCount] = useState(null);
+  // 未ログイン時の「非公開のコンテンツ」タブが選択されているか（選択時のみ下に文言を出す）
+  const [lockedTabSelected, setLockedTabSelected] = useState(false);
   // 開いている大カテゴリ（"書籍::大カテゴリ" キーの集合）。初回は全部畳む
   const [openMajors, setOpenMajors] = useState(() => {
     try {
@@ -290,28 +292,42 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
       <div className="book-tabs">
         {onStartChinitsu && (
           <button className="book-tab" onClick={onStartChinitsu}>
-            清一色 何切る道場
+            メンチン何切るドリル
           </button>
         )}
-        {books.map(({ label: bookLabel, majorGroups }) => {
-          const bookSections = majorGroups.flatMap(g => g.sections);
-          const selectedCount = bookSections.filter(s => checkedSections.has(s)).length;
-          return (
-            <button
-              key={bookLabel}
-              className={`book-tab${activeBook === bookLabel ? ' book-tab--active' : ''}`}
-              onClick={() => selectBook(bookLabel)}
-            >
-              {bookLabel}
-              {selectedCount > 0 && (
-                <span className="book-tab-badge">{selectedCount}</span>
-              )}
-            </button>
-          );
-        })}
+        {session ? (
+          books.map(({ label: bookLabel, majorGroups }) => {
+            const bookSections = majorGroups.flatMap(g => g.sections);
+            const selectedCount = bookSections.filter(s => checkedSections.has(s)).length;
+            return (
+              <button
+                key={bookLabel}
+                className={`book-tab${activeBook === bookLabel ? ' book-tab--active' : ''}`}
+                onClick={() => selectBook(bookLabel)}
+              >
+                {bookLabel}
+                {selectedCount > 0 && (
+                  <span className="book-tab-badge">{selectedCount}</span>
+                )}
+              </button>
+            );
+          })
+        ) : (
+          // 未ログイン時は書籍名を出さない（限定公開コンテンツのタイトルを隠す）
+          <button
+            className={`book-tab book-tab--locked${lockedTabSelected ? ' book-tab--active' : ''}`}
+            onClick={() => setLockedTabSelected(v => !v)}
+          >
+            非公開のコンテンツ
+          </button>
+        )}
       </div>
 
-      {activeBookData && activeBookData.majorGroups.length === 0 && (
+      {!session && lockedTabSelected && (
+        <div className="pending-notice">非公開のコンテンツです</div>
+      )}
+
+      {session && activeBookData && activeBookData.majorGroups.length === 0 && (
         <div className="pending-notice">非公開のコンテンツです</div>
       )}
 

@@ -10,6 +10,7 @@ import {
   saveRoundStart, saveRoundRetry, clearRound, loadRound,
   saveCurrentIndex, saveRoundResults, saveRoundAnswers,
   saveSessionFirstResults, saveShowSummary,
+  saveChinitsuMode, loadChinitsuMode,
 } from './utils/roundStorage';
 import './App.css';
 
@@ -89,8 +90,19 @@ export default function App() {
   // （再挑戦で正解しても1度目の誤答を保持し、次回セッションで復習できるようにする）
   const [sessionFirstResults, setSessionFirstResults] = useState({});
   const [showSummary, setShowSummary] = useState(false);
-  // DB問題とは独立した練習モード（ランダム生成・DB非保存）。isPlaying とは別軸で管理する
-  const [chinitsuMode, setChinitsuMode] = useState(false);
+  // DB問題とは独立した練習モード（ランダム生成・DB非保存）。isPlaying とは別軸で管理し、
+  // リロードしてもカテゴリ画面に戻らないよう sessionStorage に保存する
+  const [chinitsuMode, setChinitsuMode] = useState(loadChinitsuMode);
+
+  function enterChinitsu() {
+    setChinitsuMode(true);
+    saveChinitsuMode(true);
+  }
+
+  function exitChinitsu() {
+    setChinitsuMode(false);
+    saveChinitsuMode(false);
+  }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
@@ -314,7 +326,7 @@ export default function App() {
       return <LoadingSkeleton />;
     }
     if (chinitsuMode) {
-      return <ChinitsuTrainer onBack={() => setChinitsuMode(false)} />;
+      return <ChinitsuTrainer onBack={exitChinitsu} />;
     }
     if (!isPlaying) {
       return (
@@ -331,7 +343,7 @@ export default function App() {
           results={results}
           session={session}
           onResetResults={handleResetResults}
-          onStartChinitsu={() => setChinitsuMode(true)}
+          onStartChinitsu={enterChinitsu}
         />
       );
     }

@@ -12,7 +12,7 @@ inject()
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <header className="app-header">
-      <span className="app-header-title">清一色 何切る道場</span>
+      <span className="app-header-title">メンチン何切るドリル</span>
       <a className="app-header-cta" href="/">問題集「座学する麻雀」へ</a>
     </header>
     <ChinitsuTrainer />
