@@ -15,6 +15,8 @@ createRoot(document.getElementById('root')).render(
       <a className="app-header-cta" href="/">問題集「座学する麻雀」へ</a>
     </header>
     <ChinitsuTrainer />
-    <FeedbackWidget source="chinitsu" />
+    <footer className="app-footer">
+      <FeedbackWidget source="chinitsu" />
+    </footer>
   </StrictMode>,
 )

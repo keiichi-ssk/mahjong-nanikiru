@@ -1834,6 +1834,7 @@
   margin: 0 0 12px;
 }
 
+
 /* 清一色トレーニングのルール説明（見出し＋箇条書き。見出し行の右端にスーツ選択） */
 .chinitsu-rules-header {
   display: flex;
@@ -1891,6 +1892,12 @@
   font-size: 0.85rem;
   color: var(--color-text-muted);
   text-decoration: none;
+}
+
+/* フッター内のご意見・ご要望ウィジェット（リンクの上に配置） */
+.app-footer .feedback-widget {
+  margin: 0 0 16px;
+  text-align: left;
 }
 
 @media (hover: hover) {

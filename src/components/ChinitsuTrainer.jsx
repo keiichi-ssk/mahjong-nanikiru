@@ -51,9 +51,17 @@ export default function ChinitsuTrainer({ onBack }) {
   const [round, setRound] = useState(initialRound);
 
   // リロードしても同じ手牌が続くよう、現在の1問を都度保存する
+  // 過去の問題の履歴（回答済み・未回答スキップの両方を含む）。「← 前の問題」で遡って
+  // 閲覧でき、未回答のまま遡った問題はその場で回答もできる（成績・復習リストにも反映）。
+  // 履歴はメモリ内のみ（リロードで消える）・最大 HISTORY_MAX 問
+  const [history, setHistory] = useState([]); // {hand, discardedIndex, selectedWaits, result} の配列
+  const [historyPos, setHistoryPos] = useState(null); // null=現在の問題を表示中。数値なら履歴の閲覧位置
+  const [liveSnapshot, setLiveSnapshot] = useState(null); // 履歴閲覧中に退避しておく「現在の問題」
+
+  // 履歴閲覧中はsessionStorageを上書きしない（リロード復元は常に「現在の問題」）
   useEffect(() => {
-    saveChinitsuRound(round);
-  }, [round]);
+    if (historyPos === null) saveChinitsuRound(round);
+  }, [round, historyPos]);
 
   // シェアURLから開いた場合、?q= は初期手牌として消費済みなのでURLから取り除く
   // （残したままだと「次の問題」以降にリロードしたとき再びシェア手牌に戻ってしまう）
@@ -115,6 +123,9 @@ export default function ChinitsuTrainer({ onBack }) {
   function startReview() {
     const missed = loadMissedProblems();
     if (missed.length === 0) return;
+    // 履歴閲覧中に復習を始めた場合は閲覧状態を解除する（退避中の問題は破棄＝従来の挙動と同じ）
+    setHistoryPos(null);
+    setLiveSnapshot(null);
     const [first, ...rest] = missed;
     setReviewQueue(rest);
     setRound({ hand: first, discardedIndex: null, selectedWaits: new Set() });
@@ -187,7 +198,58 @@ export default function ChinitsuTrainer({ onBack }) {
     </a>
   );
 
-  function nextHand() {
+  const HISTORY_MAX = 50;
+
+  function snapshotCurrent() {
+    return { hand, discardedIndex, selectedWaits, result };
+  }
+
+  function loadEntry(entry) {
+    setRound({ hand: entry.hand, discardedIndex: entry.discardedIndex, selectedWaits: entry.selectedWaits });
+    setResult(entry.result);
+  }
+
+  // 表示中の内容（履歴上で回答した場合の結果を含む）を履歴の現在位置に書き戻す
+  function writeBackToHistory(pos) {
+    const snapshot = snapshotCurrent();
+    setHistory(h => h.map((e, i) => (i === pos ? snapshot : e)));
+  }
+
+  const canGoPrev = historyPos === null ? history.length > 0 : historyPos > 0;
+
+  function goPrev() {
+    if (!canGoPrev) return;
+    if (historyPos === null) {
+      setLiveSnapshot(snapshotCurrent());
+      loadEntry(history[history.length - 1]);
+      setHistoryPos(history.length - 1);
+    } else {
+      writeBackToHistory(historyPos);
+      loadEntry(history[historyPos - 1]);
+      setHistoryPos(historyPos - 1);
+    }
+  }
+
+  function goNext() {
+    // 履歴閲覧中: 1つ先へ。最新まで来たら退避しておいた「現在の問題」に復帰する
+    if (historyPos !== null) {
+      writeBackToHistory(historyPos);
+      if (historyPos < history.length - 1) {
+        loadEntry(history[historyPos + 1]);
+        setHistoryPos(historyPos + 1);
+      } else {
+        loadEntry(liveSnapshot);
+        setLiveSnapshot(null);
+        setHistoryPos(null);
+      }
+      return;
+    }
+    // 現在の問題を（未回答スキップも含めて）履歴に積んでから次の問題へ
+    setHistory(h => {
+      const next = [...h, snapshotCurrent()];
+      if (next.length > HISTORY_MAX) next.shift();
+      return next;
+    });
     if (reviewQueue !== null && reviewQueue.length > 0) {
       const [nextH, ...rest] = reviewQueue;
       setReviewQueue(rest);
@@ -214,7 +276,7 @@ export default function ChinitsuTrainer({ onBack }) {
 
       <div className="chinitsu-rules-header">
         <span className="chinitsu-rules-title">ルール</span>
-        {reviewQueue === null && (
+        {reviewQueue === null && historyPos === null && (
           <div className="chinitsu-suit-tabs" role="group" aria-label="出題するスーツ">
             {SUITS.map(({ code, tile }) => (
               <TileButton
@@ -234,9 +296,14 @@ export default function ChinitsuTrainer({ onBack }) {
         <li>正解は受け入れ枚数（待ち牌の残り枚数）が最大になる打牌。同じ枚数なら高打点が見込める方が正解</li>
       </ul>
 
-      {reviewQueue !== null && (
-        <p className="chinitsu-review-status">復習中（残り{reviewQueue.length + 1}問）</p>
-      )}
+      {/* 常に1行分の高さを確保する（履歴閲覧・復習の出入りで画面全体が上下に動くのを防ぐ） */}
+      <p className="chinitsu-review-status">
+        {reviewQueue !== null
+          ? `復習中（残り${reviewQueue.length + 1}問）`
+          : historyPos !== null
+            ? `過去の問題を表示中（${historyPos + 1}/${history.length}）`
+            : ' '}
+      </p>
 
       {!answered && (
         <p className="naki-choice-instruction">切る牌を選んでください</p>
@@ -294,8 +361,8 @@ export default function ChinitsuTrainer({ onBack }) {
           <div className="answer-tile">
             <span className="answer-tile-name">
               {result.isCorrect
-                ? 'この手牌は完成形でした。ツモの宣言で正解です。'
-                : 'この手牌はまだ完成していません（ツモではありません）。'}
+                ? 'この手牌はアガリの形でした。ツモの宣言で正解です。'
+                : 'この手牌はまだアガリの形ではありません（ツモではありません）。'}
             </span>
           </div>
           {shareButton}
@@ -307,7 +374,7 @@ export default function ChinitsuTrainer({ onBack }) {
           <div className="answer-result">不正解</div>
           <div className="answer-tile">
             <span className="answer-tile-name">
-              この手牌は既に完成形（ツモ）でした。ツモを見逃しています。
+              この手牌は既にアガリの形（ツモ）でした。ツモを見逃しています。
             </span>
           </div>
           {shareButton}
@@ -362,7 +429,12 @@ export default function ChinitsuTrainer({ onBack }) {
       )}
 
       <div className="problem-nav">
-        <button className="btn-nav btn-nav--finish" onClick={nextHand}>
+        {reviewQueue === null && (
+          <button className="btn-nav" onClick={goPrev} disabled={!canGoPrev}>
+            ← 前の問題
+          </button>
+        )}
+        <button className="btn-nav btn-nav--finish" onClick={goNext}>
           次の問題 →
         </button>
       </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from './lib/supabase';
 import CategoryList from './components/CategoryList';
+import FeedbackWidget from './components/FeedbackWidget';
 import ProblemView from './components/ProblemView';
 import SessionSummary from './components/SessionSummary';
 import ChinitsuTrainer from './components/ChinitsuTrainer';
@@ -404,8 +405,9 @@ export default function App() {
         )}
       </header>
       {renderContent()}
-      {/* クローラーがたどれる実リンク（/chinitsu.html の発見用）を兼ねたフッター */}
+      {/* クローラーがたどれる実リンク（/chinitsu.html の発見用）とご意見・ご要望をまとめたフッター */}
       <footer className="app-footer">
+        <FeedbackWidget source="app" />
         <a href="/chinitsu.html">メンチン何切るドリル（無料公開中）</a>
       </footer>
     </>
