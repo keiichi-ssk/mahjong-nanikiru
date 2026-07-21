@@ -404,6 +404,10 @@ export default function App() {
         )}
       </header>
       {renderContent()}
+      {/* クローラーがたどれる実リンク（/chinitsu.html の発見用）を兼ねたフッター */}
+      <footer className="app-footer">
+        <a href="/chinitsu.html">メンチン何切るドリル（無料公開中）</a>
+      </footer>
     </>
   );
 }

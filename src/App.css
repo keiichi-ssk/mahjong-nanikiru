@@ -1847,6 +1847,27 @@
   height: auto;
 }
 
+/* ===== フッター（公開ページへの実リンク） ===== */
+.app-footer {
+  margin-top: 36px;
+  padding: 16px 0 8px;
+  text-align: center;
+  border-top: 1px solid var(--color-border);
+}
+
+.app-footer a {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .app-footer a:hover {
+    color: var(--color-accent);
+    text-decoration: underline;
+  }
+}
+
 /* ===== ご意見・ご要望ウィジェット ===== */
 .feedback-widget {
   margin: 28px 0 8px;
