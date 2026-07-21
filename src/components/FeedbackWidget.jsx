@@ -36,7 +36,7 @@ export default function FeedbackWidget({ source }) {
     return (
       <div className="feedback-widget">
         <button className="feedback-toggle-btn" onClick={() => setOpen(true)}>
-          ご意見・ご要望を送る
+          ご意見・ご要望
         </button>
       </div>
     );

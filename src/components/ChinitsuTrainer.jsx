@@ -172,6 +172,21 @@ export default function ChinitsuTrainer({ onBack }) {
     recordOutcome(isCorrect);
   }
 
+  // 解答パネル（正解・不正解ボックス）4種すべての末尾に共通で入れるシェアボタン
+  const shareButton = (
+    <a
+      className="chinitsu-share-btn"
+      href={buildShareUrl(hand)}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      <svg className="chinitsu-share-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.451-6.231Zm-1.161 17.52h1.833L7.084 4.126H5.117l11.966 15.644Z" />
+      </svg>
+      この問題をシェア
+    </a>
+  );
+
   function nextHand() {
     if (reviewQueue !== null && reviewQueue.length > 0) {
       const [nextH, ...rest] = reviewQueue;
@@ -219,11 +234,6 @@ export default function ChinitsuTrainer({ onBack }) {
         <li>正解は受け入れ枚数（待ち牌の残り枚数）が最大になる打牌。同じ枚数なら高打点が見込める方が正解</li>
       </ul>
 
-      {reviewQueue === null && missedCount > 0 && (
-        <button className="chinitsu-review-btn" onClick={startReview}>
-          間違えた問題を復習（{missedCount}問）
-        </button>
-      )}
       {reviewQueue !== null && (
         <p className="chinitsu-review-status">復習中（残り{reviewQueue.length + 1}問）</p>
       )}
@@ -288,6 +298,7 @@ export default function ChinitsuTrainer({ onBack }) {
                 : 'この手牌はまだ完成していません（ツモではありません）。'}
             </span>
           </div>
+          {shareButton}
         </div>
       )}
 
@@ -299,6 +310,7 @@ export default function ChinitsuTrainer({ onBack }) {
               この手牌は既に完成形（ツモ）でした。ツモを見逃しています。
             </span>
           </div>
+          {shareButton}
         </div>
       )}
 
@@ -316,6 +328,7 @@ export default function ChinitsuTrainer({ onBack }) {
               <span className="answer-tile-name">（受け入れ{result.maxUkeire}枚でテンパイ）</span>
             </div>
           )}
+          {shareButton}
         </div>
       )}
 
@@ -344,21 +357,8 @@ export default function ChinitsuTrainer({ onBack }) {
             <span className="answer-label">最善の打牌時の待ち：</span>
             <TileList tiles={result.bestWaits} />
           </div>
+          {shareButton}
         </div>
-      )}
-
-      {answered && (
-        <a
-          className="chinitsu-share-btn"
-          href={buildShareUrl(hand)}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <svg className="chinitsu-share-icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.451-6.231Zm-1.161 17.52h1.833L7.084 4.126H5.117l11.966 15.644Z" />
-          </svg>
-          この問題をシェア
-        </a>
       )}
 
       <div className="problem-nav">
@@ -366,6 +366,12 @@ export default function ChinitsuTrainer({ onBack }) {
           次の問題 →
         </button>
       </div>
+
+      {reviewQueue === null && missedCount > 0 && (
+        <button className="chinitsu-review-btn" onClick={startReview}>
+          間違えた問題を復習（{missedCount}問）
+        </button>
+      )}
     </div>
   );
 }

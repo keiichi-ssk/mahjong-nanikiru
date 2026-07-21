@@ -1775,13 +1775,13 @@
 }
 
 
-/* 回答後に出す「この問題をシェア」ボタン（X公式シェアボタン風の黒地×白ロゴ） */
+/* 解答パネル内に出す「この問題をシェア」ボタン（X公式シェアボタン風の黒地×白ロゴ） */
 .chinitsu-share-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  margin: 0 0 14px;
+  margin: 12px 0 0;
   padding: 12px;
   background: #000;
   border: 1px solid var(--color-border-strong);
@@ -1819,7 +1819,7 @@
   font-weight: bold;
   cursor: pointer;
   transition: background 0.15s;
-  margin-bottom: 12px;
+  margin-top: 14px;
 }
 
 @media (hover: hover) {
