@@ -6,6 +6,7 @@ import {
   loadMissedProblems, addMissedProblem, removeMissedProblem,
   saveChinitsuRound, loadChinitsuRound,
 } from '../utils/chinitsuStorage';
+import { decodeHandParam, buildShareUrl } from '../utils/chinitsuShare';
 
 // スーツ選択は各スーツの5の牌を代表としてボタン表示する
 const SUITS = [
@@ -21,6 +22,14 @@ function loadSuit() {
 
 function newRound(suit) {
   return { hand: generateChinitsuHand(suit), discardedIndex: null, selectedWaits: new Set() };
+}
+
+// 初期手牌の優先順位: シェアURLの ?q= パラメータ → sessionStorage の復元 → ランダム生成
+function initialRound() {
+  const param = new URLSearchParams(window.location.search).get('q');
+  const sharedHand = param ? decodeHandParam(param) : null;
+  if (sharedHand) return { hand: sharedHand, discardedIndex: null, selectedWaits: new Set() };
+  return loadChinitsuRound() ?? newRound(loadSuit());
 }
 
 function TileList({ tiles }) {
@@ -39,12 +48,21 @@ function TileList({ tiles }) {
 export default function ChinitsuTrainer({ onBack }) {
   // 出題スーツ(m/p/s)。localStorageに保存して次回以降も維持する
   const [suit, setSuit] = useState(loadSuit);
-  // リロードしても同じ手牌が続くよう、保存済みの1問があればそれを復元する
-  const [round, setRound] = useState(() => loadChinitsuRound() ?? newRound(loadSuit()));
+  const [round, setRound] = useState(initialRound);
 
+  // リロードしても同じ手牌が続くよう、現在の1問を都度保存する
   useEffect(() => {
     saveChinitsuRound(round);
   }, [round]);
+
+  // シェアURLから開いた場合、?q= は初期手牌として消費済みなのでURLから取り除く
+  // （残したままだと「次の問題」以降にリロードしたとき再びシェア手牌に戻ってしまう）
+  useEffect(() => {
+    if (!new URLSearchParams(window.location.search).has('q')) return;
+    const url = new URL(window.location.href);
+    url.searchParams.delete('q');
+    window.history.replaceState(null, '', url);
+  }, []);
   const [result, setResult] = useState(null);
   const [tally, setTally] = useState({ correct: 0, total: 0 });
   // reviewQueue: null = 通常のランダム出題。配列なら復習モード（現在の1問の後に控えている手牌の残り）
@@ -327,6 +345,20 @@ export default function ChinitsuTrainer({ onBack }) {
             <TileList tiles={result.bestWaits} />
           </div>
         </div>
+      )}
+
+      {answered && (
+        <a
+          className="chinitsu-share-btn"
+          href={buildShareUrl(hand)}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <svg className="chinitsu-share-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.451-6.231Zm-1.161 17.52h1.833L7.084 4.126H5.117l11.966 15.644Z" />
+          </svg>
+          この問題をシェア
+        </a>
       )}
 
       <div className="problem-nav">
