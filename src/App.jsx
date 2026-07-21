@@ -3,6 +3,7 @@ import { supabase } from './lib/supabase';
 import CategoryList from './components/CategoryList';
 import ProblemView from './components/ProblemView';
 import SessionSummary from './components/SessionSummary';
+import ChinitsuTrainer from './components/ChinitsuTrainer';
 import { isSectionAllowed } from './utils/categoryUtils';
 import { fromDb } from './utils/problemMapper';
 import {
@@ -88,6 +89,8 @@ export default function App() {
   // （再挑戦で正解しても1度目の誤答を保持し、次回セッションで復習できるようにする）
   const [sessionFirstResults, setSessionFirstResults] = useState({});
   const [showSummary, setShowSummary] = useState(false);
+  // DB問題とは独立した練習モード（ランダム生成・DB非保存）。isPlaying とは別軸で管理する
+  const [chinitsuMode, setChinitsuMode] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
@@ -310,6 +313,9 @@ export default function App() {
     if (loading) {
       return <LoadingSkeleton />;
     }
+    if (chinitsuMode) {
+      return <ChinitsuTrainer onBack={() => setChinitsuMode(false)} />;
+    }
     if (!isPlaying) {
       return (
         <CategoryList
@@ -325,6 +331,7 @@ export default function App() {
           results={results}
           session={session}
           onResetResults={handleResetResults}
+          onStartChinitsu={() => setChinitsuMode(true)}
         />
       );
     }

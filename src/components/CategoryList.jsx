@@ -160,7 +160,7 @@ function MajorGroup({
   );
 }
 
-export default function CategoryList({ categories, problems, randomMode, onToggleRandom, unansweredOnlyMode, onToggleUnansweredOnly, wrongOnlyMode, onToggleWrongOnly, onStart, results = {}, session, onResetResults }) {
+export default function CategoryList({ categories, problems, randomMode, onToggleRandom, unansweredOnlyMode, onToggleUnansweredOnly, wrongOnlyMode, onToggleWrongOnly, onStart, results = {}, session, onResetResults, onStartChinitsu }) {
   const books = groupByBook(categories);
   // section → 問題配列。render のたびに全問題を何度も filter しないための索引
   const problemsBySection = useMemo(() => {
@@ -278,6 +278,14 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
 
   return (
     <div className="category-list">
+
+      {onStartChinitsu && (
+        <div className="chinitsu-entry-card" role="button" tabIndex={0} onClick={onStartChinitsu}
+          onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onStartChinitsu()}>
+          <span className="chinitsu-entry-title">清一色 何切る道場</span>
+          <span className="chinitsu-entry-desc">ランダム生成される清一色の手牌で、テンパイ・ノーテンと待ち牌の判断を鍛える</span>
+        </div>
+      )}
 
       <div className="toggle-rows">
         <ToggleRow label="シャッフル出題" checked={randomMode} onToggle={onToggleRandom} />
