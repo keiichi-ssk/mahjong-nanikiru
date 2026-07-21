@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { groupByBook, sectionLabel } from '../utils/categoryUtils';
 import { useTap } from '../utils/useTap';
+import FeedbackWidget from './FeedbackWidget';
 
 function ToggleRow({ label, checked, onToggle }) {
   // 縦に並ぶトグルを素早く連続タップすると、ダブルタップ結合で
@@ -415,6 +416,8 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
           </div>
         );
       })()}
+
+      <FeedbackWidget source="app" />
     </div>
   );
 }
