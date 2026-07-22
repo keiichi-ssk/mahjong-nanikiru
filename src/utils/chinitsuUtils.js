@@ -97,6 +97,7 @@ export function analyzeDiscard(hand14, discardedTile) {
   const waits = [];
   let ukeire = 0;
   let value = 0;
+  let valueYaku = []; // value(最大打点)を実現する上がりの複合役キー
   for (const r of RANKS) {
     if (counts13[r] >= 4) continue; // 手牌に既に4枚あれば5枚目は存在しない
     const counts14 = [...counts13];
@@ -104,10 +105,11 @@ export function analyzeDiscard(hand14, discardedTile) {
     if (isComplete14(counts14)) {
       waits.push(tileCode(r, suit));
       ukeire += 4 - counts13[r];
-      value = Math.max(value, bestWinValue(counts13, r));
+      const win = bestWin(counts13, r);
+      if (win.value > value) { value = win.value; valueYaku = win.yaku; }
     }
   }
-  return { isTenpai: waits.length > 0, waits, ukeire, value };
+  return { isTenpai: waits.length > 0, waits, ukeire, value, valueYaku };
 }
 
 // 14枚の手牌に対し、あり得る全打牌候補(重複牌は1種類にまとめる)の中から
@@ -136,6 +138,18 @@ const YAKU_VALUES = {
   toitoi: 2,
   sanankou: 2,
   junchan: 3,
+};
+
+// 表示用の役名（打点で不正解になったときに「最善の打牌に付く複合役」を示すために使う）
+export const YAKU_NAMES = {
+  chiitoitsu: '七対子',
+  pinfu: '平和',
+  iipeikou: '一盃口',
+  ryanpeikou: '二盃口',
+  ittsuu: '一気通貫',
+  toitoi: '対々和',
+  sanankou: '三暗刻',
+  junchan: '純全帯幺九',
 };
 
 // counts から setsNeeded 個の面子を選ぶすべての組み合わせを列挙し、
@@ -169,44 +183,50 @@ function setHasTerminal(set) {
   return set.type === 'triplet' ? (set.value === 1 || set.value === 9) : (set.start === 1 || set.start === 7);
 }
 
-// 4面子+雀頭の完成形から、待ちの種類(waitKind)によらず決まる役の合計を求める
+// 4面子+雀頭の完成形から、待ちの種類(waitKind)によらず決まる役を求める。
+// { han: 合計飜(簡易), yaku: 役キーの配列 } を返す
 function evaluateFinalHand(finalSets, pairRank) {
   const allRuns = finalSets.every(s => s.type === 'run');
   const allTriplets = finalSets.every(s => s.type === 'triplet');
   const tripletCount = finalSets.filter(s => s.type === 'triplet').length;
 
-  let han = 0;
-  if (allTriplets) han += YAKU_VALUES.toitoi;
-  if (tripletCount >= 3) han += YAKU_VALUES.sanankou; // ツモ前提のため刻子はすべて暗刻扱い
+  const yaku = [];
+  const add = (key) => yaku.push(key);
+  if (allTriplets) add('toitoi');
+  if (tripletCount >= 3) add('sanankou'); // ツモ前提のため刻子はすべて暗刻扱い
 
   if (allRuns) {
     const startCounts = {};
     finalSets.forEach(s => { startCounts[s.start] = (startCounts[s.start] ?? 0) + 1; });
     const pairGroups = Object.values(startCounts).filter(c => c >= 2).length;
-    if (pairGroups >= 2) han += YAKU_VALUES.ryanpeikou;
-    else if (pairGroups === 1) han += YAKU_VALUES.iipeikou;
+    if (pairGroups >= 2) add('ryanpeikou');
+    else if (pairGroups === 1) add('iipeikou');
 
     const starts = new Set(finalSets.map(s => s.start));
-    if (starts.has(1) && starts.has(4) && starts.has(7)) han += YAKU_VALUES.ittsuu;
+    if (starts.has(1) && starts.has(4) && starts.has(7)) add('ittsuu');
   }
 
   if (finalSets.every(setHasTerminal) && (pairRank === 1 || pairRank === 9)) {
-    han += YAKU_VALUES.junchan;
+    add('junchan');
   }
-  return han;
+
+  const han = yaku.reduce((sum, key) => sum + YAKU_VALUES[key], 0);
+  return { han, yaku };
 }
 
-// counts13(13枚)に牌 w を加えて上がった場合の、あり得る解釈の中で最も高い役の合計を返す
-// (符・点数までは計算しない簡易版。国士無双は単一スーツのため対象外)
-function bestWinValue(counts13, w) {
-  let best = 0;
+// counts13(13枚)に牌 w を加えて上がった場合の、あり得る解釈の中で最も高い役を返す。
+// { value: 合計飜(簡易), yaku: 役キーの配列 } を返す（符・点数までは計算しない簡易版。
+// 国士無双は単一スーツのため対象外）
+function bestWin(counts13, w) {
+  let best = { value: 0, yaku: [] };
+  const consider = (value, yaku) => { if (value > best.value) best = { value, yaku }; };
 
   // 七対子(6対子+1枚 → w で7組目の対子が完成)
   const withW = [...counts13];
   withW[w] += 1;
   const vals = RANKS.map(r => withW[r]);
   if (vals.filter(c => c === 2).length === 7 && vals.filter(c => c === 0).length === 2) {
-    best = Math.max(best, YAKU_VALUES.chiitoitsu);
+    consider(YAKU_VALUES.chiitoitsu, ['chiitoitsu']);
   }
 
   // 通常形: 3組+対子+塔子(リャンメン/ペンチャン/カンチャン) または 3組+2対子(シャンポン)
@@ -217,7 +237,8 @@ function bestWinValue(counts13, w) {
       if (remaining[x] === 2 && remaining[y] === 2 && (w === x || w === y)) {
         const pairRank = w === x ? y : x;
         const finalSets = [...base3, { type: 'triplet', value: w }];
-        best = Math.max(best, evaluateFinalHand(finalSets, pairRank));
+        const { han, yaku } = evaluateFinalHand(finalSets, pairRank);
+        consider(han, yaku);
       }
     } else if (nonzero.length === 3) {
       const pairRank = nonzero.find(r => remaining[r] === 2);
@@ -237,9 +258,12 @@ function bestWinValue(counts13, w) {
         }
         if (waitKind) {
           const finalSets = [...base3, { type: 'run', start }];
-          let han = evaluateFinalHand(finalSets, pairRank);
-          if (waitKind === 'ryanmen' && finalSets.every(s => s.type === 'run')) han += YAKU_VALUES.pinfu;
-          best = Math.max(best, han);
+          const { han, yaku } = evaluateFinalHand(finalSets, pairRank);
+          if (waitKind === 'ryanmen' && finalSets.every(s => s.type === 'run')) {
+            consider(han + YAKU_VALUES.pinfu, [...yaku, 'pinfu']);
+          } else {
+            consider(han, yaku);
+          }
         }
       }
     }
@@ -249,7 +273,8 @@ function bestWinValue(counts13, w) {
   for (const { sets: base4, remaining } of enumerateSetCombos(counts13, 4)) {
     const nonzero = RANKS.filter(r => remaining[r] > 0);
     if (nonzero.length === 1 && remaining[nonzero[0]] === 1 && nonzero[0] === w) {
-      best = Math.max(best, evaluateFinalHand(base4, w));
+      const { han, yaku } = evaluateFinalHand(base4, w);
+      consider(han, yaku);
     }
   }
 
@@ -271,4 +296,45 @@ export function judgeChinitsu(hand14, discardedTile, judgment, selectedWaits) {
     return sel.size === analysis.waits.length && analysis.waits.every(w => sel.has(w));
   }
   return false;
+}
+
+// ユーザーの回答を評価し、解答パネル表示に必要な結果オブジェクトを組み立てる（純粋関数）。
+// 練習モード・タイムアタックの両方がこれを呼ぶ（判定・結果生成の唯一の実装）。
+// action: 'tsumo'（ツモ宣言）| 'noten'（ノーテン宣言）| 'tenpai'（切る牌+待ちを指定してテンパイ回答）
+// 返り値の mode は 'agari' | 'missed-agari' | 'noten' | 'discard'。isCorrect が正誤。
+export function evaluateAnswer(hand14, action, discardedTile, selectedWaits) {
+  if (action === 'tsumo') {
+    return { mode: 'agari', isCorrect: isWinningHand(hand14) };
+  }
+  // アガリの手で「ノーテン」「テンパイ回答」を選ぶのはアガリ見逃し＝不正解
+  if (isWinningHand(hand14)) {
+    return { mode: 'missed-agari', isCorrect: false };
+  }
+
+  const { maxUkeire, bestTiles, analysisByTile } = computeBestDiscards(hand14);
+
+  if (action === 'noten') {
+    return { mode: 'noten', isCorrect: maxUkeire === 0, maxUkeire, bestTiles };
+  }
+
+  // action === 'tenpai'
+  const actualAnalysis = analyzeDiscard(hand14, discardedTile);
+  const isCorrect = judgeChinitsu(hand14, discardedTile, 'tenpai', selectedWaits);
+  const bestWaits = sortTiles([...new Set(bestTiles.flatMap(t => analysisByTile.get(t).waits))]);
+
+  // 打点で不正解になったケース: 受け入れ枚数は最大と同じだが、役(打点)が最善に届かず
+  // bestTiles に入れなかった打牌を選んでいる。このとき最善の打牌に付く複合役を提示する
+  const maxValue = Math.max(...bestTiles.map(t => analysisByTile.get(t).value));
+  const isValueMiss = actualAnalysis.isTenpai
+    && actualAnalysis.ukeire === maxUkeire
+    && !bestTiles.includes(discardedTile)
+    && actualAnalysis.value < maxValue;
+  const bestYaku = isValueMiss
+    ? [...new Set(bestTiles.flatMap(t => analysisByTile.get(t).valueYaku))].map(k => YAKU_NAMES[k])
+    : [];
+
+  return {
+    mode: 'discard', isCorrect, maxUkeire, bestTiles, bestWaits,
+    actualAnalysis, waits: selectedWaits, isValueMiss, bestYaku,
+  };
 }

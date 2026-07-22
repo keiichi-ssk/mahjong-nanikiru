@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import TileButton from './TileButton';
-import { getTileImageUrl, getTileLabel, compareTiles, sortTiles } from '../utils/tileUtils';
-import { generateChinitsuHand, analyzeDiscard, computeBestDiscards, judgeChinitsu, isWinningHand } from '../utils/chinitsuUtils';
+import ChinitsuAnswerInput from './ChinitsuAnswerInput';
+import ChinitsuAnswerResult from './ChinitsuAnswerResult';
+import { generateChinitsuHand, evaluateAnswer } from '../utils/chinitsuUtils';
 import {
-  loadMissedProblems, addMissedProblem, removeMissedProblem,
+  loadMissedProblems, removeMissedProblem,
   saveChinitsuRound, loadChinitsuRound,
 } from '../utils/chinitsuStorage';
 import { decodeHandParam, buildShareUrl } from '../utils/chinitsuShare';
@@ -32,20 +33,13 @@ function initialRound() {
   return loadChinitsuRound() ?? newRound(loadSuit());
 }
 
-function TileList({ tiles }) {
-  return tiles.map(t => (
-    <div key={t} className="tile-readonly">
-      <img src={getTileImageUrl(t)} alt={getTileLabel(t)} />
-    </div>
-  ));
-}
 
 // 清一色トレーニング。毎回ランダム生成した筒子14枚に対し、ツモ／ノーテン／
 // （切る牌+待ち牌の指定による）テンパイ、のいずれかを最初から自由に選んで回答する。
 // 正誤は chinitsuUtils.js が算出する受け入れ枚数・待ちと照合してその場で判定する
 // （DB・Supabaseには一切保存しない、セッション内のみの独立モード）
 // onBack 省略時は認証不要の単独公開ページ（chinitsu.html）用として「戻る」ボタンを出さない
-export default function ChinitsuTrainer({ onBack }) {
+export default function ChinitsuTrainer({ onBack, onTimeAttack }) {
   // 出題スーツ(m/p/s)。localStorageに保存して次回以降も維持する
   const [suit, setSuit] = useState(loadSuit);
   const [round, setRound] = useState(initialRound);
@@ -80,8 +74,6 @@ export default function ChinitsuTrainer({ onBack }) {
   const { hand, discardedIndex, selectedWaits } = round;
   const answered = result !== null;
   const discarded = discardedIndex != null ? hand[discardedIndex] : null;
-  // 待ち牌の候補は現在の手牌のスーツに追従する（復習モードでは保存時のスーツになる）
-  const waitCandidates = Array.from({ length: 9 }, (_, i) => `${i + 1}${hand[0][1]}`);
 
   // スーツ切り替え。手牌は再生成せず、同じ数字構成のままスーツだけ置き換える。
   // 数字ベースのソート順は変わらないため discardedIndex はそのまま有効。
@@ -109,14 +101,10 @@ export default function ChinitsuTrainer({ onBack }) {
     });
   }
 
-  // 正解ならレビュー中の問題を復習リストから外し、不正解なら復習リストに記録する
-  // （リスト保存はlocalStorageのみ・DBには保存しない）
+  // 練習モードは復習リストへ「保存」しない（保存はタイムアタックの誤答のみ・ChinitsuTimeAttack）。
+  // 復習モード中に正解したら、その問題を復習リストから外すだけ（リストはlocalStorageのみ）
   function recordOutcome(isCorrect) {
-    if (isCorrect) {
-      if (reviewQueue !== null) removeMissedProblem(hand);
-    } else {
-      addMissedProblem(hand);
-    }
+    if (isCorrect && reviewQueue !== null) removeMissedProblem(hand);
     setMissedCount(loadMissedProblems().length);
   }
 
@@ -129,6 +117,13 @@ export default function ChinitsuTrainer({ onBack }) {
     const [first, ...rest] = missed;
     setReviewQueue(rest);
     setRound({ hand: first, discardedIndex: null, selectedWaits: new Set() });
+    setResult(null);
+  }
+
+  // 復習モードを抜けて通常の練習出題に戻る
+  function exitReview() {
+    setReviewQueue(null);
+    setRound(newRound(suit));
     setResult(null);
   }
 
@@ -146,41 +141,15 @@ export default function ChinitsuTrainer({ onBack }) {
     });
   }
 
-  function declareAgari() {
+  // 回答（ツモ／ノーテン／テンパイ）を評価し、結果表示・成績・復習リストへ反映する。
+  // 判定と結果生成は evaluateAnswer（純粋関数）が担い、ここは副作用の配線だけ
+  function submitAnswer(action) {
     if (answered) return;
-    const isCorrect = isWinningHand(hand);
-    setResult({ mode: 'agari', isCorrect });
-    setTally(t => ({ correct: t.correct + (isCorrect ? 1 : 0), total: t.total + 1 }));
-    recordOutcome(isCorrect);
-  }
-
-  // 既にアガリの手で「ノーテン」または「テンパイ+待ち」を回答してしまった＝アガリを見逃している
-  function recordMissedAgari() {
-    setResult({ mode: 'missed-agari', isCorrect: false });
-    setTally(t => ({ ...t, total: t.total + 1 }));
-    recordOutcome(false);
-  }
-
-  function declareNoten() {
-    if (answered) return;
-    if (isWinningHand(hand)) return recordMissedAgari();
-    const { maxUkeire, bestTiles } = computeBestDiscards(hand);
-    const isCorrect = maxUkeire === 0;
-    setResult({ mode: 'noten', isCorrect, maxUkeire, bestTiles });
-    setTally(t => ({ correct: t.correct + (isCorrect ? 1 : 0), total: t.total + 1 }));
-    recordOutcome(isCorrect);
-  }
-
-  function submitTenpai() {
-    if (answered || !discarded || selectedWaits.size === 0) return;
-    if (isWinningHand(hand)) return recordMissedAgari();
-    const { maxUkeire, bestTiles, analysisByTile } = computeBestDiscards(hand);
-    const actualAnalysis = analyzeDiscard(hand, discarded);
-    const isCorrect = judgeChinitsu(hand, discarded, 'tenpai', selectedWaits);
-    const bestWaits = sortTiles([...new Set(bestTiles.flatMap(t => analysisByTile.get(t).waits))]);
-    setResult({ mode: 'discard', isCorrect, maxUkeire, bestTiles, bestWaits, actualAnalysis, waits: selectedWaits });
-    setTally(t => ({ correct: t.correct + (isCorrect ? 1 : 0), total: t.total + 1 }));
-    recordOutcome(isCorrect);
+    if (action === 'tenpai' && (!discarded || selectedWaits.size === 0)) return;
+    const res = evaluateAnswer(hand, action, discarded, selectedWaits);
+    setResult(res);
+    setTally(t => ({ correct: t.correct + (res.isCorrect ? 1 : 0), total: t.total + 1 }));
+    recordOutcome(res.isCorrect);
   }
 
   // 解答パネル（正解・不正解ボックス）4種すべての末尾に共通で入れるシェアボタン
@@ -305,127 +274,20 @@ export default function ChinitsuTrainer({ onBack }) {
             : ' '}
       </p>
 
-      {!answered && (
-        <p className="naki-choice-instruction">切る牌を選んでください</p>
-      )}
-      <div className="tile-selector-row">
-        <div className="tile-selector" style={{ '--hand-count': 14 }}>
-          {hand.map((tile, i) => (
-            <TileButton
-              key={`${tile}-${i}`}
-              tile={tile}
-              onClick={() => selectDiscard(i)}
-              state={i === discardedIndex ? 'selected' : (answered ? 'disabled' : null)}
-            />
-          ))}
-        </div>
-      </div>
+      <ChinitsuAnswerInput
+        hand={hand}
+        discardedIndex={discardedIndex}
+        selectedWaits={selectedWaits}
+        answered={answered}
+        onSelectDiscard={selectDiscard}
+        onToggleWait={toggleWait}
+        onTsumo={() => submitAnswer('tsumo')}
+        onNoten={() => submitAnswer('noten')}
+        onSubmit={() => submitAnswer('tenpai')}
+      />
 
-      {!answered && (
-        <div className="riichi-choice-btns">
-          <button className="riichi-choice-btn chinitsu-tsumo-btn" onClick={declareAgari}>
-            ツモ
-          </button>
-          <button className="riichi-choice-btn tenpai-choice-btn--noten" onClick={declareNoten}>
-            ノーテン
-          </button>
-        </div>
-      )}
-
-      {!answered && (
-        <>
-          <p className="naki-choice-instruction">待ち牌をすべて選んでください（複数選択可）</p>
-          <div className="tile-selector" style={{ '--hand-count': 9 }}>
-            {waitCandidates.map(tile => (
-              <TileButton
-                key={tile}
-                tile={tile}
-                onClick={() => toggleWait(tile)}
-                state={selectedWaits.has(tile) ? 'selected' : null}
-              />
-            ))}
-          </div>
-          <button
-            className="naki-choice-submit-btn"
-            disabled={!discarded || selectedWaits.size === 0}
-            onClick={submitTenpai}
-          >
-            回答する
-          </button>
-        </>
-      )}
-
-      {answered && result.mode === 'agari' && (
-        <div className={`answer-panel ${result.isCorrect ? 'answer-panel--correct' : 'answer-panel--wrong'}`}>
-          <div className="answer-result">{result.isCorrect ? '正解！' : '不正解'}</div>
-          <div className="answer-tile">
-            <span className="answer-tile-name">
-              {result.isCorrect
-                ? 'この手牌はアガリの形でした。ツモの宣言で正解です。'
-                : 'この手牌はまだアガリの形ではありません（ツモではありません）。'}
-            </span>
-          </div>
-          {shareButton}
-        </div>
-      )}
-
-      {answered && result.mode === 'missed-agari' && (
-        <div className="answer-panel answer-panel--wrong">
-          <div className="answer-result">不正解</div>
-          <div className="answer-tile">
-            <span className="answer-tile-name">
-              この手牌は既にアガリの形（ツモ）でした。ツモを見逃しています。
-            </span>
-          </div>
-          {shareButton}
-        </div>
-      )}
-
-      {answered && result.mode === 'noten' && (
-        <div className={`answer-panel ${result.isCorrect ? 'answer-panel--correct' : 'answer-panel--wrong'}`}>
-          <div className="answer-result">{result.isCorrect ? '正解！' : '不正解'}</div>
-          {result.isCorrect ? (
-            <div className="answer-tile">
-              <span className="answer-tile-name">この手牌はどの牌を切ってもテンパイになりません。</span>
-            </div>
-          ) : (
-            <div className="answer-tile">
-              <span className="answer-label">実は最善の打牌：</span>
-              <TileList tiles={result.bestTiles} />
-              <span className="answer-tile-name">（受け入れ{result.maxUkeire}枚でテンパイ）</span>
-            </div>
-          )}
-          {shareButton}
-        </div>
-      )}
-
-      {answered && result.mode === 'discard' && (
-        <div className={`answer-panel ${result.isCorrect ? 'answer-panel--correct' : 'answer-panel--wrong'}`}>
-          <div className="answer-result">{result.isCorrect ? '正解！' : '不正解'}</div>
-
-          <div className="answer-tile">
-            <span className="answer-label">切った牌：</span>
-            <TileList tiles={[discarded]} />
-            <span className="answer-tile-name">（受け入れ{result.actualAnalysis.ukeire}枚）</span>
-          </div>
-
-          <div className="answer-tile">
-            <span className="answer-label">回答した待ち：</span>
-            <TileList tiles={[...result.waits].sort(compareTiles)} />
-          </div>
-
-          <div className="answer-tile">
-            <span className="answer-label">最善の打牌：</span>
-            <TileList tiles={result.bestTiles} />
-            <span className="answer-tile-name">（受け入れ{result.maxUkeire}枚）</span>
-          </div>
-
-          <div className="answer-tile">
-            <span className="answer-label">最善の打牌時の待ち：</span>
-            <TileList tiles={result.bestWaits} />
-          </div>
-          {shareButton}
-        </div>
+      {answered && (
+        <ChinitsuAnswerResult result={result} discarded={discarded} footer={shareButton} />
       )}
 
       <div className="problem-nav">
@@ -439,10 +301,25 @@ export default function ChinitsuTrainer({ onBack }) {
         </button>
       </div>
 
-      {reviewQueue === null && missedCount > 0 && (
-        <button className="chinitsu-review-btn" onClick={startReview}>
-          間違えた問題を復習（{missedCount}問）
-        </button>
+      {historyPos === null && (
+        reviewQueue !== null ? (
+          // 復習モード: 練習モードへ戻る／タイムアタックへ を横並びで表示（周囲に合わせ全幅）
+          <div className="chinitsu-ta-actions chinitsu-ta-actions--full">
+            <button className="chinitsu-review-btn" onClick={exitReview}>📖 練習モードへ</button>
+            <button className="chinitsu-timeattack-btn" onClick={onTimeAttack}>⏱ タイムアタック</button>
+          </div>
+        ) : (
+          <>
+            {missedCount > 0 && (
+              <button className="chinitsu-review-btn" onClick={startReview}>
+                間違えた問題を復習（{missedCount}問）
+              </button>
+            )}
+            <button className="chinitsu-timeattack-btn" onClick={onTimeAttack}>
+              ⏱ タイムアタックに挑戦（3分で何問解ける？）
+            </button>
+          </>
+        )
       )}
     </div>
   );

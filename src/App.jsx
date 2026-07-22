@@ -4,7 +4,7 @@ import CategoryList from './components/CategoryList';
 import FeedbackWidget from './components/FeedbackWidget';
 import ProblemView from './components/ProblemView';
 import SessionSummary from './components/SessionSummary';
-import ChinitsuTrainer from './components/ChinitsuTrainer';
+import ChinitsuDrill from './components/ChinitsuDrill';
 import { isSectionAllowed } from './utils/categoryUtils';
 import { fromDb } from './utils/problemMapper';
 import {
@@ -327,7 +327,7 @@ export default function App() {
       return <LoadingSkeleton />;
     }
     if (chinitsuMode) {
-      return <ChinitsuTrainer onBack={exitChinitsu} />;
+      return <ChinitsuDrill onBack={exitChinitsu} />;
     }
     if (!isPlaying) {
       return (

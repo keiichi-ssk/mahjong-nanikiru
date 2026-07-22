@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { handToNotation, encodeHandParam, decodeHandParam, buildShareUrl } from './chinitsuShare';
+import { handToNotation, encodeHandParam, decodeHandParam, buildShareUrl, buildTimeAttackShareUrl } from './chinitsuShare';
 
 const HAND_M = ['1m', '1m', '2m', '3m', '4m', '5m', '5m', '6m', '7m', '8m', '9m', '9m', '9m', '9m'];
 
@@ -48,5 +48,21 @@ describe('buildShareUrl', () => {
     expect(decodeURIComponent(url)).toContain('api/share?q=11234556789999m');
     expect(decodeURIComponent(url)).toContain('#メンチン何切るドリル');
     expect(decodeURIComponent(url)).toContain('一一二三四五五六七八九九九九');
+  });
+});
+
+describe('buildTimeAttackShareUrl', () => {
+  it('正答数・公開ページへのリンク・ハッシュタグが含まれる', () => {
+    const url = buildTimeAttackShareUrl(12);
+    expect(url).toMatch(/^https:\/\/twitter\.com\/intent\/tweet\?text=/);
+    const decoded = decodeURIComponent(url);
+    expect(decoded).toContain('タイムアタック');
+    expect(decoded).toContain('3分で12問正解！');
+    expect(decoded).toContain('#メンチン何切るドリル');
+    expect(decoded).toContain('zagaku-mahjong.vercel.app/chinitsu.html');
+  });
+
+  it('0問でも文言が壊れない', () => {
+    expect(decodeURIComponent(buildTimeAttackShareUrl(0))).toContain('3分で0問正解！');
   });
 });

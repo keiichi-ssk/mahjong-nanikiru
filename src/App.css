@@ -1224,6 +1224,19 @@
   color: var(--color-text-secondary);
 }
 
+/* 打点（役）の違いで不正解になったときの補足メッセージ */
+.answer-value-miss {
+  margin-top: 4px;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+}
+
+.answer-value-miss strong {
+  color: var(--color-accent);
+  margin: 0 2px;
+}
+
 .answer-tile-image {
   width: 44px;
   height: 60px;
@@ -1810,12 +1823,12 @@
 .chinitsu-review-btn {
   display: block;
   width: 100%;
-  padding: 10px;
+  padding: 13px;
   background: rgba(136, 192, 208, 0.1);
   border: 1px solid var(--color-accent);
   border-radius: 8px;
   color: var(--color-accent);
-  font-size: 0.9rem;
+  font-size: 1rem;
   font-weight: bold;
   cursor: pointer;
   transition: background 0.15s;
@@ -1832,6 +1845,178 @@
   font-size: 0.9rem;
   color: var(--color-accent);
   margin: 0 0 12px;
+}
+
+/* ===== タイムアタックモード ===== */
+/* 通常モードから起動するボタン（下部のCTA。復習ボタンと並ぶ） */
+.chinitsu-timeattack-btn {
+  display: block;
+  width: 100%;
+  padding: 13px;
+  margin-top: 12px;
+  background: linear-gradient(135deg, var(--color-primary), #b48ead);
+  border: none;
+  border-radius: 8px;
+  color: var(--color-text-bright);
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: filter 0.15s, box-shadow 0.2s;
+}
+
+@media (hover: hover) {
+  .chinitsu-timeattack-btn:hover {
+    filter: brightness(1.08);
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* スタート画面・結果画面の共通の中央寄せブロック */
+.chinitsu-ta-intro,
+.chinitsu-ta-result {
+  text-align: center;
+  padding: 12px 0;
+}
+
+.chinitsu-ta-intro .chinitsu-instruction-list {
+  text-align: left;
+  margin: 6px auto 16px;
+  max-width: 32em;
+}
+
+/* スタート画面の各ルールセクションの見出し（リストの左端に揃える） */
+.chinitsu-ta-section-label {
+  text-align: left;
+  max-width: 32em;
+  margin: 14px auto 0;
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: var(--color-accent);
+}
+
+.chinitsu-ta-title {
+  font-size: 1.25rem;
+  color: var(--color-text-bright);
+  margin-bottom: 8px;
+}
+
+.chinitsu-ta-lead {
+  font-size: 1rem;
+  color: var(--color-accent);
+  margin-bottom: 8px;
+}
+
+.chinitsu-ta-start-btn {
+  display: block;
+  width: 100%;
+  max-width: 22em;
+  margin: 8px auto 0;
+  padding: 13px;
+  background: linear-gradient(135deg, var(--color-primary), #b48ead);
+  border: none;
+  border-radius: 8px;
+  color: var(--color-text-bright);
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: filter 0.15s, box-shadow 0.2s;
+}
+
+@media (hover: hover) {
+  .chinitsu-ta-start-btn:hover {
+    filter: brightness(1.08);
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.chinitsu-ta-result .chinitsu-share-btn {
+  max-width: 22em;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* スタート画面・結果画面のボタン2つを横並びに（スタート/練習モード・もう一度/練習モード） */
+.chinitsu-ta-actions {
+  display: flex;
+  gap: 10px;
+  max-width: 24em;
+  margin: 14px auto 0;
+}
+
+/* 出題画面内（復習モード）で使う場合は周囲の全幅要素に合わせて幅いっぱいに広げる。
+   .problem-view は縦フレックスのため、左右 auto マージンを 0 にしないと
+   （フレックスアイテムの auto マージンが stretch を打ち消し）内容幅に縮んでしまう */
+.chinitsu-ta-actions--full {
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.chinitsu-ta-actions .chinitsu-ta-start-btn,
+.chinitsu-ta-actions .chinitsu-review-btn,
+.chinitsu-ta-actions .chinitsu-timeattack-btn {
+  flex: 1;
+  width: auto;
+  max-width: none;
+  margin: 0;
+}
+
+.chinitsu-ta-result-label {
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 4px;
+}
+
+.chinitsu-ta-result-score {
+  margin-bottom: 20px;
+  color: var(--color-text-bright);
+}
+
+.chinitsu-ta-result-score strong {
+  font-size: 3rem;
+  color: var(--color-success);
+  line-height: 1;
+}
+
+.chinitsu-ta-result-score span {
+  font-size: 1.1rem;
+  margin-left: 6px;
+}
+
+/* 残り時間バー */
+.chinitsu-ta-timer {
+  margin: 4px 0 12px;
+}
+
+.chinitsu-ta-timer-bar {
+  height: 8px;
+  background: var(--color-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.chinitsu-ta-timer-fill {
+  height: 100%;
+  background: var(--color-accent);
+  border-radius: 4px;
+  transition: width 0.1s linear, background 0.3s;
+}
+
+.chinitsu-ta-timer--low .chinitsu-ta-timer-fill {
+  background: var(--color-danger);
+}
+
+.chinitsu-ta-timer-text {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: var(--color-text-secondary);
+  text-align: right;
+}
+
+.chinitsu-ta-timer--low .chinitsu-ta-timer-text {
+  color: var(--color-danger);
 }
 
 

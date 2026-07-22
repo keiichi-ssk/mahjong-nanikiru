@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { generateChinitsuHand, analyzeDiscard, computeBestDiscards, judgeChinitsu, isWinningHand } from './chinitsuUtils';
+import { generateChinitsuHand, analyzeDiscard, computeBestDiscards, judgeChinitsu, isWinningHand, evaluateAnswer } from './chinitsuUtils';
 
 describe('generateChinitsuHand', () => {
   it('筒子1p〜9pのみ・14枚・各牌4枚以内で生成される', () => {
@@ -168,5 +168,45 @@ describe('judgeChinitsu', () => {
     // 5pを切る（9p単騎・受け入れ3）は一見自然だが、9pを切る（4p待ち・受け入れ4）の方が広い
     expect(judgeChinitsu(hand14b, '5p', 'tenpai', ['9p'])).toBe(false);
     expect(judgeChinitsu(hand14b, '9p', 'tenpai', ['4p'])).toBe(true);
+  });
+});
+
+describe('evaluateAnswer', () => {
+  // 5pを切っても7pを切っても受け入れ5枚でタイするが、7pの方が役が高く7pのみが最善
+  const hand14c = ['1p', '2p', '3p', '3p', '4p', '5p', '5p', '7p', '7p', '7p', '8p', '8p', '9p', '9p'];
+
+  it('打点で劣る打牌（受け入れは最大）は不正解になり isValueMiss と最善の役を返す', () => {
+    const waits5p = analyzeDiscard(hand14c, '5p').waits;
+    const res = evaluateAnswer(hand14c, 'tenpai', '5p', new Set(waits5p));
+    expect(res.mode).toBe('discard');
+    expect(res.isCorrect).toBe(false);
+    expect(res.isValueMiss).toBe(true);
+    expect(res.bestYaku.length).toBeGreaterThan(0);
+    expect(res.bestYaku.every(y => typeof y === 'string')).toBe(true);
+  });
+
+  it('最善の打牌（7p）を正しい待ちで選べば正解・isValueMiss は false', () => {
+    const waits7p = analyzeDiscard(hand14c, '7p').waits;
+    const res = evaluateAnswer(hand14c, 'tenpai', '7p', new Set(waits7p));
+    expect(res.isCorrect).toBe(true);
+    expect(res.isValueMiss).toBe(false);
+    expect(res.bestYaku).toEqual([]);
+  });
+
+  it('受け入れが最大に届かない打牌は打点ミスではない（isValueMiss は false）', () => {
+    // 5pを切ると9p単騎(受け入れ3)で、9pを切る(4p待ち・受け入れ4)に受け入れで劣る
+    const hand14b = ['1p', '1p', '1p', '2p', '2p', '2p', '3p', '3p', '3p', '5p', '5p', '5p', '5p', '9p'];
+    const res = evaluateAnswer(hand14b, 'tenpai', '5p', new Set(['9p']));
+    expect(res.isCorrect).toBe(false);
+    expect(res.isValueMiss).toBe(false);
+    expect(res.bestYaku).toEqual([]);
+  });
+
+  it('アガリの手はツモで正解、ノーテン/テンパイ回答はアガリ見逃しで不正解', () => {
+    const winning = ['1p', '1p', '1p', '2p', '2p', '2p', '3p', '3p', '3p', '4p', '4p', '5p', '5p', '5p'];
+    expect(evaluateAnswer(winning, 'tsumo').isCorrect).toBe(true);
+    expect(evaluateAnswer(winning, 'tsumo').mode).toBe('agari');
+    expect(evaluateAnswer(winning, 'noten').mode).toBe('missed-agari');
+    expect(evaluateAnswer(winning, 'noten').isCorrect).toBe(false);
   });
 });

@@ -56,3 +56,18 @@ export function buildShareUrl(hand) {
   const shareUrl = `${SHARE_REDIRECT_URL}?q=${encodeHandParam(hand)}`;
   return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
 }
+
+// タイムアタックの結果（3分間の正答数）をシェアするXの投稿画面URL。
+// 手牌ごとのシェア（buildShareUrl）と違い、リンク先は公開ページのトップ（挑戦への誘導）。
+export function buildTimeAttackShareUrl(score) {
+  const text = [
+    '【メンチン何切る タイムアタック】',
+    `3分で${score}問正解！🔥`,
+    '',
+    'あなたは何問解ける？挑戦👇',
+    '',
+    '#麻雀 #何切る #メンチン何切るドリル',
+  ].join('\n');
+  const shareUrl = 'https://zagaku-mahjong.vercel.app/chinitsu.html';
+  return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
+}
