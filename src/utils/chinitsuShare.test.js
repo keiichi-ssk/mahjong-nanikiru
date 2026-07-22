@@ -42,10 +42,10 @@ describe('encodeHandParam / decodeHandParam', () => {
 });
 
 describe('buildShareUrl', () => {
-  it('Web IntentのURLに問題URL（?q=）とハッシュタグが含まれる', () => {
+  it('Web IntentのURLに/api/share経由のリンク（?q=）とハッシュタグが含まれる', () => {
     const url = buildShareUrl(HAND_M);
     expect(url).toMatch(/^https:\/\/twitter\.com\/intent\/tweet\?text=/);
-    expect(decodeURIComponent(url)).toContain('chinitsu.html?q=11234556789999m');
+    expect(decodeURIComponent(url)).toContain('api/share?q=11234556789999m');
     expect(decodeURIComponent(url)).toContain('#メンチン何切るドリル');
     expect(decodeURIComponent(url)).toContain('一一二三四五五六七八九九九九');
   });

@@ -30,6 +30,9 @@ CLAUDE.md
 # 画像スキャンのローカル進捗状態
 scripts/progress.json
 
+# X投稿下書きのプレビュー出力（実行のたびに生成される一時ファイル）
+scripts/tweet-drafts-out/
+
 # ゴミ箱（削除ファイルの一時退避先）
 .trash/
 

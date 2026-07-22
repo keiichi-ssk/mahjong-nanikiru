@@ -2,12 +2,17 @@
 // 手牌を麻雀界隈の定着表記（萬子=漢数字・筒子=丸数字・索子=全角数字）のテキストにし、
 // 「開くと同じ問題が出題される」URL（/chinitsu.html?q=1123455678999m 形式）を組み立てて
 // X の Web Intent に渡す。API 登録・認証は不要。
+//
+// Xに渡すリンクは直接 /chinitsu.html ではなく /api/share を経由する（2026-07-22〜）。
+// /api/share はその手牌専用のOGPカード画像（/api/og）を差し込んだHTMLを返し、
+// 人間のブラウザだけ即座に /chinitsu.html?q=... へ自動遷移する。クローラー（Xの展開ボット）は
+// JSを実行しないためリダイレクトを追わず、その手牌のカード画像がそのままシェアカードに表示される。
 
-import { sortTiles } from './tileUtils';
+// api/ 配下（Vercel Functions）からも読み込まれるため拡張子を明示する（他のsrc/utilsは慣例で省略）
+import { sortTiles } from './tileUtils.js';
 
-// シェアのリンク先は常に認証不要の公開ページ（ログイン中のアプリ内からシェアしても
-// 受け取った人がそのまま遊べるようにするため）
-const SHARE_PAGE_URL = 'https://zagaku-mahjong.vercel.app/chinitsu.html';
+// Xに渡すリンク先（手牌ごとのOGPカードを出す中継ページ。api/share.js が実装）
+const SHARE_REDIRECT_URL = 'https://zagaku-mahjong.vercel.app/api/share';
 
 const NOTATION = {
   m: ['一', '二', '三', '四', '五', '六', '七', '八', '九'],
@@ -48,6 +53,6 @@ export function buildShareUrl(hand) {
     '',
     '#麻雀 #何切る #メンチン何切るドリル',
   ].join('\n');
-  const problemUrl = `${SHARE_PAGE_URL}?q=${encodeHandParam(hand)}`;
-  return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(problemUrl)}`;
+  const shareUrl = `${SHARE_REDIRECT_URL}?q=${encodeHandParam(hand)}`;
+  return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
 }
