@@ -49,7 +49,7 @@ export function buildShareUrl(hand) {
     '【メンチン何切る】',
     handToNotation(hand),
     '',
-    '何を切る？待ちは？',
+    '何を切って何待ち？',
     '',
     '#麻雀 #何切る #メンチン何切るドリル',
   ].join('\n');
