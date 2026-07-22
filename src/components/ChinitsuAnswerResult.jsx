@@ -89,10 +89,20 @@ export default function ChinitsuAnswerResult({ result, discarded, footer }) {
           <span className="answer-tile-name">（受け入れ{result.maxUkeire}枚）</span>
         </div>
 
-        <div className="answer-tile">
-          <span className="answer-label">最善の打牌時の待ち：</span>
-          <TileList tiles={result.bestWaits} />
-        </div>
+        {result.bestDiscards.length === 1 ? (
+          <div className="answer-tile">
+            <span className="answer-label">最善の打牌時の待ち：</span>
+            <TileList tiles={result.bestDiscards[0].waits} />
+          </div>
+        ) : (
+          result.bestDiscards.map(({ tile, waits }) => (
+            <div className="answer-tile" key={tile}>
+              <TileList tiles={[tile]} />
+              <span className="answer-tile-name">切りの待ち：</span>
+              <TileList tiles={waits} />
+            </div>
+          ))
+        )}
 
         {result.isValueMiss && (
           <p className="answer-value-miss">

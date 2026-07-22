@@ -202,6 +202,23 @@ describe('evaluateAnswer', () => {
     expect(res.bestYaku).toEqual([]);
   });
 
+  it('最善の打牌が複数あるとき、待ちは打牌ごとに対応づき合算されない', () => {
+    // 2p切りは7p待ち、8p切りは3p/6p待ちで、どちらも最善（受け入れ3・役なし）。
+    // bestDiscards は打牌ごとに待ちを持ち、合算した集合（3p6p7p）にはならない
+    const hand = ['2p', '3p', '3p', '3p', '4p', '5p', '5p', '5p', '6p', '6p', '7p', '8p', '8p', '9p'];
+    const res = evaluateAnswer(hand, 'tenpai', '2p', new Set(['7p']));
+
+    res.bestDiscards.forEach(({ tile, waits }) => {
+      expect(new Set(waits)).toEqual(new Set(analyzeDiscard(hand, tile).waits));
+    });
+    const byTile = Object.fromEntries(res.bestDiscards.map(d => [d.tile, d.waits]));
+    expect(new Set(byTile['2p'])).toEqual(new Set(['7p']));
+    expect(new Set(byTile['8p'])).toEqual(new Set(['3p', '6p']));
+    // 合算した集合を全打牌に当てていない（少なくとも1つは待ちがより狭い）ことを確認
+    const union = new Set(res.bestDiscards.flatMap(d => d.waits));
+    expect(res.bestDiscards.some(d => d.waits.length < union.size)).toBe(true);
+  });
+
   it('アガリの手はツモで正解、ノーテン/テンパイ回答はアガリ見逃しで不正解', () => {
     const winning = ['1p', '1p', '1p', '2p', '2p', '2p', '3p', '3p', '3p', '4p', '4p', '5p', '5p', '5p'];
     expect(evaluateAnswer(winning, 'tsumo').isCorrect).toBe(true);

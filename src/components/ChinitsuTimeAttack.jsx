@@ -142,9 +142,6 @@ export default function ChinitsuTimeAttack({ onBack, onPractice }) {
           ) : (
             <span />
           )}
-          <div className="problem-header-right">
-            <span className="problem-counter">タイムアタック終了</span>
-          </div>
         </div>
 
         <div className="chinitsu-ta-result">

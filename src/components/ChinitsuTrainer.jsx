@@ -92,7 +92,9 @@ export default function ChinitsuTrainer({ onBack, onTimeAttack }) {
       if (!res) return res;
       const remapped = { ...res };
       if (remapped.bestTiles) remapped.bestTiles = remapped.bestTiles.map(remap);
-      if (remapped.bestWaits) remapped.bestWaits = remapped.bestWaits.map(remap);
+      if (remapped.bestDiscards) {
+        remapped.bestDiscards = remapped.bestDiscards.map(d => ({ tile: remap(d.tile), waits: d.waits.map(remap) }));
+      }
       if (remapped.waits) remapped.waits = new Set([...remapped.waits].map(remap));
       if (remapped.actualAnalysis) {
         remapped.actualAnalysis = { ...remapped.actualAnalysis, waits: remapped.actualAnalysis.waits.map(remap) };

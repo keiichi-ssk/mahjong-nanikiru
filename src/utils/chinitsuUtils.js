@@ -320,7 +320,8 @@ export function evaluateAnswer(hand14, action, discardedTile, selectedWaits) {
   // action === 'tenpai'
   const actualAnalysis = analyzeDiscard(hand14, discardedTile);
   const isCorrect = judgeChinitsu(hand14, discardedTile, 'tenpai', selectedWaits);
-  const bestWaits = sortTiles([...new Set(bestTiles.flatMap(t => analysisByTile.get(t).waits))]);
+  // 最善の打牌ごとに、その打牌のときの待ちを対応づける（複数の最善打牌の待ちを合算しない）
+  const bestDiscards = bestTiles.map(t => ({ tile: t, waits: sortTiles(analysisByTile.get(t).waits) }));
 
   // 打点で不正解になったケース: 受け入れ枚数は最大と同じだが、役(打点)が最善に届かず
   // bestTiles に入れなかった打牌を選んでいる。このとき最善の打牌に付く複合役を提示する
@@ -334,7 +335,7 @@ export function evaluateAnswer(hand14, action, discardedTile, selectedWaits) {
     : [];
 
   return {
-    mode: 'discard', isCorrect, maxUkeire, bestTiles, bestWaits,
+    mode: 'discard', isCorrect, maxUkeire, bestTiles, bestDiscards,
     actualAnalysis, waits: selectedWaits, isValueMiss, bestYaku,
   };
 }
