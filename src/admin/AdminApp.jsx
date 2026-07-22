@@ -283,10 +283,13 @@ export default function AdminApp() {
         <p className="admin-auth-desc">ログインが必要です</p>
         <button
           className="admin-auth-btn"
-          onClick={() => supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: { redirectTo: window.location.href },
-          })}
+          onClick={async () => {
+            const { error } = await supabase.auth.signInWithOAuth({
+              provider: 'google',
+              options: { redirectTo: window.location.href },
+            })
+            if (error) console.error('OAuth error:', error)
+          }}
         >
           Googleでログイン
         </button>
