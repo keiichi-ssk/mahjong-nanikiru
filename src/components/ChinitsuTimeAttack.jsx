@@ -2,12 +2,11 @@ import { useState, useEffect, useRef } from 'react';
 import ChinitsuAnswerInput from './ChinitsuAnswerInput';
 import ChinitsuAnswerResult from './ChinitsuAnswerResult';
 import { generateChinitsuHand, evaluateAnswer } from '../utils/chinitsuUtils';
-import { addMissedProblem } from '../utils/chinitsuStorage';
 import { buildTimeAttackShareUrl } from '../utils/chinitsuShare';
 
 // メンチン何切る タイムアタックモード。3分の持ち時間で正答数を競う独立モード。
 // - タイマーは「回答中」（問題表示中〜回答確定まで）だけ進む。解答パネル表示中・次問への遷移中は停止する
-// - 正解 → 正答数+1、誤答 → 復習リストに保存（通常モードから復習可能）。どちらも終了せず次の問題へ
+// - 正解 → 正答数+1、誤答 → このセッションの誤答リストに追加（終了後にそのまま復習できる）。どちらも終了せず次の問題へ
 // - 回答後は通常モードと同じ解答パネル（解説）を表示し、ユーザーが「次の問題へ」で進める（この間タイマー停止）
 // - 3分（回答中の累計）を使い切ったら終了。進行中の問題は正答数に数えない
 // 通常モード（ChinitsuTrainer）とは状態を共有せず、sessionStorage 保存もしない（一発勝負・リロードで消える）
@@ -31,12 +30,15 @@ function formatTime(ms) {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-export default function ChinitsuTimeAttack({ onBack, onPractice }) {
+export default function ChinitsuTimeAttack({ onBack, onPractice, onReview }) {
   const [phase, setPhase] = useState('ready'); // 'ready' | 'playing' | 'finished'
   const [round, setRound] = useState(newRound);
   const [result, setResult] = useState(null); // null=回答中。judge結果オブジェクトなら解答パネル表示中（タイマー停止）
   const [score, setScore] = useState(0);
   const [remainingMs, setRemainingMs] = useState(TOTAL_MS);
+  // このセッション（今回のタイムアタック）で誤答した手牌。終了後の復習はこれだけを対象にする。
+  // 永続化せず、次のゲーム開始でリセットする（＝直前のタイムアタックの誤答のみ復習）
+  const [missedHands, setMissedHands] = useState([]);
 
   const { hand, discardedIndex, selectedWaits } = round;
   const answering = phase === 'playing' && result === null;
@@ -64,6 +66,7 @@ export default function ChinitsuTimeAttack({ onBack, onPractice }) {
 
   function startGame() {
     setScore(0);
+    setMissedHands([]);
     remainingRef.current = TOTAL_MS;
     setRemainingMs(TOTAL_MS);
     setResult(null);
@@ -91,13 +94,13 @@ export default function ChinitsuTimeAttack({ onBack, onPractice }) {
   }
 
   // 回答を評価し、解答パネル表示に移る（判定・結果生成は evaluateAnswer が担う）。
-  // 正解は正答数+1、誤答は復習リストに保存（練習モードの「間違えた問題を復習」で再挑戦できる）
+  // 正解は正答数+1、誤答はこのセッションの誤答リストに追加（終了後の「間違えた問題を復習」で再挑戦できる）
   function submitAnswer(action) {
     if (!answering) return;
     if (action === 'tenpai' && (!discarded || selectedWaits.size === 0)) return;
     const res = evaluateAnswer(hand, action, discarded, selectedWaits);
     if (res.isCorrect) setScore(s => s + 1);
-    else addMissedProblem(hand);
+    else setMissedHands(m => [...m, hand]);
     setResult(res);
   }
 
@@ -134,6 +137,8 @@ export default function ChinitsuTimeAttack({ onBack, onPractice }) {
   }
 
   if (phase === 'finished') {
+    // 今回のセッションで誤答した問題があれば、結果画面から復習モードへ直接入れるボタンを出す
+    const missedCount = missedHands.length;
     return (
       <div className="problem-view chinitsu-ta">
         <div className="problem-header">
@@ -164,6 +169,12 @@ export default function ChinitsuTimeAttack({ onBack, onPractice }) {
             <button className="chinitsu-ta-start-btn" onClick={startGame}>もう一度挑戦</button>
             <button className="chinitsu-review-btn" onClick={onPractice}>📖 練習モードへ</button>
           </div>
+
+          {missedCount > 0 && (
+            <button className="chinitsu-review-btn" onClick={() => onReview(missedHands)}>
+              間違えた問題を復習（{missedCount}問）
+            </button>
+          )}
         </div>
       </div>
     );

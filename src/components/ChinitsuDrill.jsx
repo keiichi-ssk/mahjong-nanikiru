@@ -14,9 +14,24 @@ function initialMode() {
 
 export default function ChinitsuDrill({ onBack }) {
   const [mode, setMode] = useState(initialMode);
+  // タイムアタックの結果画面「間違えた問題を復習」から渡された、直前のセッションの誤答手牌。
+  // null=通常の練習出題。配列なら練習モードを復習モードで開始する（その手牌だけを出題）
+  const [reviewHands, setReviewHands] = useState(null);
 
   if (mode === 'practice') {
-    return <ChinitsuTrainer onBack={onBack} onTimeAttack={() => setMode('timeattack')} />;
+    return (
+      <ChinitsuTrainer
+        onBack={onBack}
+        onTimeAttack={() => { setReviewHands(null); setMode('timeattack'); }}
+        reviewHands={reviewHands}
+      />
+    );
   }
-  return <ChinitsuTimeAttack onBack={onBack} onPractice={() => setMode('practice')} />;
+  return (
+    <ChinitsuTimeAttack
+      onBack={onBack}
+      onPractice={() => { setReviewHands(null); setMode('practice'); }}
+      onReview={(hands) => { setReviewHands(hands); setMode('practice'); }}
+    />
+  );
 }

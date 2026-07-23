@@ -3,10 +3,7 @@ import TileButton from './TileButton';
 import ChinitsuAnswerInput from './ChinitsuAnswerInput';
 import ChinitsuAnswerResult from './ChinitsuAnswerResult';
 import { generateChinitsuHand, evaluateAnswer } from '../utils/chinitsuUtils';
-import {
-  loadMissedProblems, removeMissedProblem,
-  saveChinitsuRound, loadChinitsuRound,
-} from '../utils/chinitsuStorage';
+import { saveChinitsuRound, loadChinitsuRound } from '../utils/chinitsuStorage';
 import { decodeHandParam, buildShareUrl } from '../utils/chinitsuShare';
 
 // スーツ選択は各スーツの5の牌を代表としてボタン表示する
@@ -33,16 +30,31 @@ function initialRound() {
   return loadChinitsuRound() ?? newRound(loadSuit());
 }
 
+// タイムアタックの結果画面「間違えた問題を復習」から手牌配列（reviewHands）が渡されたときは、
+// マウント時点で復習モードを開始した状態にする（配列が空/null なら通常の初期化にフォールバック）。
+// effect 内で setState すると cascading render になるため、初期 state で組み立てる
+function initialReviewState(reviewHands) {
+  const missed = reviewHands ?? [];
+  if (missed.length === 0) return { round: initialRound(), reviewQueue: null };
+  const [first, ...rest] = missed;
+  return {
+    round: { hand: first, discardedIndex: null, selectedWaits: new Set() },
+    reviewQueue: rest,
+  };
+}
+
 
 // 清一色トレーニング。毎回ランダム生成した筒子14枚に対し、ツモ／ノーテン／
 // （切る牌+待ち牌の指定による）テンパイ、のいずれかを最初から自由に選んで回答する。
 // 正誤は chinitsuUtils.js が算出する受け入れ枚数・待ちと照合してその場で判定する
 // （DB・Supabaseには一切保存しない、セッション内のみの独立モード）
 // onBack 省略時は認証不要の単独公開ページ（chinitsu.html）用として「戻る」ボタンを出さない
-export default function ChinitsuTrainer({ onBack, onTimeAttack }) {
+export default function ChinitsuTrainer({ onBack, onTimeAttack, reviewHands = null }) {
   // 出題スーツ(m/p/s)。localStorageに保存して次回以降も維持する
   const [suit, setSuit] = useState(loadSuit);
-  const [round, setRound] = useState(initialRound);
+  // reviewHands が渡されたときは復習モードで開始した状態を初期 state として組む
+  const initial = useState(() => initialReviewState(reviewHands))[0];
+  const [round, setRound] = useState(initial.round);
 
   // リロードしても同じ手牌が続くよう、現在の1問を都度保存する
   // 過去の問題の履歴（回答済み・未回答スキップの両方を含む）。「← 前の問題」で遡って
@@ -68,8 +80,7 @@ export default function ChinitsuTrainer({ onBack, onTimeAttack }) {
   const [result, setResult] = useState(null);
   const [tally, setTally] = useState({ correct: 0, total: 0 });
   // reviewQueue: null = 通常のランダム出題。配列なら復習モード（現在の1問の後に控えている手牌の残り）
-  const [reviewQueue, setReviewQueue] = useState(null);
-  const [missedCount, setMissedCount] = useState(() => loadMissedProblems().length);
+  const [reviewQueue, setReviewQueue] = useState(initial.reviewQueue);
 
   const { hand, discardedIndex, selectedWaits } = round;
   const answered = result !== null;
@@ -103,25 +114,6 @@ export default function ChinitsuTrainer({ onBack, onTimeAttack }) {
     });
   }
 
-  // 練習モードは復習リストへ「保存」しない（保存はタイムアタックの誤答のみ・ChinitsuTimeAttack）。
-  // 復習モード中に正解したら、その問題を復習リストから外すだけ（リストはlocalStorageのみ）
-  function recordOutcome(isCorrect) {
-    if (isCorrect && reviewQueue !== null) removeMissedProblem(hand);
-    setMissedCount(loadMissedProblems().length);
-  }
-
-  function startReview() {
-    const missed = loadMissedProblems();
-    if (missed.length === 0) return;
-    // 履歴閲覧中に復習を始めた場合は閲覧状態を解除する（退避中の問題は破棄＝従来の挙動と同じ）
-    setHistoryPos(null);
-    setLiveSnapshot(null);
-    const [first, ...rest] = missed;
-    setReviewQueue(rest);
-    setRound({ hand: first, discardedIndex: null, selectedWaits: new Set() });
-    setResult(null);
-  }
-
   // 復習モードを抜けて通常の練習出題に戻る
   function exitReview() {
     setReviewQueue(null);
@@ -143,15 +135,15 @@ export default function ChinitsuTrainer({ onBack, onTimeAttack }) {
     });
   }
 
-  // 回答（ツモ／ノーテン／テンパイ）を評価し、結果表示・成績・復習リストへ反映する。
-  // 判定と結果生成は evaluateAnswer（純粋関数）が担い、ここは副作用の配線だけ
+  // 回答（ツモ／ノーテン／テンパイ）を評価し、結果表示・成績へ反映する。
+  // 判定と結果生成は evaluateAnswer（純粋関数）が担い、ここは副作用の配線だけ。
+  // 復習モードの手牌はメモリ上の reviewQueue で管理し、正誤に関わらず goNext で先へ進む
   function submitAnswer(action) {
     if (answered) return;
     if (action === 'tenpai' && (!discarded || selectedWaits.size === 0)) return;
     const res = evaluateAnswer(hand, action, discarded, selectedWaits);
     setResult(res);
     setTally(t => ({ correct: t.correct + (res.isCorrect ? 1 : 0), total: t.total + 1 }));
-    recordOutcome(res.isCorrect);
   }
 
   // 解答パネル（正解・不正解ボックス）4種すべての末尾に共通で入れるシェアボタン
@@ -311,16 +303,9 @@ export default function ChinitsuTrainer({ onBack, onTimeAttack }) {
             <button className="chinitsu-timeattack-btn" onClick={onTimeAttack}>⏱ タイムアタック</button>
           </div>
         ) : (
-          <>
-            {missedCount > 0 && (
-              <button className="chinitsu-review-btn" onClick={startReview}>
-                間違えた問題を復習（{missedCount}問）
-              </button>
-            )}
-            <button className="chinitsu-timeattack-btn" onClick={onTimeAttack}>
-              ⏱ タイムアタックに挑戦（3分で何問解ける？）
-            </button>
-          </>
+          <button className="chinitsu-timeattack-btn" onClick={onTimeAttack}>
+            ⏱ タイムアタックに挑戦（3分で何問解ける？）
+          </button>
         )
       )}
     </div>
