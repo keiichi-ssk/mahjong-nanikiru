@@ -14,7 +14,7 @@ import { getTileImageUrl } from '../src/utils/tileUtils.js';
 
 export const config = { runtime: 'edge' };
 
-const FALLBACK_HAND = ['1p', '1p', '2p', '3p', '4p', '5p', '5p', '6p', '7p', '8p', '9p', '9p', '9p', '9p'];
+const FALLBACK_HAND = ['2p', '3p', '3p', '4p', '4p', '4p', '5p', '5p', '5p', '6p', '6p', '6p', '7p', '8p'];
 
 // SVGはテキストなのでURLエンコードしたdata URIにする（Bufferを使わずEdge Runtimeで完結させる）
 async function tileDataUri(origin, tile) {
