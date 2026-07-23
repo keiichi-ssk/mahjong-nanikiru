@@ -22,7 +22,10 @@ const SUITS = ['m', 'p', 's'];
 const OUT_DIR = path.resolve('scripts/tweet-drafts-out');
 const TILES_DIR = path.resolve('public/tiles');
 const MULTI_WAIT_MIN = 3; // これ未満（両面・シャンポン等）は「多面待ち」とみなさない
-const PROBLEM_BASE_URL = 'https://zagaku-mahjong.vercel.app/chinitsu.html';
+// 解説リプに貼るリンク。手牌ごとのOGPカードを出す中継URL（/api/share）にする。
+// クリックすると /chinitsu.html?q=... にリダイレクトされ、その手牌をその場で解ける。
+// （/chinitsu.html を直接貼ると og:image が固定画像になりカードがデフォルト手牌になってしまう）
+const PROBLEM_BASE_URL = 'https://zagaku-mahjong.vercel.app/api/share';
 
 // クイズ投稿の「答え（数時間後にリプする解説）」を組み立てる。
 // 判定エンジン(computeBestDiscards/analyzeDiscard)で最善打牌と待ちを算出し、麻雀表記に変換する。
