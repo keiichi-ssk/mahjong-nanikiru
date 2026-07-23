@@ -13,15 +13,44 @@ import { exec } from 'node:child_process';
 // src/utils配下はViteの流儀で拡張子なしimportのため、Nodeから読めるようローダーを登録してから動的importする
 register('./esm-resolve-js-loader.mjs', import.meta.url);
 
-const { generateChinitsuHand, analyzeDiscard, isWinningHand } = await import('../src/utils/chinitsuUtils.js');
-const { buildShareUrl } = await import('../src/utils/chinitsuShare.js');
-const { getTileImageUrl } = await import('../src/utils/tileUtils.js');
+const { generateChinitsuHand, analyzeDiscard, isWinningHand, computeBestDiscards } = await import('../src/utils/chinitsuUtils.js');
+const { buildShareUrl, handToNotation, encodeHandParam } = await import('../src/utils/chinitsuShare.js');
+const { getTileImageUrl, sortTiles } = await import('../src/utils/tileUtils.js');
 
 const SAMPLE_SIZE = 20000;
 const SUITS = ['m', 'p', 's'];
 const OUT_DIR = path.resolve('scripts/tweet-drafts-out');
 const TILES_DIR = path.resolve('public/tiles');
 const MULTI_WAIT_MIN = 3; // これ未満（両面・シャンポン等）は「多面待ち」とみなさない
+const PROBLEM_BASE_URL = 'https://zagaku-mahjong.vercel.app/chinitsu.html';
+
+// クイズ投稿の「答え（数時間後にリプする解説）」を組み立てる。
+// 判定エンジン(computeBestDiscards/analyzeDiscard)で最善打牌と待ちを算出し、麻雀表記に変換する。
+// 全最善打牌の待ちが同じなら1行にまとめ、異なれば打牌ごとに列挙する（待ちの合算をしない）。
+function buildAnswerText(hand) {
+  const { maxUkeire, bestTiles, analysisByTile } = computeBestDiscards(hand);
+  const lines = sortTiles(bestTiles).map(tile => {
+    const waits = sortTiles(analysisByTile.get(tile).waits);
+    return { tile, waitsText: handToNotation(waits), kinds: waits.length };
+  });
+  const allSame = lines.every(l => l.waitsText === lines[0].waitsText);
+  const url = `${PROBLEM_BASE_URL}?q=${encodeHandParam(hand)}`;
+
+  let body;
+  if (allSame) {
+    const tilesText = handToNotation(sortTiles(bestTiles));
+    body = `${tilesText}切り → ${lines[0].waitsText} の${lines[0].kinds}面待ち（受け入れ${maxUkeire}枚）`;
+  } else {
+    body = lines.map(l => `${handToNotation([l.tile])}切り → ${l.waitsText}（${l.kinds}面）`).join('\n')
+      + `\n受け入れ各${maxUkeire}枚`;
+  }
+  return `【答え】\n${body}\n\n同じ手牌はここで試せます\n${url}`;
+}
+
+// プレビューHTMLに埋め込むテキストの最低限のエスケープ
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 
 // 同じ受け入れ枚数の中で役の高いものだけに絞る（アプリの正誤判定と同じ絞り込み）
 function topValueOf(tier) {
@@ -84,14 +113,26 @@ function tileImgTag(tile) {
   return `<span class="tile"><img src="${uri}" alt="${tile}" /></span>`;
 }
 
-function draftHtml(d, i, tweetText, problemUrl, intentUrl) {
+function draftHtml(d, i, tweetText, answerText, intentUrl) {
   return `
     <section class="card">
       <h2>候補${i + 1}　受け入れ${d.maxUkeire}枚・${d.waitKinds}面待ち</h2>
       <div class="tiles">${d.hand.map(tileImgTag).join('')}</div>
-      <pre class="tweet-text">${tweetText}</pre>
-      <p class="problem-url">${problemUrl}</p>
-      <a class="open-btn" href="${intentUrl}" target="_blank" rel="noopener noreferrer">この内容でX投稿画面を開く</a>
+      <div class="block">
+        <div class="block-label">① 本文（クイズ）</div>
+        <pre class="tweet-text">${escapeHtml(tweetText)}</pre>
+        <div class="btn-row">
+          <button class="copy-btn" onclick="copyPre(this)">本文をコピー</button>
+          <a class="open-btn" href="${intentUrl}" target="_blank" rel="noopener noreferrer">X投稿画面を開く</a>
+        </div>
+      </div>
+      <div class="block">
+        <div class="block-label">② 解説（数時間後にリプ）</div>
+        <pre class="tweet-text">${escapeHtml(answerText)}</pre>
+        <div class="btn-row">
+          <button class="copy-btn" onclick="copyPre(this)">解説をコピー</button>
+        </div>
+      </div>
     </section>`;
 }
 
@@ -117,19 +158,36 @@ function previewPageHtml(cardsHtml) {
     border: 2px solid #b8c0cc; border-radius: 6px;
   }
   .tile img { width: 34px; height: 49px; object-fit: contain; }
+  .block { margin-bottom: 14px; }
+  .block-label { font-size: 0.8rem; color: #9fadbf; margin-bottom: 6px; }
   .tweet-text {
     white-space: pre-wrap; font-family: inherit; font-size: 0.95rem;
     background: #2e3440; border-radius: 8px; padding: 12px 14px; margin: 0 0 8px;
   }
-  .problem-url { font-size: 0.85rem; color: #9fadbf; word-break: break-all; margin: 0 0 14px; }
+  .btn-row { display: flex; gap: 10px; align-items: center; }
+  .copy-btn {
+    padding: 8px 16px; background: #4c566a; color: #eceff4;
+    border: none; border-radius: 8px; font-weight: bold; font-size: 0.9rem; cursor: pointer;
+  }
+  .copy-btn:hover { background: #5a657c; }
   .open-btn {
-    display: inline-block; padding: 9px 18px; background: #5e81ac; color: #eceff4;
+    display: inline-block; padding: 8px 16px; background: #5e81ac; color: #eceff4;
     border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 0.9rem;
   }
 </style></head>
 <body>
   <h1>Xシェア下書きプレビュー</h1>
   ${cardsHtml}
+  <script>
+    function copyPre(btn) {
+      const pre = btn.closest('.block').querySelector('pre');
+      navigator.clipboard.writeText(pre.textContent).then(() => {
+        const old = btn.textContent;
+        btn.textContent = 'コピーしました';
+        setTimeout(() => { btn.textContent = old; }, 1200);
+      });
+    }
+  </script>
 </body></html>`;
 }
 
@@ -137,11 +195,12 @@ const count = Number(process.argv[2]) || 5;
 const drafts = pickTopCandidates(count);
 
 const cards = drafts.map((d, i) => {
-  // buildShareUrl が組み立てた投稿文をそのまま流用する（文言の二重管理を避けるため）
-  const intentUrl = new URL(buildShareUrl(d.hand));
-  const tweetText = decodeURIComponent(intentUrl.searchParams.get('text').replace(/\+/g, ' '));
-  const problemUrl = decodeURIComponent(intentUrl.searchParams.get('url'));
-  return draftHtml(d, i, tweetText, problemUrl, intentUrl.href);
+  // 本文（クイズ）は buildShareUrl が組み立てたものをそのまま流用する（文言の二重管理を避けるため）
+  const intentUrl = buildShareUrl(d.hand);
+  const tweetText = decodeURIComponent(new URL(intentUrl).searchParams.get('text').replace(/\+/g, ' '));
+  // 解説（数時間後にリプする答え）はこのスクリプトで生成する
+  const answerText = buildAnswerText(d.hand);
+  return draftHtml(d, i, tweetText, answerText, intentUrl);
 });
 
 mkdirSync(OUT_DIR, { recursive: true });
