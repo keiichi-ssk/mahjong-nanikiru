@@ -1,8 +1,14 @@
+import { useState } from 'react';
 import { sectionLabel } from '../utils/categoryUtils';
 
 // ラウンド終了時の結果サマリー。
 // roundResults は今ラウンドの正誤（未回答の問題はキーなし）
-export default function SessionSummary({ problems, roundResults, onRetryWrong, onBack }) {
+// pendingUpgradeProblems は「過去に不正解登録されていて今回正解した」問題（正解済みへ更新するか選ばせる対象）
+export default function SessionSummary({
+  problems, roundResults, pendingUpgradeProblems = [], onConfirmUpgrades, onRetryWrong, onBack,
+}) {
+  // null = 未選択, 'upgraded' = 正解済みにした, 'kept' = 不正解のまま残した
+  const [upgradeDecision, setUpgradeDecision] = useState(null);
   const answered = problems.filter(p => roundResults[p.id] !== undefined);
   const correct = problems.filter(p => roundResults[p.id] === true);
   const wrong = problems.filter(p => roundResults[p.id] === false);
@@ -41,6 +47,39 @@ export default function SessionSummary({ problems, roundResults, onRetryWrong, o
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {pendingUpgradeProblems.length > 0 && (
+        <div className="session-summary-upgrade">
+          <p className="session-summary-upgrade-text">
+            以前まちがえた {pendingUpgradeProblems.length} 問に正解しました。正解済みに更新しますか？
+          </p>
+          {upgradeDecision === null ? (
+            <div className="session-summary-upgrade-actions">
+              <button
+                className="btn-upgrade-confirm"
+                onClick={() => {
+                  onConfirmUpgrades(pendingUpgradeProblems.map(p => p.id));
+                  setUpgradeDecision('upgraded');
+                }}
+              >
+                正解済みにする
+              </button>
+              <button
+                className="btn-upgrade-keep"
+                onClick={() => setUpgradeDecision('kept')}
+              >
+                不正解のまま残す
+              </button>
+            </div>
+          ) : (
+            <p className="session-summary-upgrade-done">
+              {upgradeDecision === 'upgraded'
+                ? `✓ ${pendingUpgradeProblems.length}問を正解済みにしました`
+                : '不正解のまま残しました'}
+            </p>
+          )}
         </div>
       )}
 

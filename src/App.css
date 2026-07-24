@@ -2391,6 +2391,62 @@
   font-size: 0.78rem;
 }
 
+.session-summary-upgrade {
+  width: 100%;
+  max-width: 420px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.session-summary-upgrade-text {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--color-text);
+  line-height: 1.5;
+}
+
+.session-summary-upgrade-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-upgrade-confirm,
+.btn-upgrade-keep {
+  flex: 1;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 0.92rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.1s;
+}
+
+.btn-upgrade-confirm {
+  background: var(--color-success);
+  border: none;
+  color: var(--color-text-bright);
+}
+
+.btn-upgrade-confirm:active { transform: scale(0.97); }
+
+.btn-upgrade-keep {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.session-summary-upgrade-done {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: var(--color-success);
+}
+
 .session-summary-actions {
   display: flex;
   flex-direction: column;

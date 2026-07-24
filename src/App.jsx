@@ -7,10 +7,11 @@ import SessionSummary from './components/SessionSummary';
 import ChinitsuDrill from './components/ChinitsuDrill';
 import { isSectionAllowed } from './utils/categoryUtils';
 import { fromDb } from './utils/problemMapper';
+import { shouldDeferResult, collectPendingUpgrades } from './utils/sessionResultsUtils';
 import {
   saveRoundStart, saveRoundRetry, clearRound, loadRound,
   saveCurrentIndex, saveRoundResults, saveRoundAnswers,
-  saveSessionFirstResults, saveShowSummary,
+  saveSessionFirstResults, saveSessionStartResults, saveShowSummary,
   saveChinitsuMode, loadChinitsuMode,
 } from './utils/roundStorage';
 import './App.css';
@@ -90,6 +91,9 @@ export default function App() {
   // セッション内で最初に回答したときの正誤。DBへはこの1度目だけを記録する
   // （再挑戦で正解しても1度目の誤答を保持し、次回セッションで復習できるようにする）
   const [sessionFirstResults, setSessionFirstResults] = useState({});
+  // ラウンド開始時点の DB 正誤スナップショット。「過去に不正解だった問題を今回正解した」の
+  // 判定基準。これに該当する回答は即時記録せず、サマリーでの選択まで保留する
+  const [sessionStartResults, setSessionStartResults] = useState({});
   const [showSummary, setShowSummary] = useState(false);
   // DB問題とは独立した練習モード（ランダム生成・DB非保存）。isPlaying とは別軸で管理し、
   // リロードしてもカテゴリ画面に戻らないよう sessionStorage に保存する
@@ -181,6 +185,11 @@ export default function App() {
     saveSessionFirstResults(nextFirst);
 
     if (!session) return;
+
+    // 過去に不正解登録されている問題を今回正解した場合は即時に記録せず、
+    // サマリー画面での選択（正解済みに更新するか）まで保留する
+    if (shouldDeferResult(sessionStartResults, problemId, isCorrect)) return;
+
     applyResultsUpdate(map => ({ ...map, [problemId]: isCorrect }));
     const { error } = await supabase
       .from('user_results')
@@ -189,6 +198,24 @@ export default function App() {
         { onConflict: 'user_id,problem_id' }
       );
     if (error) console.error('[handleAnswer]', error);
+  }
+
+  // サマリーで「正解済みにする」を選んだとき、保留していた問題をまとめて正解で確定する
+  async function handleConfirmUpgrades(problemIds) {
+    if (!session || !problemIds.length) return;
+    const ids = problemIds.map(Number);
+    applyResultsUpdate(map => {
+      const next = { ...map };
+      ids.forEach(id => { next[id] = true; });
+      return next;
+    });
+    const rows = ids.map(id => ({
+      user_id: session.user.id, problem_id: id, correct: true,
+    }));
+    const { error } = await supabase
+      .from('user_results')
+      .upsert(rows, { onConflict: 'user_id,problem_id' });
+    if (error) console.error('[handleConfirmUpgrades]', error);
   }
 
   function persistAnswer(problemId, payload) {
@@ -228,6 +255,7 @@ export default function App() {
       setRoundResults(saved.roundResults);
       setRoundAnswers(saved.roundAnswers);
       setSessionFirstResults(saved.sessionFirstResults);
+      setSessionStartResults(saved.sessionStartResults);
       setShowSummary(saved.showSummary);
       setIsPlaying(true);
       setPlayingKey(k => k + 1);
@@ -266,6 +294,8 @@ export default function App() {
     if (count != null && count < ordered.length) {
       ordered = ordered.slice(0, count);
     }
+    // ラウンド開始時点の DB 正誤を固定しておく（保留判定の基準）
+    const startSnapshot = { ...results };
     setOrderedProblems(ordered);
     setIsPlaying(true);
     setPlayingKey(k => k + 1);
@@ -273,8 +303,10 @@ export default function App() {
     setRoundResults({});
     setRoundAnswers({});
     setSessionFirstResults({});
+    setSessionStartResults(startSnapshot);
     setShowSummary(false);
     saveRoundStart(ordered.map(p => p.id));
+    saveSessionStartResults(startSnapshot);
   }
 
   function finishRound() {
@@ -304,6 +336,7 @@ export default function App() {
     setRoundResults({});
     setRoundAnswers({});
     setSessionFirstResults({});
+    setSessionStartResults({});
     setShowSummary(false);
     clearRound();
   }
@@ -349,10 +382,15 @@ export default function App() {
       );
     }
     if (showSummary) {
+      // 過去に不正解登録されていて今回正解した問題（正解済みへ更新するか選ばせる対象）
+      const pendingIds = collectPendingUpgrades(sessionStartResults, sessionFirstResults);
+      const pendingUpgradeProblems = orderedProblems.filter(p => pendingIds.includes(String(p.id)));
       return (
         <SessionSummary
           problems={orderedProblems}
           roundResults={roundResults}
+          pendingUpgradeProblems={pendingUpgradeProblems}
+          onConfirmUpgrades={handleConfirmUpgrades}
           onRetryWrong={retryWrong}
           onBack={backToCategories}
         />

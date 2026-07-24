@@ -9,6 +9,9 @@ const KEYS = {
   roundResults:        'roundResults',
   roundAnswers:        'roundAnswers',
   sessionFirstResults: 'sessionFirstResults',
+  // ラウンド開始時点の DB 正誤スナップショット。「過去に不正解だった問題を今回正解した」
+  // 保留判定の基準に使う（リロードしても保留判定を維持するため保存する）
+  sessionStartResults: 'sessionStartResults',
   showSummary:         'showSummary',
 };
 
@@ -71,6 +74,12 @@ export function saveSessionFirstResults(results) {
   sessionStorage.setItem(KEYS.sessionFirstResults, JSON.stringify(results));
 }
 
+// ラウンド開始時の DB 正誤スナップショットを保存する。
+// 同一セッション内の再ラウンド（retryWrong）では保持され、新規出題（startSelected）で上書きする
+export function saveSessionStartResults(snapshot) {
+  sessionStorage.setItem(KEYS.sessionStartResults, JSON.stringify(snapshot));
+}
+
 export function saveShowSummary(show) {
   if (show) sessionStorage.setItem(KEYS.showSummary, 'true');
   else sessionStorage.removeItem(KEYS.showSummary);
@@ -85,6 +94,7 @@ export function loadRound() {
     roundResults:        parseJson(sessionStorage.getItem(KEYS.roundResults), {}),
     roundAnswers:        parseJson(sessionStorage.getItem(KEYS.roundAnswers), {}),
     sessionFirstResults: parseJson(sessionStorage.getItem(KEYS.sessionFirstResults), {}),
+    sessionStartResults: parseJson(sessionStorage.getItem(KEYS.sessionStartResults), {}),
     showSummary:         sessionStorage.getItem(KEYS.showSummary) === 'true',
   };
 }
