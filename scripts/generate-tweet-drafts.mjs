@@ -14,7 +14,7 @@ import { exec } from 'node:child_process';
 register('./esm-resolve-js-loader.mjs', import.meta.url);
 
 const { generateChinitsuHand, analyzeDiscard, isWinningHand, computeBestDiscards } = await import('../src/utils/chinitsuUtils.js');
-const { buildShareUrl, handToNotation, encodeHandParam } = await import('../src/utils/chinitsuShare.js');
+const { buildShareUrl, handToNotation } = await import('../src/utils/chinitsuShare.js');
 const { getTileImageUrl, sortTiles } = await import('../src/utils/tileUtils.js');
 
 const SAMPLE_SIZE = 20000;
@@ -22,10 +22,6 @@ const SUITS = ['m', 'p', 's'];
 const OUT_DIR = path.resolve('scripts/tweet-drafts-out');
 const TILES_DIR = path.resolve('public/tiles');
 const MULTI_WAIT_MIN = 3; // これ未満（両面・シャンポン等）は「多面待ち」とみなさない
-// 解説リプに貼るリンク。手牌ごとのOGPカードを出す中継URL（/api/share）にする。
-// クリックすると /chinitsu.html?q=... にリダイレクトされ、その手牌をその場で解ける。
-// （/chinitsu.html を直接貼ると og:image が固定画像になりカードがデフォルト手牌になってしまう）
-const PROBLEM_BASE_URL = 'https://zagaku-mahjong.vercel.app/api/share';
 
 // クイズ投稿の「答え（数時間後にリプする解説）」を組み立てる。
 // 判定エンジン(computeBestDiscards/analyzeDiscard)で最善打牌と待ちを算出し、麻雀表記に変換する。
@@ -37,7 +33,6 @@ function buildAnswerText(hand) {
     return { tile, waitsText: handToNotation(waits), kinds: waits.length };
   });
   const allSame = lines.every(l => l.waitsText === lines[0].waitsText);
-  const url = `${PROBLEM_BASE_URL}?q=${encodeHandParam(hand)}`;
 
   let body;
   if (allSame) {
@@ -47,7 +42,9 @@ function buildAnswerText(hand) {
     body = lines.map(l => `${handToNotation([l.tile])}切り → ${l.waitsText}（${l.kinds}面）`).join('\n')
       + `\n受け入れ各${maxUkeire}枚`;
   }
-  return `【答え】\n${body}\n\n同じ手牌はここで試せます\n${url}`;
+  // 解説リプにはURLを含めない（本文ツイートと同じOGPカードが二重表示されるのを避けるため。
+  // 同じツリーなので試せる導線は本文ツイート側のカード＆リンクから辿れる）
+  return `【答え】\n${body}`;
 }
 
 // プレビューHTMLに埋め込むテキストの最低限のエスケープ
@@ -207,7 +204,9 @@ const cards = drafts.map((d, i) => {
 });
 
 mkdirSync(OUT_DIR, { recursive: true });
-const outPath = path.join(OUT_DIR, 'preview.html');
+// 過去のプレビューを上書きしないよう、生成時刻をファイル名に付ける（preview-2026-07-24_15-30-12.html）
+const stamp = new Date().toLocaleString('sv-SE').replace(' ', '_').replace(/:/g, '-');
+const outPath = path.join(OUT_DIR, `preview-${stamp}.html`);
 writeFileSync(outPath, previewPageHtml(cards.join('\n')));
 
 console.log(`${drafts.length}件の下書きを生成しました。プレビューをブラウザで開きます: ${outPath}`);
