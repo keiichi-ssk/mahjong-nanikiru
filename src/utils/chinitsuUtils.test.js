@@ -226,4 +226,31 @@ describe('evaluateAnswer', () => {
     expect(evaluateAnswer(winning, 'noten').mode).toBe('missed-agari');
     expect(evaluateAnswer(winning, 'noten').isCorrect).toBe(false);
   });
+
+  // 未完成だがテンパイが取れる手（3p切りで4p/7p待ち）。ツモ誤答・ノーテン誤答のどちらでも
+  // 「正解の最善打牌とその待ち」を提示できるよう bestDiscards を返す（待ち表示の共通化のため）
+  const hand14t = ['1p', '1p', '2p', '2p', '2p', '3p', '5p', '6p', '8p', '8p', '8p', '9p', '9p', '9p'];
+
+  it('ツモ誤答（未完成手でツモ宣言）は不正解で、正解の最善打牌と待ちを返す', () => {
+    const res = evaluateAnswer(hand14t, 'tsumo');
+    expect(res.mode).toBe('agari');
+    expect(res.isCorrect).toBe(false);
+    expect(res.maxUkeire).toBeGreaterThan(0);
+    expect(res.bestDiscards.length).toBeGreaterThan(0);
+    res.bestDiscards.forEach(({ tile, waits }) => {
+      expect(new Set(waits)).toEqual(new Set(analyzeDiscard(hand14t, tile).waits));
+      expect(waits.length).toBeGreaterThan(0);
+    });
+  });
+
+  it('ノーテン誤答（テンパイ可能な手でノーテン宣言）は不正解で、正解の最善打牌と待ちを返す', () => {
+    const res = evaluateAnswer(hand14t, 'noten');
+    expect(res.mode).toBe('noten');
+    expect(res.isCorrect).toBe(false);
+    expect(res.maxUkeire).toBeGreaterThan(0);
+    expect(res.bestDiscards.length).toBeGreaterThan(0);
+    res.bestDiscards.forEach(({ tile, waits }) => {
+      expect(new Set(waits)).toEqual(new Set(analyzeDiscard(hand14t, tile).waits));
+    });
+  });
 });

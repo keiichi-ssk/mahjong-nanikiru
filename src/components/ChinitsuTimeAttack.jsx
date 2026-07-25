@@ -127,7 +127,8 @@ export default function ChinitsuTimeAttack({ onBack, onPractice, onReview }) {
       if (trimmed) {
         try { localStorage.setItem(PLAYER_NAME_KEY, trimmed); } catch { /* localStorage不可でも無視 */ }
       }
-      const { id } = await submitScore({ name: trimmed || null, score, website: honeypot });
+      // 名前未入力は 'NoName' として登録する（DBにも 'NoName' が入る）
+      const { id } = await submitScore({ name: trimmed || 'NoName', score, website: honeypot });
       setMyEntryId(id);
       setSubmitStatus('done');
       // 自分の記録を含めた最新のランキングに更新する

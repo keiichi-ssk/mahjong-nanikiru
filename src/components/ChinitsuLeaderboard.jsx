@@ -2,7 +2,9 @@
 // 今日（JST）のトップN件を「順位・名前・正解数」で並べる。自分の登録行は highlightId でハイライトする。
 // 同点は同順位（rankForScore と同じ考え方）で連番表示する。
 
-const ANON_NAME = 'ななし';
+// 名前なしで登録された行（name が null／空）の表示名。登録側も 'NoName' で保存するが、
+// 既存の匿名データ（null）もここで 'NoName' 表示にフォールバックする
+const ANON_NAME = 'NoName';
 
 export default function ChinitsuLeaderboard({ entries, highlightId, loading, error }) {
   if (loading) {

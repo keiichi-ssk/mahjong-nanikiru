@@ -12,6 +12,42 @@ function TileList({ tiles }) {
   ));
 }
 
+// 不正解時に「正解＝最善の打牌とその待ち」を示す共通ブロック。
+// ツモ誤答・ノーテン誤答・テンパイ回答(discard)の不正解で共有する。
+// maxUkeire===0（どの牌を切ってもテンパイにならない手）ならノーテンが正解であることを示す。
+function BestDiscardWaits({ maxUkeire, bestTiles, bestDiscards }) {
+  if (maxUkeire === 0) {
+    return (
+      <div className="answer-tile">
+        <span className="answer-tile-name">どの牌を切ってもテンパイにならないため、ノーテンが正解です。</span>
+      </div>
+    );
+  }
+  return (
+    <>
+      <div className="answer-tile">
+        <span className="answer-label">最善の打牌：</span>
+        <TileList tiles={bestTiles} />
+        <span className="answer-tile-name">（受け入れ{maxUkeire}枚でテンパイ）</span>
+      </div>
+      {bestDiscards.length === 1 ? (
+        <div className="answer-tile">
+          <span className="answer-label">最善の打牌時の待ち：</span>
+          <TileList tiles={bestDiscards[0].waits} />
+        </div>
+      ) : (
+        bestDiscards.map(({ tile, waits }) => (
+          <div className="answer-tile" key={tile}>
+            <TileList tiles={[tile]} />
+            <span className="answer-tile-name">切りの待ち：</span>
+            <TileList tiles={waits} />
+          </div>
+        ))
+      )}
+    </>
+  );
+}
+
 export default function ChinitsuAnswerResult({ result, discarded, footer }) {
   if (!result) return null;
 
@@ -28,6 +64,13 @@ export default function ChinitsuAnswerResult({ result, discarded, footer }) {
               : 'この手牌はまだアガリの形ではありません（ツモではありません）。'}
           </span>
         </div>
+        {!result.isCorrect && (
+          <BestDiscardWaits
+            maxUkeire={result.maxUkeire}
+            bestTiles={result.bestTiles}
+            bestDiscards={result.bestDiscards}
+          />
+        )}
         {footer}
       </div>
     );
@@ -56,11 +99,11 @@ export default function ChinitsuAnswerResult({ result, discarded, footer }) {
             <span className="answer-tile-name">この手牌はどの牌を切ってもテンパイになりません。</span>
           </div>
         ) : (
-          <div className="answer-tile">
-            <span className="answer-label">最善の打牌：</span>
-            <TileList tiles={result.bestTiles} />
-            <span className="answer-tile-name">（受け入れ{result.maxUkeire}枚でテンパイ）</span>
-          </div>
+          <BestDiscardWaits
+            maxUkeire={result.maxUkeire}
+            bestTiles={result.bestTiles}
+            bestDiscards={result.bestDiscards}
+          />
         )}
         {footer}
       </div>
@@ -83,26 +126,11 @@ export default function ChinitsuAnswerResult({ result, discarded, footer }) {
           <TileList tiles={[...result.waits].sort(compareTiles)} />
         </div>
 
-        <div className="answer-tile">
-          <span className="answer-label">最善の打牌：</span>
-          <TileList tiles={result.bestTiles} />
-          <span className="answer-tile-name">（受け入れ{result.maxUkeire}枚）</span>
-        </div>
-
-        {result.bestDiscards.length === 1 ? (
-          <div className="answer-tile">
-            <span className="answer-label">最善の打牌時の待ち：</span>
-            <TileList tiles={result.bestDiscards[0].waits} />
-          </div>
-        ) : (
-          result.bestDiscards.map(({ tile, waits }) => (
-            <div className="answer-tile" key={tile}>
-              <TileList tiles={[tile]} />
-              <span className="answer-tile-name">切りの待ち：</span>
-              <TileList tiles={waits} />
-            </div>
-          ))
-        )}
+        <BestDiscardWaits
+          maxUkeire={result.maxUkeire}
+          bestTiles={result.bestTiles}
+          bestDiscards={result.bestDiscards}
+        />
 
         {result.isValueMiss && (
           <p className="answer-value-miss">

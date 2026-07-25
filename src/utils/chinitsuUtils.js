@@ -303,25 +303,33 @@ export function judgeChinitsu(hand14, discardedTile, judgment, selectedWaits) {
 // action: 'tsumo'（ツモ宣言）| 'noten'（ノーテン宣言）| 'tenpai'（切る牌+待ちを指定してテンパイ回答）
 // 返り値の mode は 'agari' | 'missed-agari' | 'noten' | 'discard'。isCorrect が正誤。
 export function evaluateAnswer(hand14, action, discardedTile, selectedWaits) {
-  if (action === 'tsumo') {
-    return { mode: 'agari', isCorrect: isWinningHand(hand14) };
+  // ツモ宣言かつ本当にアガリ形 → 正解
+  if (action === 'tsumo' && isWinningHand(hand14)) {
+    return { mode: 'agari', isCorrect: true };
   }
-  // アガリの手で「ノーテン」「テンパイ回答」を選ぶのはアガリ見逃し＝不正解
-  if (isWinningHand(hand14)) {
+  // アガリ形なのにツモ以外（ノーテン/テンパイ回答）を選ぶ → アガリ見逃し（待ちの概念なし）
+  if (action !== 'tsumo' && isWinningHand(hand14)) {
     return { mode: 'missed-agari', isCorrect: false };
   }
 
+  // ここから先は「アガリではない手」。最善の打牌ごとに、その打牌のときの待ちを対応づけて
+  // 一度だけ計算する（複数の最善打牌の待ちを合算しない）。ツモ誤答・ノーテン誤答でも
+  // 「正解の打牌と待ち」を提示できるよう、全分岐で bestDiscards を共有する。
   const { maxUkeire, bestTiles, analysisByTile } = computeBestDiscards(hand14);
+  const bestDiscards = bestTiles.map(t => ({ tile: t, waits: sortTiles(analysisByTile.get(t).waits) }));
+
+  // ツモ宣言だが未完成 → 不正解。正解（最善の打牌＋待ち。maxUkeire===0 ならノーテンが正解）を提示する
+  if (action === 'tsumo') {
+    return { mode: 'agari', isCorrect: false, maxUkeire, bestTiles, bestDiscards };
+  }
 
   if (action === 'noten') {
-    return { mode: 'noten', isCorrect: maxUkeire === 0, maxUkeire, bestTiles };
+    return { mode: 'noten', isCorrect: maxUkeire === 0, maxUkeire, bestTiles, bestDiscards };
   }
 
   // action === 'tenpai'
   const actualAnalysis = analyzeDiscard(hand14, discardedTile);
   const isCorrect = judgeChinitsu(hand14, discardedTile, 'tenpai', selectedWaits);
-  // 最善の打牌ごとに、その打牌のときの待ちを対応づける（複数の最善打牌の待ちを合算しない）
-  const bestDiscards = bestTiles.map(t => ({ tile: t, waits: sortTiles(analysisByTile.get(t).waits) }));
 
   // 打点で不正解になったケース: 受け入れ枚数は最大と同じだが、役(打点)が最善に届かず
   // bestTiles に入れなかった打牌を選んでいる。このとき最善の打牌に付く複合役を提示する
