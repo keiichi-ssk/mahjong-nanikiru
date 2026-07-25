@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { handToNotation, encodeHandParam, decodeHandParam, buildShareUrl, buildTimeAttackShareUrl } from './chinitsuShare';
+import { SITE_URL } from '../config/site';
 
 const HAND_M = ['1m', '1m', '2m', '3m', '4m', '5m', '5m', '6m', '7m', '8m', '9m', '9m', '9m', '9m'];
 
@@ -59,7 +60,7 @@ describe('buildTimeAttackShareUrl', () => {
     expect(decoded).toContain('タイムアタック');
     expect(decoded).toContain('3分で12問正解！');
     expect(decoded).toContain('#メンチン何切るドリル');
-    expect(decoded).toContain('zagaku-mahjong.vercel.app/chinitsu.html');
+    expect(decoded).toContain(`${SITE_URL}/chinitsu.html`);
   });
 
   it('0問でも文言が壊れない', () => {

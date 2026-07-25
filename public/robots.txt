@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://zagaku-mahjong.vercel.app/sitemap.xml
+Sitemap: https://zagakumahjong.com/sitemap.xml

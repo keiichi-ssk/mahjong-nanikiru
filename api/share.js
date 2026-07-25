@@ -7,8 +7,7 @@
 // （元の文字列をそのままHTMLに差し込まない。不正なqでも壊れたHTMLにならないようにするため）。
 
 import { decodeHandParam, encodeHandParam } from '../src/utils/chinitsuShare.js';
-
-const SITE_URL = 'https://zagaku-mahjong.vercel.app';
+import { SITE_URL } from '../src/config/site.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {

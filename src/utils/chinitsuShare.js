@@ -10,9 +10,10 @@
 
 // api/ 配下（Vercel Functions）からも読み込まれるため拡張子を明示する（他のsrc/utilsは慣例で省略）
 import { sortTiles } from './tileUtils.js';
+import { SITE_URL } from '../config/site.js';
 
 // Xに渡すリンク先（手牌ごとのOGPカードを出す中継ページ。api/share.js が実装）
-const SHARE_REDIRECT_URL = 'https://zagaku-mahjong.vercel.app/api/share';
+const SHARE_REDIRECT_URL = `${SITE_URL}/api/share`;
 
 const NOTATION = {
   m: ['一', '二', '三', '四', '五', '六', '七', '八', '九'],
@@ -68,6 +69,6 @@ export function buildTimeAttackShareUrl(score) {
     '',
     '#麻雀 #何切る #メンチン何切るドリル',
   ].join('\n');
-  const shareUrl = 'https://zagaku-mahjong.vercel.app/chinitsu.html';
+  const shareUrl = `${SITE_URL}/chinitsu.html`;
   return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
 }
