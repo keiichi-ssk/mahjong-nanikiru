@@ -37,10 +37,10 @@ function buildAnswerText(hand) {
   let body;
   if (allSame) {
     const tilesText = handToNotation(sortTiles(bestTiles));
-    body = `${tilesText}切り → ${lines[0].waitsText} の${lines[0].kinds}面待ち（受け入れ${maxUkeire}枚）`;
+    body = `${tilesText}切り → ${lines[0].waitsText} の${lines[0].kinds}面待ち（${maxUkeire}枚）`;
   } else {
     body = lines.map(l => `${handToNotation([l.tile])}切り → ${l.waitsText}（${l.kinds}面）`).join('\n')
-      + `\n受け入れ各${maxUkeire}枚`;
+      + `\n各${maxUkeire}枚`;
   }
   // 解説リプにはURLを含めない（本文ツイートと同じOGPカードが二重表示されるのを避けるため。
   // 同じツリーなので試せる導線は本文ツイート側のカード＆リンクから辿れる）
