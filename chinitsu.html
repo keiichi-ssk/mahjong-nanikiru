@@ -21,7 +21,10 @@
     <!--
       ドリル（#root）が描画されるまでのローディング表示。
       #root は空だと高さ0になり、その下に置いた説明テキスト（.chinitsu-about）が
-      一瞬だけ画面の一番上に見えてしまうため、#root 自身に高さを持たせて塞いでいる。
+      一瞬だけ画面の一番上に見えてしまう。それを塞ぐのがこのローディングの主目的で、
+      高さは .boot-loading 自身の min-height で確保する。
+      ※ #root 側に min-height を持たせてはいけない。マウント後も効き続けて、
+        ドリルが 100vh に満たないぶんが説明テキストの上の空白として残ってしまう。
       App.css は本番では <link>、開発サーバーでは JS 経由で注入されるので、
       開発時も確実に効くようここにインラインで書いている（App.css には移さないこと）。
       React の createRoot().render() はマウント時に #root の子要素を削除するため、
@@ -29,7 +32,6 @@
     -->
     <style>
       body { background: #2e3440; }
-      #root { min-height: 100vh; }
       .boot-loading {
         min-height: 100vh;
         display: flex;
