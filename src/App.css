@@ -17,6 +17,10 @@
   font-weight: bold;
   color: var(--color-text-bright);
   white-space: nowrap;
+  /* 幅が足りないときはボタン側ではなくタイトル側を縮める（横スクロールを出さないための保険） */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .user-info {
@@ -68,6 +72,7 @@
   color: var(--color-text-bright);
   text-decoration: none;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .app-header-cta:hover { background: var(--color-primary-hover); }
@@ -87,6 +92,165 @@
 .btn-logout:hover {
   border-color: var(--color-danger);
   color: var(--color-danger);
+}
+
+/* ===== トップページ（未ログイン時のランディング） =====
+   構成は「ヒーロー → 特長3つ → 問題集の案内」の1カラム。
+   主CTA（.landing-cta）はページに1つだけにすること。ログイン導線と同格に並べると、
+   権限のない訪問者がそちらを押して行き止まりに落ちる。 */
+.landing {
+  text-align: center;
+}
+
+.landing-hero {
+  padding: 36px 0 8px;
+}
+
+.landing-title {
+  margin: 0 0 12px;
+  font-size: clamp(1.7rem, 6.5vw, 2.4rem);
+  font-weight: bold;
+  letter-spacing: 0.04em;
+  color: var(--color-text-bright);
+}
+
+.landing-lead {
+  margin: 0 0 28px;
+  font-size: clamp(0.95rem, 3.4vw, 1.05rem);
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+}
+
+/* 主CTA。既存の --color-primary 塗りより一段強く見せるためアクセント色を使う
+   （背景 #2e3440 に対して約6.2:1 = WCAG AA） */
+.landing-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  padding: 0 36px;
+  border-radius: 10px;
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-size: 1.05rem;
+  font-weight: bold;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(136, 192, 208, 0.18);
+  transition: background 0.15s, transform 0.15s;
+}
+
+/* 押下は filter のみ。scale だと当たり判定が動いて誤爆する（mobile-touch-ui のルール） */
+.landing-cta:active {
+  filter: brightness(0.92);
+}
+
+.landing-cta--compact {
+  min-height: 44px;
+  padding: 0 22px;
+  font-size: 0.95rem;
+}
+
+@media (hover: hover) {
+  .landing-cta:hover {
+    background: #9ed0de;
+    transform: translateY(-1px);
+  }
+}
+
+.landing-note {
+  margin: 14px 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.landing-features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 44px;
+  text-align: left;
+}
+
+.landing-feature {
+  padding: 18px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface);
+}
+
+.landing-feature-icon {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--color-accent);
+}
+
+.landing-feature h2 {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: var(--color-text-bright);
+}
+
+.landing-feature p {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: var(--color-text-muted);
+}
+
+.landing-secondary {
+  margin-top: 44px;
+  padding-top: 26px;
+  border-top: 1px solid var(--color-border);
+}
+
+.landing-secondary h2 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+  font-weight: bold;
+  color: var(--color-text);
+}
+
+.landing-secondary p {
+  max-width: 520px;
+  margin: 0 auto 16px;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: var(--color-text-muted);
+}
+
+.landing-login-btn {
+  min-height: 44px;
+  padding: 0 22px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  background: none;
+  color: var(--color-text);
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+@media (hover: hover) {
+  .landing-login-btn:hover {
+    background: var(--color-surface-hover);
+  }
+}
+
+@media (max-width: 640px) {
+  .landing-hero {
+    padding: 22px 0 8px;
+  }
+
+  .landing-features {
+    grid-template-columns: 1fr;
+    margin-top: 36px;
+  }
+
+  .landing-cta {
+    width: 100%;
+    padding: 0 20px;
+  }
 }
 
 /* ===== アクセス拒否画面 ===== */
@@ -109,8 +273,18 @@
 
 .access-denied-sub {
   font-size: 0.9rem;
+  line-height: 1.7;
   color: var(--color-text-muted);
   margin: 0;
+}
+
+/* ドリルへの導線とログアウトは役割が違うので間隔を空けて分ける */
+.access-denied .landing-cta {
+  margin-top: 6px;
+}
+
+.access-denied .btn-logout {
+  margin-top: 12px;
 }
 
 /* ===== カテゴリー一覧 ===== */
@@ -2272,9 +2446,11 @@
   }
 }
 
-/* 公開ページの説明テキスト。マークアップは chinitsu.html に静的HTMLとして置いてある
-   （JSを実行しないクローラーにも読ませるため）。#root の外にあるので左右の余白は自前で持つ。 */
-.chinitsu-about {
+/* 説明テキスト。マークアップは静的HTMLとして置いてある（JSを実行しないクローラーにも読ませるため）。
+   .chinitsu-about = ドリルの説明（chinitsu.html） / .site-about = サイト全体の説明（index.html）。
+   どちらも #root の外にあるので左右の余白は自前で持つ。 */
+.chinitsu-about,
+.site-about {
   max-width: 640px;
   margin: 0 auto 24px;
   padding: 0 16px;
@@ -2284,21 +2460,31 @@
   line-height: 1.75;
 }
 
-.chinitsu-about h2 {
+/* トップページのぶんは #root（＝フッター）の下に続くので、間隔を空けて独立して見せる */
+.site-about {
+  margin-bottom: 36px;
+}
+
+.chinitsu-about h2,
+.site-about h2 {
   margin: 20px 0 6px;
   font-size: 0.95rem;
   font-weight: bold;
   color: var(--color-text);
 }
 
-.chinitsu-about h2:first-child {
+.chinitsu-about h2:first-child,
+.site-about h2:first-child {
   margin-top: 0;
 }
 
-.chinitsu-about p {
+.chinitsu-about p,
+.site-about p {
   margin: 0 0 10px;
 }
 
+/* 本文に牌姿の例（例：11123334445678）を載せるときに使う。
+   2026-07-26 の本文短縮で例を外したため現在は未使用。書き戻し用に残してある */
 .chinitsu-about-hand {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   letter-spacing: 0.04em;
@@ -2705,7 +2891,20 @@
 @media (max-width: 600px) {
   .app-header {
     margin: -14px -10px 22px;
-    padding: 12px 14px;
+    padding: 12px 10px;
+    gap: 8px;
+  }
+
+  /* 公開ページのヘッダーは「メンチン何切るドリル」＋本体への誘導ボタンで横幅が厳しく、
+     既定サイズのままだと 375px 幅で右にはみ出して横スクロールが出る。
+     タイトルも縮めないと ellipsis で「メンチン何切るド…」と省略されてしまう */
+  .app-header-title {
+    font-size: 1rem;
+  }
+
+  .app-header-cta {
+    font-size: 0.8rem;
+    padding: 7px 8px;
   }
 
   .user-name { display: none; }

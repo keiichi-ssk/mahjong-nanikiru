@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from './lib/supabase';
 import CategoryList from './components/CategoryList';
 import FeedbackWidget from './components/FeedbackWidget';
+import LandingPage from './components/LandingPage';
 import ProblemView from './components/ProblemView';
 import SessionSummary from './components/SessionSummary';
 import { isSectionAllowed } from './utils/categoryUtils';
@@ -76,6 +77,9 @@ export default function App() {
   const [wrongOnlyMode, toggleWrongOnlyMode] = useLocalStorageToggle('wrongOnlyMode', false);
   const restoredRef = useRef(false);
   const [session, setSession] = useState(null);
+  // セッション復元が終わったか。終わるまでは session が null なので、
+  // ログイン済みでも一瞬ランディングが見えてしまうのを防ぐために持つ
+  const [authChecked, setAuthChecked] = useState(false);
   // アクセス許可情報。どのメールに対する取得結果かをセットで持ち、
   // ログアウト・アカウント切替時は描画側の照合で自動的に未判定へ戻す
   const [allowedInfo, setAllowedInfo] = useState(null); // { email, isAllowed, allowedMajorCategories } | null
@@ -94,9 +98,13 @@ export default function App() {
   const [sessionStartResults, setSessionStartResults] = useState({});
   const [showSummary, setShowSummary] = useState(false);
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setAuthChecked(true);
+    });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      setAuthChecked(true);
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -326,14 +334,30 @@ export default function App() {
   }
 
   function renderContent() {
-    if (session && isAllowed === null) {
+    // 認証判定が終わるまではスケルトン（ログイン済みでもランディングがちらつかないように）
+    if (!authChecked) {
       return <LoadingSkeleton />;
     }
-    if (session && isAllowed === false) {
+    // 未ログインの訪問者にはランディングを見せる。
+    // 問題一覧は RLS でどのみち0件になるため、取得完了を待たずに描画してよい
+    if (!session) {
+      return <LandingPage onLogin={signInWithGoogle} />;
+    }
+    if (isAllowed === null) {
+      return <LoadingSkeleton />;
+    }
+    if (isAllowed === false) {
       return (
         <div className="access-denied">
-          <p className="access-denied-title">アクセス権がありません</p>
-          <p className="access-denied-sub">このアプリは限定公開です。</p>
+          <p className="access-denied-title">このアカウントでは問題集を利用できません</p>
+          <p className="access-denied-sub">
+            何切る問題集は限定公開です。
+            <br />
+            メンチン何切るドリルは登録不要でどなたでも遊べます。
+          </p>
+          <a className="landing-cta landing-cta--compact" href="/chinitsu.html">
+            ドリルを始める
+          </a>
           <button className="btn-logout" onClick={() => supabase.auth.signOut()}>
             ログアウト
           </button>

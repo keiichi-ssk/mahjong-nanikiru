@@ -4,8 +4,11 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>座学する麻雀</title>
-    <meta name="description" content="麻雀の「何切る」を体系的に学ぶ問題集アプリ。" />
+    <title>座学する麻雀 | 何切る問題集とメンチン何切るドリル</title>
+    <meta
+      name="description"
+      content="麻雀の「何切る」を一問一答形式で学ぶ学習サイト。登録不要・無料のメンチン何切るドリルでは、ランダム生成された手牌14枚から切る牌と待ち牌を答える練習ができます。"
+    />
     <!-- 正規URL（旧ドメインからの移行中。ドメイン変更時は src/config/site.js のコメント参照） -->
     <link rel="canonical" href="https://zagakumahjong.com/" />
     <!-- OGP（SNSでのリンクカード表示用） -->
@@ -26,6 +29,27 @@
   </head>
   <body>
     <div id="root"></div>
+    <!--
+      検索エンジン向けのサイト説明。トップページの中身は React（JS）描画のため、
+      JSを実行しないクローラーが読めるテキストはここにしか無い。React側（LandingPage.jsx）へ
+      移すと意味が失われるので、整理や短縮の対象にしないこと。
+      ドリル自体の詳しい説明は chinitsu.html 側にあるので、ここでは重複させず
+      「サイト全体が何か」に絞って書く（詳細は CLAUDE.md の「SEO（検索流入）の方針」）。
+    -->
+    <section class="site-about">
+      <h2>座学する麻雀について</h2>
+      <p>
+        麻雀の「何切る」は、手牌から1枚を選んで捨てる判断を問う問題。
+        同じ牌姿でも巡目や点数状況で正解が変わるが、多くの場合で正解となる選択を無意識に取れるまで反復するのが上達の近道になる。
+        このサイトは、その学習のためのもの。
+      </p>
+      <p>
+        登録不要・無料で遊べるメンチン何切るドリルを公開している。
+        清一色の手牌14枚から、切る牌とその後の待ち牌をすべて答える形式で、
+        手牌は毎回その場で生成されるため出題が尽きない。
+        90秒で正答数を競うタイムアタックと、間違えた手牌だけを解き直す復習機能も用意した。
+      </p>
+    </section>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
