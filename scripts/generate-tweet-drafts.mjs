@@ -197,7 +197,11 @@ const drafts = pickTopCandidates(count);
 const cards = drafts.map((d, i) => {
   // 本文（クイズ）は buildShareUrl が組み立てたものをそのまま流用する（文言の二重管理を避けるため）
   const intentUrl = buildShareUrl(d.hand);
-  const tweetText = decodeURIComponent(new URL(intentUrl).searchParams.get('text').replace(/\+/g, ' '));
+  const params = new URL(intentUrl).searchParams;
+  // コピー用の本文には手牌付きリンク（/api/share?q=...）も含める。
+  // Xが text の後ろに url を付けるのと同じ並びにしてあるので、投稿画面から投稿しても手コピーでも結果は同じ。
+  // 「X投稿画面を開く」リンクは intentUrl のまま（url パラメータと本文の両方に入れるとURLが二重に出るため）
+  const tweetText = `${params.get('text')}\n${params.get('url')}`;
   // 解説（数時間後にリプする答え）はこのスクリプトで生成する
   const answerText = buildAnswerText(d.hand);
   return draftHtml(d, i, tweetText, answerText, intentUrl);
