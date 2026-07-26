@@ -443,7 +443,8 @@ export default function App() {
         )}
       </header>
       {renderContent()}
-      {/* クローラーがたどれる実リンク（/chinitsu.html の発見用）とご意見・ご要望をまとめたフッター */}
+      {/* クローラーがたどれる実リンク（/chinitsu.html の発見用）とご意見・ご要望をまとめたフッター。
+          ドリルの説明テキストは公開ページ（chinitsu.html）だけに置く方針なのでここには出さない。 */}
       <footer className="app-footer">
         <FeedbackWidget source="app" />
         <a href="/chinitsu.html">メンチン何切るドリル（無料公開中）</a>

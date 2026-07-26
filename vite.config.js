@@ -1,4 +1,4 @@
-import { defineConfig } from 'vite'
+import { defineConfig, configDefaults } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
@@ -11,5 +11,9 @@ export default defineConfig({
         chinitsu: './chinitsu.html',
       },
     },
+  },
+  test: {
+    // .trash は削除したファイルの退避先。中のテストを拾うと、退避しただけで npm test が壊れる
+    exclude: [...configDefaults.exclude, '.trash/**'],
   },
 })

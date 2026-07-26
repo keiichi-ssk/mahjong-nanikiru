@@ -304,7 +304,7 @@ export default function ChinitsuTrainer({ onBack, onTimeAttack, reviewHands = nu
           </div>
         ) : (
           <button className="chinitsu-timeattack-btn" onClick={onTimeAttack}>
-            ⏱ タイムアタックに挑戦（3分で何問解ける？）
+            ⏱ タイムアタックに挑戦（90秒で何問解ける？）
           </button>
         )
       )}

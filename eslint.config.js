@@ -5,7 +5,8 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // .trash は削除したファイルの退避先（復元用に原状のまま置く）なので検査しない
+  globalIgnores(['dist', '.trash']),
   {
     files: ['**/*.{js,jsx}'],
     extends: [

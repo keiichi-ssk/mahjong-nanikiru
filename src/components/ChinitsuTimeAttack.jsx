@@ -18,14 +18,14 @@ function loadPlayerName() {
   }
 }
 
-// メンチン何切る タイムアタックモード。3分の持ち時間で正答数を競う独立モード。
+// メンチン何切る タイムアタックモード。90秒の持ち時間で正答数を競う独立モード。
 // - タイマーは「回答中」（問題表示中〜回答確定まで）だけ進む。解答パネル表示中・次問への遷移中は停止する
 // - 正解 → 正答数+1、誤答 → このセッションの誤答リストに追加（終了後にそのまま復習できる）。どちらも終了せず次の問題へ
 // - 回答後は通常モードと同じ解答パネル（解説）を表示し、ユーザーが「次の問題へ」で進める（この間タイマー停止）
-// - 3分（回答中の累計）を使い切ったら終了。進行中の問題は正答数に数えない
+// - 90秒（回答中の累計）を使い切ったら終了。進行中の問題は正答数に数えない
 // 通常モード（ChinitsuTrainer）とは状態を共有せず、sessionStorage 保存もしない（一発勝負・リロードで消える）
 
-const TOTAL_MS = 3 * 60 * 1000; // 持ち時間3分
+const TOTAL_MS = 90 * 1000; // 持ち時間90秒
 const SUIT_CODES = ['m', 'p', 's'];
 
 function randomSuit() {
@@ -183,7 +183,7 @@ export default function ChinitsuTimeAttack({ onBack, onPractice, onReview }) {
 
         <div className="chinitsu-ta-intro">
           <h2 className="chinitsu-ta-title">⏱ メンチン何切る タイムアタック</h2>
-          <p className="chinitsu-ta-lead">3分間で何問正解できるか挑戦しよう！</p>
+          <p className="chinitsu-ta-lead">90秒で何問正解できるか挑戦しよう！</p>
 
           <p className="chinitsu-ta-section-label">遊び方</p>
           <ul className="chinitsu-instruction-list">
@@ -216,7 +216,7 @@ export default function ChinitsuTimeAttack({ onBack, onPractice, onReview }) {
         </div>
 
         <div className="chinitsu-ta-result">
-          <p className="chinitsu-ta-result-label">3分間の結果</p>
+          <p className="chinitsu-ta-result-label">90秒の結果</p>
           <p className="chinitsu-ta-result-score"><strong>{score}</strong><span>問正解</span></p>
 
           {/* デイリーランキングへの登録 */}

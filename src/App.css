@@ -11,6 +11,8 @@
 }
 
 .app-header-title {
+  /* chinitsu.html では h1、本体では span。h1 の既定マージンを打ち消して見た目を揃える */
+  margin: 0;
   font-size: 1.1rem;
   font-weight: bold;
   color: var(--color-text-bright);
@@ -2266,6 +2268,39 @@
     color: var(--color-accent);
     text-decoration: underline;
   }
+}
+
+/* 公開ページの説明テキスト。マークアップは chinitsu.html に静的HTMLとして置いてある
+   （JSを実行しないクローラーにも読ませるため）。#root の外にあるので左右の余白は自前で持つ。 */
+.chinitsu-about {
+  max-width: 640px;
+  margin: 0 auto 24px;
+  padding: 0 16px;
+  text-align: left;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  line-height: 1.75;
+}
+
+.chinitsu-about h2 {
+  margin: 20px 0 6px;
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: var(--color-text);
+}
+
+.chinitsu-about h2:first-child {
+  margin-top: 0;
+}
+
+.chinitsu-about p {
+  margin: 0 0 10px;
+}
+
+.chinitsu-about-hand {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  letter-spacing: 0.04em;
+  color: var(--color-text);
 }
 
 /* ===== ご意見・ご要望ウィジェット ===== */

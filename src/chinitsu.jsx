@@ -11,12 +11,20 @@ import FeedbackWidget from './components/FeedbackWidget.jsx'
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <header className="app-header">
-      <span className="app-header-title">メンチン何切るドリル</span>
+      {/* このページの主題を検索エンジンに伝えるため h1 にする（本体の App.jsx は span のまま） */}
+      <h1 className="app-header-title">メンチン何切るドリル</h1>
       <a className="app-header-cta" href="/">問題集「座学する麻雀」へ</a>
     </header>
     <ChinitsuDrill />
-    <footer className="app-footer">
-      <FeedbackWidget source="chinitsu" />
-    </footer>
+  </StrictMode>,
+)
+
+// フッター（説明テキスト＋ご意見・ご要望）は chinitsu.html 側の静的HTMLが器になっている。
+// 説明テキスト（.chinitsu-about）はJSを実行しないクローラーにも読ませる必要があるため静的HTMLのままにし、
+// その下に来るご意見・ご要望だけをここで別マウントする（#root の中に入れると説明より上に出てしまうため）。
+// 本体（App.jsx）側は同じ並びを ChinitsuAbout コンポーネントで再現している。
+createRoot(document.getElementById('feedback-root')).render(
+  <StrictMode>
+    <FeedbackWidget source="chinitsu" />
   </StrictMode>,
 )

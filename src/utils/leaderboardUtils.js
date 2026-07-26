@@ -2,9 +2,10 @@
 // api/leaderboard.js（Vercel関数）とフロント両方から使うため、副作用を持たない。
 // api/ からも import されるため、他の src/utils と違い拡張子を明示して読み込まれる。
 
-// 3分間で現実的に到達し得る正答数の上限。これを超える値は「論外な詐称」として弾く
+// 90秒間で現実的に到達し得る正答数の上限。これを超える値は「論外な詐称」として弾く
 // （認証なしのため詐称自体は完全には防げない。明らかな異常値だけを排除する割り切り）。
-export const MAX_SCORE = 120;
+// 持ち時間（ChinitsuTimeAttack.jsx の TOTAL_MS）を変えたらこの値も見直すこと。
+export const MAX_SCORE = 60;
 
 // ニックネームの最大文字数（DB の CHECK 制約と揃える）
 export const MAX_NAME_LENGTH = 20;

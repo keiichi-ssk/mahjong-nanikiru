@@ -58,12 +58,12 @@ describe('buildTimeAttackShareUrl', () => {
     expect(url).toMatch(/^https:\/\/twitter\.com\/intent\/tweet\?text=/);
     const decoded = decodeURIComponent(url);
     expect(decoded).toContain('タイムアタック');
-    expect(decoded).toContain('3分で12問正解！');
+    expect(decoded).toContain('90秒で12問正解！');
     expect(decoded).toContain('#メンチン何切るドリル');
     expect(decoded).toContain(`${SITE_URL}/chinitsu.html`);
   });
 
   it('0問でも文言が壊れない', () => {
-    expect(decodeURIComponent(buildTimeAttackShareUrl(0))).toContain('3分で0問正解！');
+    expect(decodeURIComponent(buildTimeAttackShareUrl(0))).toContain('90秒で0問正解！');
   });
 });
