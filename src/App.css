@@ -199,6 +199,8 @@
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  /* ドリルへのタブだけ <a>（他は <button>）。下線と既定のリンク色を打ち消して見た目を揃える */
+  text-decoration: none;
   padding: 8px 16px;
   border: 1px solid var(--color-border);
   border-radius: 8px;

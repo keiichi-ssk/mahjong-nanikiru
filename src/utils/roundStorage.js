@@ -15,18 +15,9 @@ const KEYS = {
   showSummary:         'showSummary',
 };
 
-// 清一色トレーニング画面に居るかどうか。出題ラウンドとは別軸のため KEYS には含めず、
-// clearRound()（カテゴリへ戻るとき全消去）の対象にしない
-const CHINITSU_MODE_KEY = 'chinitsuMode';
-
-export function saveChinitsuMode(on) {
-  if (on) sessionStorage.setItem(CHINITSU_MODE_KEY, 'true');
-  else sessionStorage.removeItem(CHINITSU_MODE_KEY);
-}
-
-export function loadChinitsuMode() {
-  return sessionStorage.getItem(CHINITSU_MODE_KEY) === 'true';
-}
+// 【削除済み】'chinitsuMode' キー（saveChinitsuMode / loadChinitsuMode）は、本体アプリ内で
+// メンチン何切るドリルを表示していた頃の名残。ドリルは公開ページ（/chinitsu.html）に一本化し、
+// 本体からは別タブで開くリンクになったため不要になった（2026-07-26）。
 
 function parseJson(json, fallback) {
   try {

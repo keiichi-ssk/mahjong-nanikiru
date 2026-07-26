@@ -4,7 +4,6 @@ import CategoryList from './components/CategoryList';
 import FeedbackWidget from './components/FeedbackWidget';
 import ProblemView from './components/ProblemView';
 import SessionSummary from './components/SessionSummary';
-import ChinitsuDrill from './components/ChinitsuDrill';
 import { isSectionAllowed } from './utils/categoryUtils';
 import { fromDb } from './utils/problemMapper';
 import { shouldDeferResult, collectPendingUpgrades } from './utils/sessionResultsUtils';
@@ -12,7 +11,6 @@ import {
   saveRoundStart, saveRoundRetry, clearRound, loadRound,
   saveCurrentIndex, saveRoundResults, saveRoundAnswers,
   saveSessionFirstResults, saveSessionStartResults, saveShowSummary,
-  saveChinitsuMode, loadChinitsuMode,
 } from './utils/roundStorage';
 import './App.css';
 
@@ -95,20 +93,6 @@ export default function App() {
   // 判定基準。これに該当する回答は即時記録せず、サマリーでの選択まで保留する
   const [sessionStartResults, setSessionStartResults] = useState({});
   const [showSummary, setShowSummary] = useState(false);
-  // DB問題とは独立した練習モード（ランダム生成・DB非保存）。isPlaying とは別軸で管理し、
-  // リロードしてもカテゴリ画面に戻らないよう sessionStorage に保存する
-  const [chinitsuMode, setChinitsuMode] = useState(loadChinitsuMode);
-
-  function enterChinitsu() {
-    setChinitsuMode(true);
-    saveChinitsuMode(true);
-  }
-
-  function exitChinitsu() {
-    setChinitsuMode(false);
-    saveChinitsuMode(false);
-  }
-
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => setSession(session));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -359,9 +343,6 @@ export default function App() {
     if (loading) {
       return <LoadingSkeleton />;
     }
-    if (chinitsuMode) {
-      return <ChinitsuDrill onBack={exitChinitsu} />;
-    }
     if (!isPlaying) {
       return (
         <CategoryList
@@ -377,7 +358,6 @@ export default function App() {
           results={results}
           session={session}
           onResetResults={handleResetResults}
-          onStartChinitsu={enterChinitsu}
         />
       );
     }
@@ -447,7 +427,7 @@ export default function App() {
           ドリルの説明テキストは公開ページ（chinitsu.html）だけに置く方針なのでここには出さない。 */}
       <footer className="app-footer">
         <FeedbackWidget source="app" />
-        <a href="/chinitsu.html">メンチン何切るドリル（無料公開中）</a>
+        <a href="/chinitsu.html" target="_blank" rel="noopener">メンチン何切るドリル（無料公開中）</a>
       </footer>
     </>
   );

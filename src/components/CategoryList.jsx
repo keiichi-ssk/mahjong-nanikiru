@@ -160,7 +160,7 @@ function MajorGroup({
   );
 }
 
-export default function CategoryList({ categories, problems, randomMode, onToggleRandom, unansweredOnlyMode, onToggleUnansweredOnly, wrongOnlyMode, onToggleWrongOnly, onStart, results = {}, session, onResetResults, onStartChinitsu }) {
+export default function CategoryList({ categories, problems, randomMode, onToggleRandom, unansweredOnlyMode, onToggleUnansweredOnly, wrongOnlyMode, onToggleWrongOnly, onStart, results = {}, session, onResetResults }) {
   const books = groupByBook(categories);
   // section → 問題配列。render のたびに全問題を何度も filter しないための索引
   const problemsBySection = useMemo(() => {
@@ -290,11 +290,11 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
       )}
 
       <div className="book-tabs">
-        {onStartChinitsu && (
-          <button className="book-tab" onClick={onStartChinitsu}>
-            メンチン何切るドリル
-          </button>
-        )}
+        {/* ドリルの実体は公開ページ（/chinitsu.html）に一本化してある。本体側はリンクを置くだけ。
+            別タブで開くのは、本体（ログイン状態と problems の全件取得）を読み込み直させないため。 */}
+        <a className="book-tab" href="/chinitsu.html" target="_blank" rel="noopener">
+          メンチン何切るドリル
+        </a>
         {session ? (
           books.map(({ label: bookLabel, majorGroups }) => {
             const bookSections = majorGroups.flatMap(g => g.sections);
