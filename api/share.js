@@ -5,6 +5,11 @@
 //
 // q は decodeHandParam で検証したうえで encodeHandParam により再構築してから埋め込む
 // （元の文字列をそのままHTMLに差し込まない。不正なqでも壊れたHTMLにならないようにするため）。
+//
+// noindex を付けているのは、手牌の数だけURLが無限に生える中身の薄い中継ページが
+// 大量にインデックスされると本命の chinitsu.html の評価を下げるため（follow はリンク評価を
+// 渡すために残す）。robots.txt の Disallow で塞いではいけない — Twitterbot は robots.txt を
+// 尊重するため OGP カードが出なくなる。meta の noindex なら Twitterbot は無視して og を読む。
 
 import { decodeHandParam, encodeHandParam } from '../src/utils/chinitsuShare.js';
 import { SITE_URL } from '../src/config/site.js';
@@ -24,6 +29,7 @@ export default async function handler(req, res) {
 <head>
 <meta charset="utf-8" />
 <meta http-equiv="refresh" content="0; url=${targetUrl}" />
+<meta name="robots" content="noindex, follow" />
 <title>メンチン何切るドリル</title>
 <meta property="og:title" content="メンチン何切るドリル" />
 <meta property="og:description" content="メンチン（清一色）の何切るをトレーニング。間違えた問題を復習可能。登録不要・スマホ対応。" />
