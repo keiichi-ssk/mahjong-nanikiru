@@ -430,7 +430,7 @@ export default function BoardView({
                   />
                 </div>
                 {scores?.kyotaku > 0 && (
-                  <div className="board-kyotaku">供託 {scores.kyotaku.toLocaleString()}</div>
+                  <div className="board-kyotaku">供託 {scores.kyotaku}</div>
                 )}
             </div>
           </div>
