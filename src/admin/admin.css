@@ -1,7 +1,15 @@
-/* ===== グローバルリセット（管理画面専用） ===== */
+/* ===== グローバルリセット（管理画面専用） =====
+   index.css の #root（max-width 900px・中央寄せ・padding）を打ち消して画面全体を使う。
+   幅に上限を付けると左右に body 背景のグレー帯が出るので max-width を復活させないこと。
+   overflow-y の上書きは、.admin-layout が 100vh 固定でページ自体はスクロールしないため
+   （index.css の overflow-y: scroll が右端に無効なスクロールバーの帯を残すのを防ぐ）。 */
+html {
+  overflow-y: auto;
+}
+
 #root {
-  max-width: 1200px;
-  margin: 0 auto;
+  max-width: none;
+  margin: 0;
   padding: 0;
 }
 
@@ -92,26 +100,66 @@
   background: rgba(46, 204, 113, 0.1);
 }
 
+/* ===== カテゴリ選択（書籍・小カテゴリのプルダウン＋問題リスト） ===== */
+.admin-problem-browser {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.admin-cat-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #1a2a4a;
+}
+
+.admin-cat-select {
+  width: 100%;
+  background: #111827;
+  border: 1px solid #1a2a4a;
+  color: #ccc;
+  font-size: 0.78rem;
+  padding: 5px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* 大カテゴリはグループ見出しとして表示する（選択肢ではない） */
+.admin-cat-select optgroup {
+  color: #89c0f0;
+  background: #0d1426;
+  font-style: normal;
+}
+
+.admin-cat-select option {
+  color: #ccc;
+  background: #111827;
+}
+
+/* 選択中カテゴリの見出し行（ID範囲と進捗を常時表示） */
+.admin-cat-summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  font-size: 0.8rem;
+  color: #f5c842;
+  background: #16213e;
+  overflow: hidden;
+}
+
+.admin-cat-empty {
+  padding: 16px 12px;
+  font-size: 0.78rem;
+  color: #555;
+}
+
 .admin-cat-list {
   overflow-y: auto;
   flex: 1;
-}
-
-.admin-cat-btn {
-  width: 100%;
-  text-align: left;
-  background: none;
-  border: none;
-  padding: 10px 10px;
-  color: #ccc;
-  font-size: 0.8rem;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 4px;
-  transition: background 0.15s;
-  overflow: hidden;
 }
 
 .admin-cat-id {
@@ -122,7 +170,7 @@
   white-space: nowrap;
 }
 
-.admin-cat-btn--active .admin-cat-id {
+.admin-cat-summary .admin-cat-id {
   color: #89c0f0;
 }
 
@@ -134,9 +182,6 @@
   flex: 1;
 }
 
-.admin-cat-btn:hover { background: #16213e; }
-.admin-cat-btn--active { color: #f5c842; background: #16213e; }
-
 .admin-cat-id-range {
   font-size: 0.68rem;
   color: #3a6a9a;
@@ -145,7 +190,7 @@
   white-space: nowrap;
 }
 
-.admin-cat-btn--active .admin-cat-id-range {
+.admin-cat-summary .admin-cat-id-range {
   color: #5e9ad0;
 }
 
@@ -170,7 +215,9 @@
   background: none;
   border: none;
   text-align: left;
-  padding: 6px 32px;
+  /* カテゴリボタンの下に入れ子で表示していた頃の名残でインデントしていたが、
+     プルダウン化で入れ子でなくなったため通常の左余白に戻している */
+  padding: 6px 14px;
   color: #888;
   font-size: 0.8rem;
   cursor: pointer;
@@ -206,7 +253,9 @@
   flex-direction: column;
   gap: 5px;
 }
-.admin-new-problem-title {
+/* セクション見出し（「問題を選択」「新規問題追加」で共通） */
+.admin-new-problem-title,
+.admin-cat-picker-title {
   font-size: 0.72rem;
   color: #888;
   margin-bottom: 2px;

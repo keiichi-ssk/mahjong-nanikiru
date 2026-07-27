@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import ProblemEditor from './ProblemEditor'
-import { BOOKS, ALL_MAJOR_CATEGORIES, majorCategoryKey, sectionNumber, sectionLabel } from '../utils/categoryUtils'
+import { BOOKS, ALL_MAJOR_CATEGORIES, majorCategoryKey, sectionNumber, sectionLabel, getBookLabel, groupByBook } from '../utils/categoryUtils'
 import { fromDb, toDb } from '../utils/problemMapper'
 import { questionImagePath, QUESTION_IMAGE_BUCKET } from '../utils/questionImage'
 import categoriesData from '../data/categories.json'
@@ -27,6 +27,9 @@ export default function AdminApp() {
   const [problems, setProblems]       = useState([])
   const [selectedCat, setSelectedCat] = useState(null)
   const [selectedId, setSelectedId]   = useState(null)
+  // 書籍プルダウンの選択。カテゴリ選択中はそちらから導出するので、
+  // この state が効くのは「書籍だけ選んでカテゴリ未選択」のときだけ
+  const [browseBook, setBrowseBook]   = useState('')
   const [idJumpInput, setIdJumpInput] = useState('')
   const [saveStatus, setSaveStatus]   = useState('')
   const [activeTab, setActiveTab]     = useState('problems')
@@ -134,6 +137,35 @@ export default function AdminApp() {
   const categories = [...new Set(problems.map(p => p.section))].sort(
     (a, b) => parseInt(a) - parseInt(b)
   )
+
+  // カテゴリごとの ID 範囲・進捗（プルダウンの選択肢とサマリー行の両方で使う）
+  const catStats = Object.fromEntries(categories.map(cat => {
+    const items = problems.filter(p => p.section === cat)
+    const ids   = items.map(p => p.id)
+    const minId = Math.min(...ids)
+    const maxId = Math.max(...ids)
+    return [cat, {
+      total:    items.length,
+      reviewed: items.filter(p => p.reviewed).length,
+      idRange:  minId === maxId ? `#${minId}` : `#${minId}〜#${maxId}`,
+    }]
+  }))
+
+  // 問題が1件も無い書籍・大カテゴリはプルダウンに出さない（従来の一覧と同じ挙動）
+  const groupedBooks = groupByBook(categories).filter(b => b.majorGroups.length > 0)
+  // categories.json に載っていない section は groupByBook から漏れるため、
+  // 「その他」書籍に集めて必ずプルダウンから辿れるようにする（getBookLabel の返り値と同じ名前）
+  const groupedSections = new Set(groupedBooks.flatMap(b => b.majorGroups.flatMap(g => g.sections)))
+  const orphanSections  = categories.filter(cat => !groupedSections.has(cat))
+  const booksWithProblems = orphanSections.length
+    ? [...groupedBooks, { label: 'その他', majorGroups: [{ label: '未分類', sections: orphanSections }] }]
+    : groupedBooks
+  // 表示中の書籍はカテゴリ選択があればそこから導出する。
+  // こうしておくと ID ジャンプや新規追加で別書籍へ飛んでも書籍プルダウンが自動追従する
+  const activeBookLabel = selectedCat ? getBookLabel(selectedCat) : browseBook
+  const activeBook = booksWithProblems.find(b => b.label === activeBookLabel)
+    ?? booksWithProblems[0]
+    ?? null
 
   const catProblems = problems.filter(p => p.section === selectedCat)
   const catIdx = catProblems.findIndex(p => p.id === selectedId)
@@ -376,55 +408,72 @@ export default function AdminApp() {
           </button>
         </div>
 
-        <div className="admin-cat-list" style={{ display: activeTab === 'problems' ? undefined : 'none' }}>
-          {categories.map(cat => {
-            const catItems    = problems.filter(p => p.section === cat)
-            const catTotal    = catItems.length
-            const catReviewed = catItems.filter(p => p.reviewed).length
-            const allDone     = catReviewed === catTotal
-            const ids         = catItems.map(p => p.id)
-            const minId       = ids.length ? Math.min(...ids) : null
-            const maxId       = ids.length ? Math.max(...ids) : null
-            const idRange     = minId !== null ? (minId === maxId ? `#${minId}` : `#${minId}~#${maxId}`) : ''
-            return (
-              <div key={cat}>
-                <button
-                  className={`admin-cat-btn${selectedCat === cat ? ' admin-cat-btn--active' : ''}`}
-                  onClick={() => { setSelectedCat(cat); setSelectedId(null) }}
-                >
-                  <span className="admin-cat-id">No.{sectionNumber(cat)}</span>
-                  <span className="admin-cat-label">{sectionLabel(cat)}</span>
-                  <span className="admin-cat-id-range">{idRange}</span>
-                  <span className={`admin-cat-progress${allDone ? ' admin-cat-progress--done' : ''}`}>
-                    {catReviewed}/{catTotal}
-                  </span>
+        <div className="admin-problem-browser" style={{ display: activeTab === 'problems' ? undefined : 'none' }}>
+          <div className="admin-cat-picker">
+            <div className="admin-cat-picker-title">問題編集</div>
+            <select
+              className="admin-cat-select"
+              value={activeBook?.label ?? ''}
+              onChange={e => { setBrowseBook(e.target.value); setSelectedCat(null); setSelectedId(null) }}
+            >
+              {booksWithProblems.map(b => <option key={b.label} value={b.label}>{b.label}</option>)}
+            </select>
+            <select
+              className="admin-cat-select"
+              value={selectedCat ?? ''}
+              onChange={e => { setSelectedCat(e.target.value || null); setSelectedId(null) }}
+            >
+              <option value="">カテゴリを選択...</option>
+              {(activeBook?.majorGroups ?? []).map(g => (
+                <optgroup key={g.label} label={g.label}>
+                  {g.sections.map(cat => (
+                    <option key={cat} value={cat}>
+                      {`No.${sectionNumber(cat)} ${sectionLabel(cat)}  ${catStats[cat].idRange}`}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+
+          {selectedCat && catStats[selectedCat] && (
+            <div className="admin-cat-summary">
+              <span className="admin-cat-id">No.{sectionNumber(selectedCat)}</span>
+              <span className="admin-cat-label">{sectionLabel(selectedCat)}</span>
+              <span className="admin-cat-id-range">{catStats[selectedCat].idRange}</span>
+              <span className={`admin-cat-progress${catStats[selectedCat].reviewed === catStats[selectedCat].total ? ' admin-cat-progress--done' : ''}`}>
+                {catStats[selectedCat].reviewed}/{catStats[selectedCat].total}
+              </span>
+            </div>
+          )}
+
+          <div className="admin-cat-list">
+            {selectedCat ? (
+              <div className="admin-problem-list">
+                {catProblems.map((p, i) => (
+                  <button
+                    key={p.id}
+                    className={`admin-problem-btn${selectedId === p.id ? ' admin-problem-btn--active' : ''}${p.disabled ? ' admin-problem-btn--disabled' : ''}`}
+                    onClick={() => setSelectedId(p.id)}
+                  >
+                    <span className="admin-problem-label">
+                      <span className="admin-problem-id">#{p.id}</span>
+                      <span>問題 {i + 1}</span>
+                    </span>
+                    <span className="admin-problem-badges">
+                      {p.disabled && <span className="admin-disabled-badge">非表示</span>}
+                      {p.reviewed && <span className="admin-reviewed-badge">✓</span>}
+                    </span>
+                  </button>
+                ))}
+                <button className="admin-add-problem-btn" onClick={handleAddProblem}>
+                  ＋ 問題を追加
                 </button>
-                {selectedCat === cat && (
-                  <div className="admin-problem-list">
-                    {catProblems.map((p, i) => (
-                      <button
-                        key={p.id}
-                        className={`admin-problem-btn${selectedId === p.id ? ' admin-problem-btn--active' : ''}${p.disabled ? ' admin-problem-btn--disabled' : ''}`}
-                        onClick={() => setSelectedId(p.id)}
-                      >
-                        <span className="admin-problem-label">
-                          <span className="admin-problem-id">#{p.id}</span>
-                          <span>問題 {i + 1}</span>
-                        </span>
-                        <span className="admin-problem-badges">
-                          {p.disabled && <span className="admin-disabled-badge">非表示</span>}
-                          {p.reviewed && <span className="admin-reviewed-badge">✓</span>}
-                        </span>
-                      </button>
-                    ))}
-                    <button className="admin-add-problem-btn" onClick={handleAddProblem}>
-                      ＋ 問題を追加
-                    </button>
-                  </div>
-                )}
               </div>
-            )
-          })}
+            ) : (
+              <div className="admin-cat-empty">カテゴリを選択してください</div>
+            )}
+          </div>
         </div>
 
         {activeTab === 'users' && (
