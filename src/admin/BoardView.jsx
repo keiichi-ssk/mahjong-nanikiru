@@ -15,18 +15,17 @@ import { seatWinds, collectCalledTiles, buildRiver } from '../utils/boardUtils'
 
 const RIVER_COLUMNS = 6 // 1行あたりの捨て牌の枚数（実卓と同じ6枚）
 
-// 盤面の牌の寸法（px）。手牌だけは編集パネルの牌（.editor-tile）と同じ大きさにする
-const TILE      = { w: 24, h: 32, gap: 2, meldGap: 6 }
+// 盤面の牌の寸法（px）。盤面は編集の主役なのでパレットより大きく取る
+const TILE      = { w: 26, h: 35, gap: 2, meldGap: 6 }
 const HAND_TILE = { w: 38, h: 50, gap: 3 }
 
-// 自分の手牌の置き場の幅（14枚ぶんで固定）。
-// 手牌の増減で幅が変わると盤面の中央列の幅が動き、他家の位置までズレてしまうため固定する
-const HAND_AREA_WIDTH = 14 * 38 + 13 * 3
+// 自分の手牌の置き場は盤面の幅いっぱい（CSS の .board-hand-row）。
+// 中央列は minmax(0, 1fr) なので、手牌の枚数が変わっても他家の位置は動かない
 
 // 王牌の枚数。左端がドラ表示牌で、残りは裏向き
 const DEAD_WALL_COUNT = 5
-// 中央（局設定）に置く王牌の牌サイズ。枠に収めるため河より一回り小さい
-const WALL_TILE = { w: 20, h: 27, gap: 2, meldGap: 6 }
+// 中央（局設定）に置く王牌の牌サイズ。枠（.board-center-info の 172px）に収まる範囲で大きめに取る
+const WALL_TILE = { w: 26, h: 34, gap: 2, meldGap: 6 }
 
 // 自分から見た各席の回転角（時計回り・度）。自分の視点が 0°
 const SEAT_ANGLE = { 上家: 90, 対面: 180, 下家: -90 }
@@ -171,20 +170,26 @@ function SeatRiverBlock({ cells, riichiIndex, angle }) {
   )
 }
 
-// 1家ぶんの手牌（裏向き）と副露。副露はその家から見て手牌の右側に置く
-function SeatHandBlock({ handCount, melds, angle }) {
-  const mw = meldsWidth(melds)
-  const hw = handCount > 0 ? handCount * TILE.w + (handCount - 1) * TILE.gap : 0
-  const width = hw + mw + (hw && mw ? TILE.meldGap : 0)
+// 1家ぶんの手牌（裏向き）。辺の中央に置くので、副露の有無で位置が動かないよう別ブロックにしてある
+// （自分の手牌と同じ考え方。副露は SeatMeldBlock が辺の端に置く）
+function SeatHandBlock({ handCount, angle }) {
+  const width = handCount > 0 ? handCount * TILE.w + (handCount - 1) * TILE.gap : 0
   return (
     <RotatedBlock angle={angle} width={width} height={width ? TILE.h : 0} className="board-seat-hand-row">
-      {handCount > 0 && (
-        <div className="board-seat-hand">
-          {Array.from({ length: handCount }, (_, i) => (
-            <BoardTile key={i} tile={null} className="board-seat-hand-tile" />
-          ))}
-        </div>
-      )}
+      <div className="board-seat-hand">
+        {Array.from({ length: handCount }, (_, i) => (
+          <BoardTile key={i} tile={null} className="board-seat-hand-tile" />
+        ))}
+      </div>
+    </RotatedBlock>
+  )
+}
+
+// 1家ぶんの副露。その家から見た右端（席ごとに画面上の向きが違う）に絶対配置する
+function SeatMeldBlock({ melds, angle }) {
+  const width = meldsWidth(melds)
+  return (
+    <RotatedBlock angle={angle} width={width} height={width ? TILE.h : 0} className="board-seat-hand-row">
       <BoardMelds melds={melds} />
     </RotatedBlock>
   )
@@ -294,7 +299,7 @@ export default function BoardView({
     onChangeJikaze(WIND_ORDER[(WIND_ORDER.indexOf(jikaze) + 1) % WIND_ORDER.length])
   }
 
-  // 点数は盤面では設定しづらいのでクリックで編集パネル（点数・注釈タブ）を開く。
+  // 点数は盤面では設定しづらいのでクリックで編集パネル（点数タブ）を開く。
   // 位置は状況設定フィールドの四辺の中央（上＝対面 / 左＝上家 / 右＝下家 / 下＝自分）。
   // 自分の風バッジだけは例外で、クリックすると自風が切り替わる。
   // button の入れ子は不正なので、チップ自体は div にして中の風・点数を button にする
@@ -319,16 +324,17 @@ export default function BoardView({
           <button
             type="button"
             className="board-score-wind"
-            onClick={() => onSelectArea('jokyo')}
+            onClick={() => onSelectArea('jokyo', wind)}
             title="点数を編集"
           >
             {wind ?? relative}
           </button>
         )}
+        {/* どの家をクリックしたかを渡し、編集パネル側でその家の入力行をハイライトさせる */}
         <button
           type="button"
           className="board-score-value"
-          onClick={() => onSelectArea('jokyo')}
+          onClick={() => onSelectArea('jokyo', wind)}
           title="点数を編集"
         >
           {score(wind) ?? '—'}
@@ -355,8 +361,10 @@ export default function BoardView({
     )
   }
 
-  // 他家の手牌＋副露。盤面の外端に置く
+  // 他家の手牌＋副露。盤面の外端に置く。
+  // 手牌は辺の中央、副露はその家から見た右端（CSS で絶対配置）に分けて置く
   function seatHandArea(seat, className) {
+    const melds = seat.od?.melds ?? []
     return (
       <BoardArea
         className={`board-seat ${className}`}
@@ -364,10 +372,14 @@ export default function BoardView({
         onClick={() => onSelectArea('sutehai', seat.index)}
       >
         <SeatHandBlock
-          handCount={concealedHandCount(seat.od?.melds)}
-          melds={seat.od?.melds}
+          handCount={concealedHandCount(melds)}
           angle={SEAT_ANGLE[seat.relative]}
         />
+        {melds.length > 0 && (
+          <span className="board-seat-melds">
+            <SeatMeldBlock melds={melds} angle={SEAT_ANGLE[seat.relative]} />
+          </span>
+        )}
       </BoardArea>
     )
   }
@@ -424,7 +436,7 @@ export default function BoardView({
                   <BoardSelect
                     value={junme == null ? null : String(junme)}
                     onChange={v => onChangeJunme(v == null ? null : Number(v))}
-                    options={Array.from({ length: 18 }, (_, i) => String(i + 1))}
+                    options={Array.from({ length: 20 }, (_, i) => String(i + 1))}
                     suffix="巡目"
                     title="巡目"
                   />
@@ -467,7 +479,7 @@ export default function BoardView({
               (tiles.length === 0 ? ' board-area--empty' : '')
             }
           >
-            <div className="board-hand-row" style={{ width: HAND_AREA_WIDTH }}>
+            <div className="board-hand-row">
               <div className="board-hand-tiles">
                 {tiles.map((tile, i) => (
                   <button

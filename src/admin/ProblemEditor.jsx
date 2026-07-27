@@ -72,10 +72,9 @@ function MeldPreview({ meld }) {
 // 暗槓（選択肢なし）は何も描画せず、チー（上家のみ）はセレクタではなく固定表示にする
 function MeldFromSelect({ type, value, onChange }) {
   const options = getMeldFromOptions(type)
-  if (options.length === 0) return null
-  if (options.length === 1) {
-    return <span className="meld-from-fixed">{options[0]}から</span>
-  }
+  // 選べる鳴いた元が無い（暗槓）／1つしかない（チー＝上家から固定）ときは何も出さない。
+  // 選択肢が無いものを表示しても場所を取るだけなので、値の補完は normalizeMeld に任せる
+  if (options.length <= 1) return null
   return (
     <select
       className="meld-from-select"
@@ -155,37 +154,46 @@ function WindSelector({ value, onChange, winds, suffix = '', selfWind = null }) 
   )
 }
 
-// 点数入力の1行（風ラベル + ±ステッパー + 直接入力）。
+// 点数入力の1組。右カラムの幅では「家名 + ±ステッパー + 入力」が1行に収まらないため、
+// 家名を1行目・操作を2行目に分ける（折り返すと行の対応が読み取れなくなるため）。
 // 入力中は任意の数字を受け付け、確定（blur）時に100点単位へ丸める
-function ScoreInputRow({ label, isSelf, value, onChange, steps }) {
+function ScoreInputRow({ label, isSelf, active, value, onChange, steps }) {
   return (
-    <div className="score-edit-row">
-      <span className="score-edit-wind">
+    <div
+      className={
+        'score-edit-row' +
+        (isSelf ? ' score-edit-row--self' : '') +
+        (active ? ' score-edit-row--active' : '')
+      }
+    >
+      <div className="score-edit-wind">
         {label}
         {isSelf && <span className="score-edit-self">自分</span>}
-      </span>
-      {steps.filter(s => s < 0).map(s => (
-        <button key={s} className="score-step-btn" onClick={() => onChange(Math.max(0, value + s))}>
-          −{-s}
-        </button>
-      ))}
-      <input
-        type="text"
-        inputMode="numeric"
-        className="score-edit-input"
-        value={value}
-        onFocus={e => e.target.select()}
-        onChange={e => {
-          const n = parseInt(e.target.value.replace(/[^0-9]/g, ''), 10)
-          onChange(Number.isNaN(n) ? 0 : n)
-        }}
-        onBlur={() => onChange(Math.max(0, Math.round(value / 100) * 100))}
-      />
-      {steps.filter(s => s > 0).map(s => (
-        <button key={s} className="score-step-btn" onClick={() => onChange(value + s)}>
-          +{s}
-        </button>
-      ))}
+      </div>
+      <div className="score-edit-controls">
+        {steps.filter(s => s < 0).map(s => (
+          <button key={s} className="score-step-btn" onClick={() => onChange(Math.max(0, value + s))}>
+            −{-s}
+          </button>
+        ))}
+        <input
+          type="text"
+          inputMode="numeric"
+          className="score-edit-input"
+          value={value}
+          onFocus={e => e.target.select()}
+          onChange={e => {
+            const n = parseInt(e.target.value.replace(/[^0-9]/g, ''), 10)
+            onChange(Number.isNaN(n) ? 0 : n)
+          }}
+          onBlur={() => onChange(Math.max(0, Math.round(value / 100) * 100))}
+        />
+        {steps.filter(s => s > 0).map(s => (
+          <button key={s} className="score-step-btn" onClick={() => onChange(value + s)}>
+            +{s}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
@@ -205,7 +213,7 @@ function parseTilesText(text) {
 }
 
 export default function ProblemEditor({
-  problem, prevProblem, onSave, onSaveAndNext, onDelete, onPrev, onNext, hasPrev, hasNext, catIdx, catTotal,
+  problem, prevProblem, onSave, onSaveAndNext, onDelete, hasNext,
 }) {
   // 手牌が未設定（新規追加直後）の問題は、手牌・正解・状況設定（ドラ・場風・自風・巡目）を
   // ひとつ前の問題から引き継いでおく。手牌がすでにある問題は自分自身の値を優先する。
@@ -260,6 +268,8 @@ export default function ProblemEditor({
     // データが無くても1人目の空ブロックを出しておく（未設定のままなら保存時に除外されて null になる）
     return base.length > 0 ? base : [{ player: null, tiles: [], riichiIndex: null, melds: [] }]
   })
+  // 盤面の点数チップからどの家をクリックしたか（点数タブでその家の行をハイライトする）
+  const [activeScoreWind, setActiveScoreWind] = useState(null)
   // パレットからの牌追加先ブロック（ブロック削除でずれるため描画時に clamp する）
   const [sutehaiActiveIdx, setSutehaiActiveIdx] = useState(0)
   const activeSutehaiIdx = Math.min(sutehaiActiveIdx, otherDiscards.length - 1) // ブロックが無ければ -1
@@ -627,6 +637,7 @@ export default function ProblemEditor({
     : paletteTab === 'hand'  ? 'hand'
     : null
 
+  // index は kind ごとに意味が違う（sutehai＝家ブロックの番号 / jokyo＝クリックした家の風）
   function handleSelectArea(kind, index) {
     if (kind === 'hand') {
       setPaletteTab('hand')
@@ -634,6 +645,7 @@ export default function ProblemEditor({
     } else if (kind === 'jokyo') {
       setPaletteTab('jokyo')
       setPaletteMode('dora')
+      setActiveScoreWind(index ?? null)
     } else if (kind === 'sutehai') {
       setPaletteTab('sutehai')
       setPaletteMode('sutehai')
@@ -659,17 +671,7 @@ export default function ProblemEditor({
 
   return (
     <div className="editor">
-      {/* ナビゲーションバー */}
-      <div className="editor-nav">
-        <button className="editor-nav-btn" onClick={onPrev} disabled={!hasPrev} title="前の問題（←キー）">
-          ← 前
-        </button>
-        <span className="editor-nav-pos">{catIdx + 1} / {catTotal}</span>
-        <button className="editor-nav-btn" onClick={onNext} disabled={!hasNext} title="次の問題（→キー）">
-          次 →
-        </button>
-      </div>
-
+      {/* 前後の移動はサイドバーの問題一覧と ←/→ キー（AdminApp）に任せ、ナビ行は置かない */}
       <div className="editor-columns">
       {/* 左：盤面。クリックすると右カラムの対応するパネルへ切り替わる */}
       <div className="editor-board-col">
@@ -694,10 +696,34 @@ export default function ProblemEditor({
           onChangeJunme={setJunme}
           onRemoveHandTile={removeTile}
         />
+
+        {/* 共通牌パレット。盤面の下（左カラム内）に置き、幅を盤面に合わせる。
+            右カラムは設定専用。送り先モードで牌の追加先を切り替える */}
+        <div className="palette-dock">
+          <div className="palette-dock-header">
+            <div className="palette-dock-modes">
+              <span className="palette-dock-modes-label">送り先:</span>
+              {availableModes.map(m => (
+                <button
+                  key={m}
+                  className={`palette-mode-btn${effectiveMode === m ? ' palette-mode-btn--active' : ''}`}
+                  onClick={() => setPaletteMode(m)}
+                  disabled={!!addingMeld && m !== 'meld'}
+                >
+                  {PALETTE_MODE_LABELS[m]}
+                </button>
+              ))}
+            </div>
+            <span className="palette-dock-status">{paletteStatus}</span>
+          </div>
+          <TilePalette size={28} onTileClick={handlePaletteTile} />
+        </div>
       </div>
 
-      {/* 右：編集パネル */}
+      {/* 右：編集パネル。パレットをタブの内容量に関わらず画面下端に留めるため、
+          パレット以外をスクロール領域（.editor-panel-scroll）で包む */}
       <div className="editor-panel-col">
+      <div className="editor-panel-scroll">
 
       {/* ヘッダー：ID・問題タイプ・フラグ・保存を1行にまとめて縦の場所を節約する */}
       <div className="editor-header">
@@ -730,10 +756,23 @@ export default function ProblemEditor({
           />
           非表示
         </label>
-        <button className="editor-save-btn" onClick={handleSave}>保存</button>
-        <button className="editor-save-next-btn" onClick={handleSaveAndNext} disabled={!hasNext}>
-          保存して次へ <kbd>Ctrl+S</kbd>
-        </button>
+        {/* 保存・保存して次へ・削除はひとまとまり（折り返しても3つが分かれないようにする） */}
+        <div className="editor-header-actions">
+          <button className="editor-save-btn" onClick={handleSave}>保存</button>
+          <button className="editor-save-next-btn" onClick={handleSaveAndNext} disabled={!hasNext}>
+            保存して次へ <kbd>Ctrl+S</kbd>
+          </button>
+          <button
+            className="editor-delete-btn"
+            onClick={() => {
+              if (window.confirm(`問題 #${problem.id} を削除しますか？\nこの問題の全ユーザーの正誤記録も削除されます。この操作は取り消せません。`)) {
+                onDelete(problem.id)
+              }
+            }}
+          >
+            この問題を削除
+          </button>
+        </div>
       </div>
 
       {/* 問題画像（任意・全タイプ共通）。ほとんどの問題では未設定なので、
@@ -788,13 +827,13 @@ export default function ProblemEditor({
             className={`palette-tab-btn${paletteTab === 'jokyo' ? ' palette-tab-btn--active' : ''}`}
             onClick={() => { setPaletteTab('jokyo'); setPaletteMode('dora') }}
           >
-            点数・注釈
+            点数
           </button>
           <button
             className={`palette-tab-btn${paletteTab === 'sutehai' ? ' palette-tab-btn--active' : ''}`}
             onClick={() => { setPaletteTab('sutehai'); setPaletteMode('sutehai') }}
           >
-            他家捨て牌
+            捨て牌
           </button>
           <button
             className={`palette-tab-btn${paletteTab === 'answer' ? ' palette-tab-btn--active' : ''}`}
@@ -885,30 +924,30 @@ export default function ProblemEditor({
                 ))}
               </div>
             )}
+
+            {/* 注釈は手牌と一緒に書くことが多いのでこのタブに置く（点数タブには置かない） */}
+            <div className="palette-tab-divider" />
+            <div className="editor-section-label">注釈</div>
+            <textarea
+              ref={noteRef}
+              className="explanation-textarea"
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              onFocus={() => { noteTouchedRef.current = true; setPaletteMode('note') }}
+              placeholder="状況設定に関する注釈を入力してください（牌は下のパレットからカーソル位置に挿入できます）"
+              rows={2}
+            />
           </div>
         )}
 
-        {/* 点数・注釈タブ。
+        {/* 点数タブ。
             ドラ・場風・局・自風・巡目は盤面の中央フィールドで直接設定するのでここには置かない
             （盤面を見ながら設定できるほうが速く、右カラムの縦の長さも抑えられる） */}
         {paletteTab === 'jokyo' && (
           <div className="palette-tab-content">
             <div className="editor-section-label">点数状況</div>
-            <div className="situation-selector">
-              <button
-                className={`situation-btn situation-btn--unset${scores === null ? ' situation-btn--active' : ''}`}
-                onClick={() => setScores(null)}
-              >
-                未設定
-              </button>
-              <button
-                className={`situation-btn${scores !== null ? ' situation-btn--active' : ''}`}
-                onClick={() => setScores(prev => prev ?? { ...DEFAULT_SCORES })}
-              >
-                設定する
-              </button>
-            </div>
-            {scores !== null && (() => {
+            {/* 点数は常に既定値（全員25000）が入る仕様なので「未設定」の選択肢は置かない */}
+            {(() => {
               const total = SCORE_WINDS.reduce((sum, w) => sum + (scores[w] ?? 0), 0) + (scores.kyotaku ?? 0)
               const totalOk = total === 100000
               return (
@@ -918,6 +957,7 @@ export default function ProblemEditor({
                       key={w}
                       label={`${w}家`}
                       isSelf={jikaze === w}
+                      active={activeScoreWind === w}
                       value={scores[w] ?? 0}
                       onChange={v => setScores(prev => ({ ...prev, [w]: v }))}
                       steps={[-10000, -1000, -100, 100, 1000, 10000]}
@@ -943,22 +983,10 @@ export default function ProblemEditor({
                 </div>
               )
             })()}
-
-            <div className="palette-tab-divider" />
-            <div className="editor-section-label">注釈</div>
-            <textarea
-              ref={noteRef}
-              className="explanation-textarea"
-              value={note}
-              onChange={e => setNote(e.target.value)}
-              onFocus={() => { noteTouchedRef.current = true; setPaletteMode('note') }}
-              placeholder="状況設定に関する注釈を入力してください（牌は下のパレットからカーソル位置に挿入できます）"
-              rows={2}
-            />
           </div>
         )}
 
-        {/* 他家捨て牌タブ */}
+        {/* 捨て牌タブ（自分を含む各家の河。データ構造の都合で変数名は otherDiscards のまま） */}
         {paletteTab === 'sutehai' && (
           <div className="palette-tab-content">
             {otherDiscards.map((od, bi) => (
@@ -1319,58 +1347,31 @@ export default function ProblemEditor({
         )}
       </section>
 
-      {/* 保存ボタンはヘッダー行に移したので、ここは警告と削除だけ */}
-      <div className="editor-save-area">
-        {otherDiscardIncomplete && (
-          <span className="editor-save-warning">
-            ⚠ 捨て牌に未完成の家（家と捨て牌の両方が必要）があり、その分は副露も含めて保存されません
-          </span>
-        )}
-        {otherDiscardDuplicatePlayer && (
-          <span className="editor-save-warning">
-            ⚠ 捨て牌に同じ家が複数あり、最初の1つだけ保存されます
-          </span>
-        )}
-        {otherDiscardRiichiMissing && (
-          <span className="editor-save-warning">
-            ⚠ リーチ宣言牌が未設定です（このままでも保存されます）
-          </span>
-        )}
-        <button
-          className="editor-delete-btn"
-          onClick={() => {
-            if (window.confirm(`問題 #${problem.id} を削除しますか？\nこの問題の全ユーザーの正誤記録も削除されます。この操作は取り消せません。`)) {
-              onDelete(problem.id)
-            }
-          }}
-        >
-          この問題を削除
-        </button>
-      </div>
+      {/* 保存・削除はヘッダー行に移したので、ここは保存時の警告だけ（無いときは行ごと出さない） */}
+      {(otherDiscardIncomplete || otherDiscardDuplicatePlayer || otherDiscardRiichiMissing) && (
+        <div className="editor-save-area">
+          {otherDiscardIncomplete && (
+            <span className="editor-save-warning">
+              ⚠ 捨て牌に未完成の家（家と捨て牌の両方が必要）があり、その分は副露も含めて保存されません
+            </span>
+          )}
+          {otherDiscardDuplicatePlayer && (
+            <span className="editor-save-warning">
+              ⚠ 捨て牌に同じ家が複数あり、最初の1つだけ保存されます
+            </span>
+          )}
+          {otherDiscardRiichiMissing && (
+            <span className="editor-save-warning">
+              ⚠ リーチ宣言牌が未設定です（このままでも保存されます）
+            </span>
+          )}
+        </div>
+      )}
+
+      </div>{/* /editor-panel-scroll */}
 
       </div>{/* /editor-panel-col */}
       </div>{/* /editor-columns */}
-
-      {/* 共通牌パレット（画面下部固定）。送り先モードで牌の追加先を切り替える */}
-      <div className="palette-dock">
-        <div className="palette-dock-header">
-          <div className="palette-dock-modes">
-            <span className="palette-dock-modes-label">送り先:</span>
-            {availableModes.map(m => (
-              <button
-                key={m}
-                className={`palette-mode-btn${effectiveMode === m ? ' palette-mode-btn--active' : ''}`}
-                onClick={() => setPaletteMode(m)}
-                disabled={!!addingMeld && m !== 'meld'}
-              >
-                {PALETTE_MODE_LABELS[m]}
-              </button>
-            ))}
-          </div>
-          <span className="palette-dock-status">{paletteStatus}</span>
-        </div>
-        <TilePalette size={28} onTileClick={handlePaletteTile} />
-      </div>
     </div>
   )
 }

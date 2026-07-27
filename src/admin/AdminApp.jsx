@@ -515,12 +515,7 @@ export default function AdminApp() {
             onSave={handleSave}
             onSaveAndNext={handleSaveAndNext}
             onDelete={handleDelete}
-            onPrev={handlePrev}
-            onNext={handleNext}
-            hasPrev={catIdx > 0}
             hasNext={catIdx < catProblems.length - 1}
-            catIdx={catIdx}
-            catTotal={catProblems.length}
           />
         ) : (
           <div className="admin-placeholder">
