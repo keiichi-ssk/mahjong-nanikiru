@@ -17,15 +17,28 @@ const RIVER_COLUMNS = 6 // 1行あたりの捨て牌の枚数（実卓と同じ6
 
 // 盤面の牌の寸法（px）。盤面は編集の主役なのでパレットより大きく取る
 const TILE      = { w: 26, h: 35, gap: 2, meldGap: 6 }
-const HAND_TILE = { w: 38, h: 50, gap: 3 }
+const HAND_TILE = { w: 38, h: 50, gap: 3, meldGap: 8 }
 
-// 自分の手牌の置き場は盤面の幅いっぱい（CSS の .board-hand-row）。
-// 中央列は minmax(0, 1fr) なので、手牌の枚数が変わっても他家の位置は動かない
+// 手牌の並びの長さ（その家から見た横幅）
+function handLength(count, size) {
+  return count > 0 ? count * size.w + (count - 1) * size.gap : 0
+}
+
+// 手牌の置き場は各辺いっぱい。手牌は辺の中央、副露はその家から見た右端に置き、
+// 両者が重なるときだけ手牌を必要な分だけ左へ寄せる（実際の判定は CSS の min() が行う）。
+// その計算に使う長さをカスタムプロパティで渡す
+function seatVars(handLen, meldLen, depth) {
+  return {
+    '--hand-len': `${handLen}px`,
+    '--meld-len': `${meldLen}px`,
+    '--seat-depth': `${depth}px`,
+  }
+}
 
 // 王牌の枚数。左端がドラ表示牌で、残りは裏向き
 const DEAD_WALL_COUNT = 5
-// 中央（局設定）に置く王牌の牌サイズ。枠（.board-center-info の 172px）に収まる範囲で大きめに取る
-const WALL_TILE = { w: 26, h: 34, gap: 2, meldGap: 6 }
+// 中央（局設定）に置く王牌の牌サイズ。5枚＋gap で .board-center-info の 124px に収める
+const WALL_TILE = { w: 23, h: 30, gap: 2, meldGap: 6 }
 
 // 自分から見た各席の回転角（時計回り・度）。自分の視点が 0°
 const SEAT_ANGLE = { 上家: 90, 対面: 180, 下家: -90 }
@@ -72,17 +85,17 @@ function riverSize(count) {
   }
 }
 
-function meldWidth(meld) {
+function meldWidth(meld, size = TILE) {
   const tilesWidth = meld.tiles.reduce(
-    (sum, _, i) => sum + (getMeldTileRole(meld.type, i, meld.from) === 'rotated' ? TILE.h : TILE.w),
+    (sum, _, i) => sum + (getMeldTileRole(meld.type, i, meld.from) === 'rotated' ? size.h : size.w),
     0
   )
   return tilesWidth + (meld.tiles.length - 1)
 }
 
-function meldsWidth(melds) {
+function meldsWidth(melds, size = TILE) {
   if (!melds?.length) return 0
-  return melds.reduce((sum, m) => sum + meldWidth(m), 0) + (melds.length - 1) * TILE.meldGap
+  return melds.reduce((sum, m) => sum + meldWidth(m, size), 0) + (melds.length - 1) * size.meldGap
 }
 
 // 他家の手牌（裏向き）の枚数。副露1組につき手牌から3枚減る（カンも嶺上牌を引くので同じ）
@@ -173,7 +186,7 @@ function SeatRiverBlock({ cells, riichiIndex, angle }) {
 // 1家ぶんの手牌（裏向き）。辺の中央に置くので、副露の有無で位置が動かないよう別ブロックにしてある
 // （自分の手牌と同じ考え方。副露は SeatMeldBlock が辺の端に置く）
 function SeatHandBlock({ handCount, angle }) {
-  const width = handCount > 0 ? handCount * TILE.w + (handCount - 1) * TILE.gap : 0
+  const width = handLength(handCount, TILE)
   return (
     <RotatedBlock angle={angle} width={width} height={width ? TILE.h : 0} className="board-seat-hand-row">
       <div className="board-seat-hand">
@@ -198,7 +211,7 @@ function SeatMeldBlock({ melds, angle }) {
 // クリックできる領域の共通枠。
 // 中身が何も無い領域は、そのままだと大きさが 0 になってクリックできなくなるため、
 // empty のときだけ破線のプレースホルダーを出す（見た目を素の卓に近づけるため通常時は枠なし）
-function BoardArea({ className = '', active, empty, onClick, children }) {
+function BoardArea({ className = '', active, empty, style, onClick, children }) {
   return (
     <button
       type="button"
@@ -207,6 +220,7 @@ function BoardArea({ className = '', active, empty, onClick, children }) {
         (active ? ' board-area--active' : '') +
         (empty ? ' board-area--empty' : '')
       }
+      style={style}
       onClick={onClick}
     >
       {children}
@@ -362,19 +376,21 @@ export default function BoardView({
   }
 
   // 他家の手牌＋副露。盤面の外端に置く。
-  // 手牌は辺の中央、副露はその家から見た右端（CSS で絶対配置）に分けて置く
+  // 手牌は辺の中央（副露と重なるときだけ左へ寄る）、副露はその家から見た右端。
+  // 位置の計算に使う長さは CSS カスタムプロパティで渡す（判定は CSS の min() が行う）
   function seatHandArea(seat, className) {
     const melds = seat.od?.melds ?? []
+    const handCount = concealedHandCount(melds)
     return (
       <BoardArea
         className={`board-seat ${className}`}
         active={activeArea === `sutehai:${seat.index}`}
+        style={seatVars(handLength(handCount, TILE), meldsWidth(melds), TILE.h)}
         onClick={() => onSelectArea('sutehai', seat.index)}
       >
-        <SeatHandBlock
-          handCount={concealedHandCount(melds)}
-          angle={SEAT_ANGLE[seat.relative]}
-        />
+        <span className="board-seat-hand-slot">
+          <SeatHandBlock handCount={handCount} angle={SEAT_ANGLE[seat.relative]} />
+        </span>
         {melds.length > 0 && (
           <span className="board-seat-melds">
             <SeatMeldBlock melds={melds} angle={SEAT_ANGLE[seat.relative]} />
@@ -478,9 +494,10 @@ export default function BoardView({
               (handEditable ? ' board-area--active' : '') +
               (tiles.length === 0 ? ' board-area--empty' : '')
             }
+            style={seatVars(handLength(tiles.length, HAND_TILE), meldsWidth(melds, HAND_TILE), HAND_TILE.h)}
           >
             <div className="board-hand-row">
-              <div className="board-hand-tiles">
+              <div className="board-hand-tiles board-seat-hand-slot">
                 {tiles.map((tile, i) => (
                   <button
                     key={i}
@@ -503,7 +520,12 @@ export default function BoardView({
                 )}
               </div>
               {melds.length > 0 && (
-                <button type="button" className="board-melds-btn" onClick={() => onSelectArea('hand')} title="手牌を編集">
+                <button
+                  type="button"
+                  className="board-melds-btn board-seat-melds"
+                  onClick={() => onSelectArea('hand')}
+                  title="手牌を編集"
+                >
                   <BoardMelds melds={melds} size={HAND_TILE} />
                 </button>
               )}

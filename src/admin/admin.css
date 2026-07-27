@@ -428,14 +428,14 @@ html {
   -webkit-appearance: none;
   /* 既定の矢印を消して、細身のシェブロンを自前で描く */
   background:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%239fc0dc' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 6px center / 8px auto,
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%239fc0dc' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 5px center / 7px auto,
     linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.02));
   border: 1px solid var(--hairline);
   color: var(--on-felt);
   font-family: inherit;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 500;
-  padding: 3px 20px 3px 8px;
+  padding: 3px 15px 3px 6px;
   border-radius: 8px;
   cursor: pointer;
   transition: border-color 0.18s var(--ease), box-shadow 0.18s var(--ease);
@@ -455,12 +455,14 @@ html {
   color: var(--on-felt);
 }
 
-/* セレクタが3つ並ぶ行があるので、収まらなければ折り返す */
+/* 「東1局」と「0本場」は必ず同じ行に並べる（折り返すと局の設定が分断されて読みにくい）。
+   1行に収まる幅は .board-center-info の max-width で決まるので、
+   セレクタの文字サイズ・余白を変えるときは合計幅を計算し直すこと */
 .board-setting-row {
   display: flex;
   align-items: center;
   justify-content: center;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 3px;
 }
 
@@ -510,7 +512,8 @@ html {
   width: 100%;
   height: 100%;
   gap: 8px;
-  padding: 14px;
+  /* 河が3段になったときの縦幅を稼ぐため詰めてある（増やすと3段で入らなくなる） */
+  padding: 10px;
   background: radial-gradient(120% 90% at 50% 42%,
     var(--felt-hi) 0%, var(--felt-base) 55%, var(--felt-edge) 100%);
   border: 1px solid var(--hairline);
@@ -535,7 +538,7 @@ html {
   min-height: 0;
   align-items: center;
   justify-items: center;
-  gap: 4px;
+  gap: 2px;
 }
 
 .board-outer--top    { grid-column: 2; grid-row: 1; align-self: start; justify-self: stretch; }
@@ -545,20 +548,59 @@ html {
 /* 自分の手牌の行は幅いっぱいに広げる（副露を盤面の右端に置くため） */
 .board-outer--bottom { grid-column: 2; grid-row: 3; align-self: end; justify-self: stretch; }
 
-/* 他家も自分と同じ組み立てにする：手牌は辺の中央（副露の有無で動かない）、
-   副露はその家から見た右端に絶対配置。回転で向きが変わるため、端の位置は席ごとに違う
-   （対面は180°なので画面の左、上家は+90°なので画面の下、下家は−90°なので画面の上） */
-.board-outer--left .board-area,
-.board-outer--right .board-area {
-  height: 100%;
+/* ===== 各家の手牌と副露の位置 =====
+   手牌は辺の中央、副露はその家から見た右端に置く。ただし両者が重なる場合だけ、
+   重ならなくなる分だけ手牌を左へ寄せる。判定は min() が行う：
+     ・中央に置いたときの「その家から見た左端」＝ 50% − 手牌の長さ/2
+     ・副露の左隣まで寄せたときの左端     ＝ 100% − 副露の長さ − すき間 − 手牌の長さ
+   小さい（＝より左の）ほうを採用するので、余裕があるときは中央のまま動かない。
+   長さは BoardView が --hand-len / --meld-len / --seat-depth で渡す */
+.board-seat-hand-slot,
+.board-seat-melds {
+  position: absolute;
+  display: flex;
+  align-items: center;
   justify-content: center;
 }
 
-.board-seat-melds { position: absolute; }
+/* 中身が絶対配置になるぶん、領域の厚み（牌1枚ぶん）は明示しないと潰れる */
+.board-outer--top .board-area,
+.board-outer--bottom .board-hand { height: var(--seat-depth); }
 
-.board-outer--top   .board-seat-melds { top: 0; left: 0; }
-.board-outer--left  .board-seat-melds { left: 0; bottom: 0; }
-.board-outer--right .board-seat-melds { right: 0; top: 0; }
+/* 縦の席は幅（＝牌1枚ぶんの厚み）も明示する。中身が絶対配置なので内容幅が 0 になるため */
+.board-outer--left .board-area,
+.board-outer--right .board-area {
+  height: 100%;
+  width: var(--seat-depth);
+}
+
+/* 席ごとに「その家から見た左＝画面のどちら側か」が変わる（回転角で決まる）。
+   対面＝180°なので右から、上家＝+90°なので上から、下家＝−90°なので下から、自分＝0°なので左から測る */
+.board-outer--top .board-seat-hand-slot {
+  right: min(calc(50% - var(--hand-len) / 2),
+             calc(100% - var(--meld-len) - 8px - var(--hand-len)));
+}
+
+.board-outer--left .board-seat-hand-slot {
+  top: min(calc(50% - var(--hand-len) / 2),
+           calc(100% - var(--meld-len) - 8px - var(--hand-len)));
+}
+
+.board-outer--right .board-seat-hand-slot {
+  bottom: min(calc(50% - var(--hand-len) / 2),
+              calc(100% - var(--meld-len) - 8px - var(--hand-len)));
+}
+
+.board-hand-row .board-seat-hand-slot {
+  left: min(calc(50% - var(--hand-len) / 2),
+            calc(100% - var(--meld-len) - 8px - var(--hand-len)));
+}
+
+/* 副露はその家から見た右端に固定 */
+.board-outer--top .board-seat-melds    { left: 0; }
+.board-outer--left .board-seat-melds   { bottom: 0; }
+.board-outer--right .board-seat-melds  { top: 0; }
+.board-hand-row .board-seat-melds      { right: 0; }
 
 /* 列も行も内容ぴったり・隙間なしにして、各家の河を局設定の枠ギリギリまで寄せる */
 .board-grid {
@@ -733,8 +775,9 @@ html {
   position: relative;
   /* 王牌と局の設定を枠のど真ん中に置く（display が無いと下の align/justify が効かない） */
   display: flex;
-  width: 300px;
-  height: 300px;
+  /* 河が3段（18枚）になっても盤面が縦に収まるサイズ。正方形を保つこと */
+  width: 240px;
+  height: 240px;
   padding: 10px;
   align-items: center;
   justify-content: center;
@@ -778,9 +821,11 @@ html {
 }
 
 /* 局・巡目・供託と王牌（枠と背景は親の .board-center が持つ）。
-   左右の点数（各56px）に重ならない幅に収める：300 − padding20 − 56×2 ＝ 168px まで */
+   左右の点数（各44px）に重ならない幅に収める：240 − padding20 − 44×2 ＝ 132px まで。
+   ここに入れるもの：王牌 23px×5＋gap8 ＝ 123px、「東1局」＋「0本場」の行 ＝ 約120px。
+   牌サイズ・枚数・セレクタの文字サイズを変えるときは計算し直す */
 .board-center-info {
-  max-width: 168px;
+  max-width: 132px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -818,7 +863,7 @@ html {
   gap: 3px;
   font-size: 0.72rem;
   color: #cddef0;
-  width: 56px;
+  width: 44px;
   flex-shrink: 0;
 }
 
@@ -896,17 +941,8 @@ html {
    副露を絶対配置にしているのは、組数が増えても手牌の中央位置を動かさないため */
 .board-hand-row {
   position: relative;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 12px;
   width: 100%;
-}
-
-.board-hand-row .board-melds-btn {
-  position: absolute;
-  right: 0;
-  bottom: 0;
+  height: 100%;
 }
 
 .board-hand-tiles {
