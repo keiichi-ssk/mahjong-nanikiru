@@ -109,6 +109,18 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
+  // index.html に直書きしたサイト説明（.site-about）は #root の外にあるため、
+  // 何もしないと出題画面にも出続ける。トップ（ランディング・カテゴリ一覧）でだけ見せたいので
+  // 出題ラウンド中は隠す。判定を「未ログインか」ではなく「出題中か」にしてあるのは、
+  // 未ログインでも出題画面へ入れるようになったときに自動で追従させるため。
+  // JSを実行しないクローラーは hidden が付かないまま読めるので SEO 上の意味も失われない
+  // （React 側へ移してはいけない。CLAUDE.md の SEO 方針を参照）
+  useEffect(() => {
+    const el = document.querySelector('.site-about');
+    if (!el) return;
+    el.hidden = !(authChecked && !isPlaying);
+  }, [authChecked, isPlaying]);
+
   useEffect(() => {
     if (!session) return undefined;
     let cancelled = false;
