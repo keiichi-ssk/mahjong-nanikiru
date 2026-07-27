@@ -31,13 +31,15 @@ function ExplanationText({ text, className = 'answer-explanation' }) {
 
 // showType=false でチー/ポン等の種類バッジを省略できる（他家捨て牌の横に出すときは牌だけ表示する）
 function MeldDisplay({ meld, showType = true }) {
-  const { type, tiles } = meld;
+  // from（鳴いた元）で横向きの牌の位置が変わる（上家=左端 / 対面=真ん中 / 下家=右端）。
+  // 管理画面の MeldPreview と同じ getMeldTileRole を使うことで見た目を揃えている
+  const { type, tiles, from } = meld;
   return (
     <div className="meld-set">
       {showType && <div className="meld-type-badge">{MELD_TYPE_LABELS[type]}</div>}
       <div className="meld-tiles">
         {tiles.map((tile, i) => {
-          const role = getMeldTileRole(type, i);
+          const role = getMeldTileRole(type, i, from);
           if (role === 'back') {
             return <div key={i} className="meld-tile meld-tile--back" />;
           }
@@ -125,7 +127,8 @@ function discardRowUnits(od) {
   return cols + meldUnits + melds.length * 0.5;
 }
 
-function OtherDiscardDisplay({ otherDiscards }) {
+// jikaze と一致する家は自分の捨て牌（2026-07-27〜。管理画面で自家の河も設定できる）
+function OtherDiscardDisplay({ otherDiscards, jikaze = null }) {
   const valid = (otherDiscards ?? []).filter(od => od && od.player && od.tiles && od.tiles.length > 0);
   if (valid.length === 0) return null;
   // 副露している家が1人でもいれば全員を縦積みにする（捨て牌＋副露で1行が長くなるため）。
@@ -140,7 +143,9 @@ function OtherDiscardDisplay({ otherDiscards }) {
         for (let r = 0; r < od.tiles.length; r += 6) rows.push(od.tiles.slice(r, r + 6));
         return (
           <div key={idx} className="other-discard-display" style={{ '--od-units': discardRowUnits(od) }}>
-            <span className="other-discard-label">{od.player}家捨て牌</span>
+            <span className="other-discard-label">
+              {od.player === jikaze ? '自分の捨て牌' : `${od.player}家捨て牌`}
+            </span>
             <div className="other-discard-tiles">
               {rows.map((row, ri) => (
                 <div key={ri} className="other-discard-tiles-row">
@@ -182,7 +187,7 @@ function handRowUnits(tiles, melds) {
 }
 
 // 手牌が未設定でも他家捨て牌は独立して表示する（問題タイプ間で挙動を揃える）
-function HandDisplay({ tiles, melds, otherDiscards }) {
+function HandDisplay({ tiles, melds, otherDiscards, jikaze }) {
   const hasMelds = Array.isArray(melds) && melds.length > 0;
   const hasHand = tiles && tiles.length > 0;
   return (
@@ -205,7 +210,7 @@ function HandDisplay({ tiles, melds, otherDiscards }) {
           )}
         </div>
       )}
-      <OtherDiscardDisplay otherDiscards={otherDiscards} />
+      <OtherDiscardDisplay otherDiscards={otherDiscards} jikaze={jikaze} />
     </>
   );
 }
@@ -237,7 +242,7 @@ function NakiTimingView({ problem, onAnswer, savedAnswer, onPersist }) {
         </div>
       )}
 
-      <HandDisplay tiles={problem.tiles} melds={problem.melds} otherDiscards={problem.otherDiscards} />
+      <HandDisplay tiles={problem.tiles} melds={problem.melds} otherDiscards={problem.otherDiscards} jikaze={problem.jikaze} />
 
       {!answered ? (
         <div className="naki-timing-btns">
@@ -295,7 +300,7 @@ function NakiChoiceView({ problem, onAnswer, savedAnswer, onPersist }) {
 
   return (
     <>
-      <HandDisplay tiles={problem.tiles} melds={problem.melds} otherDiscards={problem.otherDiscards} />
+      <HandDisplay tiles={problem.tiles} melds={problem.melds} otherDiscards={problem.otherDiscards} jikaze={problem.jikaze} />
 
       <p className="naki-choice-instruction">鳴く牌をすべて選んでください（複数選択可）</p>
 
@@ -418,7 +423,7 @@ function BetaoriView({ problem, onAnswer, savedAnswer, onPersist }) {
           )}
         </div>
       </div>
-      <OtherDiscardDisplay otherDiscards={problem.otherDiscards} />
+      <OtherDiscardDisplay otherDiscards={problem.otherDiscards} jikaze={problem.jikaze} />
 
       {selectedOrder.length > 0 && !answered && (
         <div className="betaori-order-row">
@@ -598,8 +603,12 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
         const hasSituationFields = p.bakaze || p.jikaze || p.junme != null;
         const situationText = hasSituationFields
           ? [
-              // 局が設定されていれば「南1局」、なければ従来どおり「南場」
-              p.bakaze ? (p.kyoku != null ? `${p.bakaze}${p.kyoku}局` : `${p.bakaze}場`) : null,
+              // 局が設定されていれば「南1局」、なければ従来どおり「南場」。本場は1以上のときだけ添える
+              p.bakaze
+                ? (p.kyoku != null
+                    ? `${p.bakaze}${p.kyoku}局${p.honba ? ` ${p.honba}本場` : ''}`
+                    : `${p.bakaze}場`)
+                : null,
               p.jikaze ? `${p.jikaze}家` : null,
               p.junme  != null ? `${p.junme}巡目` : null,
             ].filter(Boolean).join(' ')
@@ -654,7 +663,7 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
       {/* ===== リーチ判断 ===== */}
       {isRiichiJudgment && (
         <>
-          <HandDisplay tiles={p.tiles} melds={p.melds} otherDiscards={p.otherDiscards} />
+          <HandDisplay tiles={p.tiles} melds={p.melds} otherDiscards={p.otherDiscards} jikaze={p.jikaze} />
 
           {!answered ? (
             <div className="riichi-choice-btns">
@@ -710,7 +719,7 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
               )}
             </div>
           )}
-          <OtherDiscardDisplay otherDiscards={p.otherDiscards} />
+          <OtherDiscardDisplay otherDiscards={p.otherDiscards} jikaze={p.jikaze} />
           {quadTiles.length > 0 && (
               <div className="ankan-options">
                 {quadTiles.map(kanTile => {

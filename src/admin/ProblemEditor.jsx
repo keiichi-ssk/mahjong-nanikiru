@@ -1,7 +1,17 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { getTileImageUrl, getTileLabel, sortTiles } from '../utils/tileUtils'
 import { normalizeProblemType, parseAnswers } from '../utils/judgeUtils'
-import { NAKI_TIMING_OPTIONS, MELD_TYPE_LABELS, MELD_TILE_COUNT, MELD_TYPES, getMeldTileRole } from '../utils/problemConstants'
+import {
+  NAKI_TIMING_OPTIONS, MELD_TYPE_LABELS, MELD_TILE_COUNT, MELD_TYPES, getMeldTileRole,
+  getMeldFromOptions, normalizeMelds,
+} from '../utils/problemConstants'
+
+import BoardView from './BoardView'
+
+// 副露を新規作成するときの鳴いた元（チーは上家固定・暗槓は無し）
+function defaultMeldFrom(type) {
+  return getMeldFromOptions(type)[0] ?? null
+}
 import { questionImagePath, QUESTION_IMAGE_BUCKET } from '../utils/questionImage'
 import { useDragReorder } from '../utils/useDragReorder'
 import QuestionImage from '../components/QuestionImage'
@@ -42,11 +52,11 @@ function TileImg({ tile, size = 44, onClick, className = '' }) {
 }
 
 function MeldPreview({ meld }) {
-  const { type, tiles } = meld
+  const { type, tiles, from } = meld
   return (
     <div className="meld-preview">
       {tiles.map((t, i) => {
-        const role = getMeldTileRole(type, i)
+        const role = getMeldTileRole(type, i, from)
         if (role === 'back') return <div key={i} className="meld-preview-back" />
         return (
           <div key={i} className={`meld-preview-tile${role === 'rotated' ? ' meld-preview-tile--rotated tile-rotated' : ''}`}>
@@ -58,8 +68,29 @@ function MeldPreview({ meld }) {
   )
 }
 
+// 副露の「鳴いた元」セレクタ。
+// 暗槓（選択肢なし）は何も描画せず、チー（上家のみ）はセレクタではなく固定表示にする
+function MeldFromSelect({ type, value, onChange }) {
+  const options = getMeldFromOptions(type)
+  if (options.length === 0) return null
+  if (options.length === 1) {
+    return <span className="meld-from-fixed">{options[0]}から</span>
+  }
+  return (
+    <select
+      className="meld-from-select"
+      value={options.includes(value) ? value : options[0]}
+      onChange={e => onChange(e.target.value)}
+      title="鳴いた元"
+      onClick={e => e.stopPropagation()}
+    >
+      {options.map(f => <option key={f} value={f}>{f}から</option>)}
+    </select>
+  )
+}
+
 // 副露入力中パネル（手牌・他家捨て牌の家ブロックで共用）。牌は下のパレットから追加し、揃うと自動確定する
-function MeldAddingPanel({ meld, onCancel, onRemoveTile }) {
+function MeldAddingPanel({ meld, onCancel, onRemoveTile, onChangeFrom }) {
   return (
     <div className="meld-adding">
       <div className="meld-adding-header">
@@ -67,6 +98,7 @@ function MeldAddingPanel({ meld, onCancel, onRemoveTile }) {
           {MELD_TYPE_LABELS[meld.type]}：下のパレットから牌を選択（揃うと自動で追加）
           （{meld.tiles.length} / {MELD_TILE_COUNT[meld.type]}枚）
         </span>
+        <MeldFromSelect type={meld.type} value={meld.from} onChange={onChangeFrom} />
         <button className="meld-cancel-btn" onClick={onCancel}>キャンセル</button>
       </div>
       <div className="meld-selected-tiles">
@@ -99,8 +131,9 @@ function TilePalette({ size = 36, onTileClick, tileClassName }) {
   ))
 }
 
-// 風選択（未設定 + 東南西北など）。suffix はボタン表示の接尾辞（場/家）
-function WindSelector({ value, onChange, winds, suffix = '' }) {
+// 風選択（未設定 + 東南西北など）。suffix はボタン表示の接尾辞（場/家）。
+// selfWind を渡すと、その風のボタンに「（自家）」を付けて自分の家だと分かるようにする
+function WindSelector({ value, onChange, winds, suffix = '', selfWind = null }) {
   return (
     <div className="situation-selector">
       <button
@@ -115,7 +148,7 @@ function WindSelector({ value, onChange, winds, suffix = '' }) {
           className={`situation-btn${value === wind ? ' situation-btn--active' : ''}`}
           onClick={() => onChange(wind)}
         >
-          {wind}{suffix}
+          {wind}{suffix}{selfWind && wind === selfWind ? '（自家）' : ''}
         </button>
       ))}
     </div>
@@ -190,7 +223,8 @@ export default function ProblemEditor({
   // melds は未設定が null ではなく [] なので、?? ではなく件数で引き継ぎ判定する
   const [melds,         setMelds]         = useState(() => {
     const own = problem.melds ?? []
-    return (own.length === 0 && inheritFromPrev) ? (prevProblem.melds ?? []) : own
+    // 引き継ぎ元が fromDb を通っていない可能性に備え、鳴いた元をここでも補完する
+    return normalizeMelds((own.length === 0 && inheritFromPrev) ? (prevProblem.melds ?? []) : own)
   })
   const [explanation,   setExplanation]   = useState(problem.explanation ?? '')
   const [reviewed,      setReviewed]      = useState(problem.reviewed ?? false)
@@ -203,11 +237,16 @@ export default function ProblemEditor({
   const [tilesInput,       setTilesInput]       = useState('')
   const [questionImageUrl, setQuestionImageUrl] = useState(problem.questionImageUrl ?? null)
   const [imageUploading,   setImageUploading]   = useState(false)
-  const [bakaze,           setBakaze]           = useState(problem.bakaze ?? (inheritFromPrev ? prevProblem.bakaze ?? null : null))
-  const [kyoku,            setKyoku]            = useState(problem.kyoku  ?? (inheritFromPrev ? prevProblem.kyoku  ?? null : null))
-  const [jikaze,           setJikaze]           = useState(problem.jikaze ?? (inheritFromPrev ? prevProblem.jikaze ?? null : null))
-  const [junme,            setJunme]            = useState(problem.junme  ?? (inheritFromPrev ? prevProblem.junme  ?? null : null))
-  const [scores,           setScores]           = useState(problem.scores ?? (inheritFromPrev ? prevProblem.scores ?? null : null))
+  // 問題画像の入力欄は既定で畳んでおく（大半の問題は画像なし。縦の場所を空けるため）
+  const [imageOpen,        setImageOpen]        = useState(false)
+  // 状況設定は「自分の値 → 前の問題からの引き継ぎ → 既定値」の順で初期化する。
+  // ドラ（北）と同じ考え方で、未設定のまま出題されるのを防ぐ（既定値は東1局・南家・9巡目・全員25000点）
+  const [bakaze,           setBakaze]           = useState(problem.bakaze ?? (inheritFromPrev ? prevProblem.bakaze ?? null : null) ?? '東')
+  const [kyoku,            setKyoku]            = useState(problem.kyoku  ?? (inheritFromPrev ? prevProblem.kyoku  ?? null : null) ?? 1)
+  const [honba,            setHonba]            = useState(problem.honba  ?? (inheritFromPrev ? prevProblem.honba  ?? null : null) ?? 0)
+  const [jikaze,           setJikaze]           = useState(problem.jikaze ?? (inheritFromPrev ? prevProblem.jikaze ?? null : null) ?? '南')
+  const [junme,            setJunme]            = useState(problem.junme  ?? (inheritFromPrev ? prevProblem.junme  ?? null : null) ?? 9)
+  const [scores,           setScores]           = useState(problem.scores ?? (inheritFromPrev ? prevProblem.scores ?? null : null) ?? { ...DEFAULT_SCORES })
   const [note,             setNote]             = useState(problem.note ?? '')
   // 他家捨て牌は最大3人分の配列。各要素は {player, tiles, riichiIndex, melds}（編集中は不完全な要素も許容し、保存時に除外する）
   const otherDiscardsBase = problem.otherDiscards ?? (inheritFromPrev ? prevProblem.otherDiscards ?? null : null)
@@ -216,7 +255,7 @@ export default function ProblemEditor({
       player:      od?.player ?? null,
       tiles:       od?.tiles ?? [],
       riichiIndex: od?.riichiIndex ?? null,
-      melds:       od?.melds ?? [], // 旧データには無いフィールドなのでここで補う
+      melds:       normalizeMelds(od?.melds), // 旧データには無いフィールドなのでここで補う（鳴いた元も補完）
     }))
     // データが無くても1人目の空ブロックを出しておく（未設定のままなら保存時に除外されて null になる）
     return base.length > 0 ? base : [{ player: null, tiles: [], riichiIndex: null, melds: [] }]
@@ -315,12 +354,30 @@ export default function ProblemEditor({
     })
   }
 
-  // 副露追加は手牌と他家捨て牌の家ブロックで共用する。target は 'hand' または家ブロックの index
-  function startAddMeld(type) { setAddingMeld({ type, tiles: [], target: 'hand' }) }
+  // 副露追加は手牌と他家捨て牌の家ブロックで共用する。target は 'hand' または家ブロックの index。
+  // from（鳴いた元）は暗槓のみ null、それ以外は既定値から始めて追加中に変更できる
+  function startAddMeld(type) {
+    setAddingMeld({ type, tiles: [], target: 'hand', from: defaultMeldFrom(type) })
+  }
 
   function startAddOtherDiscardMeld(blockIdx, type) {
     setSutehaiActiveIdx(blockIdx)
-    setAddingMeld({ type, tiles: [], target: blockIdx })
+    setAddingMeld({ type, tiles: [], target: blockIdx, from: defaultMeldFrom(type) })
+  }
+
+  function changeAddingMeldFrom(from) {
+    setAddingMeld(prev => prev ? { ...prev, from } : null)
+  }
+
+  function updateMeldFrom(index, from) {
+    setMelds(prev => prev.map((m, i) => i === index ? { ...m, from } : m))
+  }
+
+  function updateOtherDiscardMeldFrom(blockIdx, meldIdx, from) {
+    updateOtherDiscard(blockIdx, od => ({
+      ...od,
+      melds: od.melds.map((m, i) => i === meldIdx ? { ...m, from } : m),
+    }))
   }
 
   function addTileToMeld(tile) {
@@ -334,7 +391,7 @@ export default function ProblemEditor({
       : [tile, ...Array(maxCount - 1).fill(tile[0] === '0' ? `5${tile[1]}` : tile)]
     if (nextTiles.length === maxCount) {
       // 枚数が揃った時点で自動確定（確定ボタンは無い）
-      const meld = { type: addingMeld.type, tiles: nextTiles }
+      const meld = { type: addingMeld.type, tiles: nextTiles, from: addingMeld.from ?? null }
       if (addingMeld.target === 'hand') {
         setMelds(prev => [...prev, meld])
       } else {
@@ -363,7 +420,7 @@ export default function ProblemEditor({
   }
 
   function addOtherDiscardBlock() {
-    if (otherDiscards.length >= 3) return
+    if (otherDiscards.length >= 4) return // 自分を含めて4人ぶん
     setOtherDiscards(prev => [...prev, { player: null, tiles: [], riichiIndex: null, melds: [] }])
     setSutehaiActiveIdx(otherDiscards.length) // 追加したブロックを牌の追加先にする
   }
@@ -454,23 +511,25 @@ export default function ProblemEditor({
     questionImageUrl: questionImageUrl || null,
     bakaze,
     kyoku,
+    honba,
     jikaze,
     junme,
     scores,
     note,
     // アプリ側（OtherDiscardDisplay）は家と牌の両方が揃わないと表示しないため、
     // 片方だけの不完全なブロックは保存しない（画面には警告を出す）。
-    // 家が自風（＝自分）のブロック・家が重複するブロック（後のもの）も同様に除外し、0件なら null 保存
+    // 家が重複するブロック（後のもの）も除外し、0件なら null 保存。
+    // 自風（自分）の捨て牌も保存できる（2026-07-27〜。盤面で自分の河を表示するため）
     otherDiscards: (() => {
       const seen = new Set()
       const valid = otherDiscards.filter(od => {
-        if (!od.player || od.tiles.length === 0 || od.player === jikaze || seen.has(od.player)) return false
+        if (!od.player || od.tiles.length === 0 || seen.has(od.player)) return false
         seen.add(od.player)
         return true
       })
       return valid.length > 0 ? valid : null
     })(),
-  }), [problem, tiles, answer, dora, riichi, melds, explanation, reviewed, disabled, problemType, discardedTile, nakiChoices, questionImageUrl, bakaze, kyoku, jikaze, junme, scores, note, otherDiscards])
+  }), [problem, tiles, answer, dora, riichi, melds, explanation, reviewed, disabled, problemType, discardedTile, nakiChoices, questionImageUrl, bakaze, kyoku, honba, jikaze, junme, scores, note, otherDiscards])
 
   // 副露だけ設定しても「家＋捨て牌」が揃わない限り保存されない（保存条件は捨て牌ベースのまま）
   // 正解の配列表現（表示・選択状態の判定用。answer 本体はカンマ区切り文字列のまま）
@@ -490,11 +549,7 @@ export default function ProblemEditor({
     (od.player !== null && od.tiles.length === 0) ||
     (od.player === null && (od.tiles.length > 0 || od.melds.length > 0))
   )
-  // 家が自風（＝自分）と同じ設定は誤りなので警告し、保存もスキップする（buildSaveData 側で除外）
-  const otherDiscardSelfPlayer = otherDiscards.some(od =>
-    od.player !== null && od.player === jikaze
-  )
-  // 同じ家のブロックが複数ある場合も誤り。警告し、後のブロックは保存されない
+  // 同じ家のブロックが複数ある場合は誤り。警告し、後のブロックは保存されない
   const otherDiscardDuplicatePlayer = otherDiscards.some((od, i) =>
     od.player !== null && otherDiscards.slice(0, i).some(o => o.player === od.player)
   )
@@ -564,6 +619,31 @@ export default function ProblemEditor({
       ? `${otherDiscards[addingMeld.target].player}家`
       : `${addingMeld.target + 1}人目`
 
+  // 盤面クリックで対応する編集パネルを開く（盤面からデータは書き換えない）。
+  // ハイライトは逆にタブ側から導出するので、タブを直接切り替えても盤面の選択表示が追従する
+  const activeArea =
+    paletteTab === 'sutehai' ? `sutehai:${activeSutehaiIdx}`
+    : paletteTab === 'jokyo' ? 'jokyo'
+    : paletteTab === 'hand'  ? 'hand'
+    : null
+
+  function handleSelectArea(kind, index) {
+    if (kind === 'hand') {
+      setPaletteTab('hand')
+      setPaletteMode('hand')
+    } else if (kind === 'jokyo') {
+      setPaletteTab('jokyo')
+      setPaletteMode('dora')
+    } else if (kind === 'sutehai') {
+      setPaletteTab('sutehai')
+      setPaletteMode('sutehai')
+      if (index >= 0) setSutehaiActiveIdx(index)
+    } else if (kind === 'dora') {
+      // ドラは盤面の王牌から設定する。タブは変えず、下のパレットの送り先だけ切り替える
+      setPaletteMode('dora')
+    }
+  }
+
   const paletteStatus = {
     hand:        `手牌: ${tiles.length}枚`,
     meld:        addingMeld ? `${meldTargetLabel}の${MELD_TYPE_LABELS[addingMeld.type]}: ${addingMeld.tiles.length} / ${MELD_TILE_COUNT[addingMeld.type]}枚` : '',
@@ -590,9 +670,50 @@ export default function ProblemEditor({
         </button>
       </div>
 
-      {/* ヘッダー */}
+      <div className="editor-columns">
+      {/* 左：盤面。クリックすると右カラムの対応するパネルへ切り替わる */}
+      <div className="editor-board-col">
+        <BoardView
+          tiles={tiles}
+          melds={melds}
+          dora={dora}
+          answerList={answerList}
+          bakaze={bakaze}
+          kyoku={kyoku}
+          honba={honba}
+          jikaze={jikaze}
+          junme={junme}
+          scores={scores}
+          otherDiscards={otherDiscards}
+          activeArea={activeArea}
+          onSelectArea={handleSelectArea}
+          onChangeBakaze={setBakaze}
+          onChangeKyoku={setKyoku}
+          onChangeHonba={setHonba}
+          onChangeJikaze={setJikaze}
+          onChangeJunme={setJunme}
+          onRemoveHandTile={removeTile}
+        />
+      </div>
+
+      {/* 右：編集パネル */}
+      <div className="editor-panel-col">
+
+      {/* ヘッダー：ID・問題タイプ・フラグ・保存を1行にまとめて縦の場所を節約する */}
       <div className="editor-header">
-        <h3 className="editor-title">{problem.section.replace(/^\d+_/, '')} — ID {problem.id}</h3>
+        <h3 className="editor-title">ID {problem.id}</h3>
+        <select
+          className="editor-type-select"
+          value={problemType}
+          onChange={e => setProblemType(e.target.value)}
+          title="問題タイプ"
+        >
+          <option value="default">通常（何切る）</option>
+          <option value="riichi-judgment">リーチ判断</option>
+          <option value="naki-timing">鳴きタイミング</option>
+          <option value="naki-choice">鳴き選択</option>
+          <option value="betaori">ベタオリ</option>
+        </select>
         <label className="reviewed-check">
           <input
             type="checkbox"
@@ -609,100 +730,49 @@ export default function ProblemEditor({
           />
           非表示
         </label>
+        <button className="editor-save-btn" onClick={handleSave}>保存</button>
+        <button className="editor-save-next-btn" onClick={handleSaveAndNext} disabled={!hasNext}>
+          保存して次へ <kbd>Ctrl+S</kbd>
+        </button>
       </div>
 
-      {/* 問題タイプ */}
-      <section className="editor-section">
-        <div className="editor-section-label">問題タイプ</div>
-        <div className="problem-type-selector">
-          {[
-            { value: 'default',          label: '通常（何切る）' },
-            { value: 'riichi-judgment',  label: 'リーチ判断' },
-            { value: 'naki-timing',      label: '鳴きタイミング' },
-            { value: 'naki-choice',      label: '鳴き選択' },
-            { value: 'betaori',          label: 'ベタオリ' },
-          ].map(opt => (
-            <button
-              key={opt.value}
-              className={`problem-type-btn${problemType === opt.value ? ' problem-type-btn--active' : ''}`}
-              onClick={() => setProblemType(opt.value)}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </section>
-
-      {/* 問題画像：Supabase Storageアップロード（全タイプ共通・限定公開バケット） */}
-      <section className="editor-section">
-        <div className="editor-section-label">問題画像（任意）</div>
-        <QuestionImage value={questionImageUrl} wrapClassName="editor-image-wrap" imgClassName="editor-image" />
-        <div className="image-upload-row">
-          <label className="image-upload-label">
-            <input
-              type="file"
-              accept="image/*"
-              style={{ display: 'none' }}
-              onChange={e => handleImageUpload(e.target.files?.[0])}
-              disabled={imageUploading}
-            />
-            <span className={`image-upload-btn${imageUploading ? ' image-upload-btn--uploading' : ''}`}>
-              {imageUploading ? 'アップロード中...' : '画像を選択・アップロード'}
-            </span>
-          </label>
-          {questionImageUrl && (
-            <button className="dora-clear" onClick={handleImageDelete}>画像を削除</button>
-          )}
-        </div>
-        {questionImageUrl && (
-          <div className="editor-current" style={{ wordBreak: 'break-all', fontSize: 11 }}>
-            ファイル: {questionImagePath(questionImageUrl)}
-          </div>
+      {/* 問題画像（任意・全タイプ共通）。ほとんどの問題では未設定なので、
+          未設定のときは1行のボタンだけにして縦の場所を使わない */}
+      <section className="editor-section editor-section--image">
+        {questionImageUrl || problem.image || imageOpen ? (
+          <>
+            <div className="editor-section-label">
+              問題画像（任意）
+              <button className="dora-clear" onClick={() => setImageOpen(false)}>閉じる</button>
+            </div>
+            <QuestionImage value={questionImageUrl} wrapClassName="editor-image-wrap" imgClassName="editor-image" />
+            {/* 参照用画像（scan-tiles で生成した問題のみ） */}
+            {problem.image && (
+              <div className="editor-image-wrap">
+                <img src={problem.image} alt="問題" className="editor-image" />
+              </div>
+            )}
+            <div className="image-upload-row">
+              <label className="image-upload-label">
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={e => handleImageUpload(e.target.files?.[0])}
+                  disabled={imageUploading}
+                />
+                <span className={`image-upload-btn${imageUploading ? ' image-upload-btn--uploading' : ''}`}>
+                  {imageUploading ? 'アップロード中...' : '画像を選択・アップロード'}
+                </span>
+              </label>
+              {questionImageUrl && (
+                <button className="dora-clear" onClick={handleImageDelete}>画像を削除</button>
+              )}
+            </div>
+          </>
+        ) : (
+          <button className="editor-image-open" onClick={() => setImageOpen(true)}>＋ 問題画像を追加（任意）</button>
         )}
-      </section>
-
-      {/* 参照用画像（scan-tilesで生成した問題のみ） */}
-      {problem.image && (
-        <div className="editor-image-wrap">
-          <img src={problem.image} alt="問題" className="editor-image" />
-        </div>
-      )}
-
-      {/* 現在の手牌 */}
-      <section className="editor-section">
-        <div className="editor-section-label">
-          手牌（クリックで削除）<span className="tile-count">{tiles.length}枚</span>
-        </div>
-        <div className="editor-hand-row">
-          <div className="editor-tiles">
-            {tiles.map((t, i) => (
-              <TileImg
-                key={i}
-                tile={t}
-                onClick={() => removeTile(i)}
-                className={`editor-tile ${answerList.includes(t) ? 'tile--answer' : ''}`}
-              />
-            ))}
-            {tiles.length === 0 && <span className="editor-empty">牌を追加してください</span>}
-          </div>
-          {melds.length > 0 && (
-            <div className="editor-melds-inline">
-              {melds.map((meld, i) => (
-                <div key={i} className="editor-meld-inline-item">
-                  <span className="editor-meld-inline-label">{MELD_TYPE_LABELS[meld.type]}</span>
-                  <MeldPreview meld={meld} />
-                  <button className="editor-meld-inline-remove" onClick={() => removeMeld(i)}>×</button>
-                </div>
-              ))}
-            </div>
-          )}
-          {dora && (
-            <div className="editor-dora-inline">
-              <span className="editor-dora-label">ドラ</span>
-              <img src={getTileImageUrl(dora)} alt={getTileLabel(dora)} width={32} height={Math.round(32 * 60 / 44)} />
-            </div>
-          )}
-        </div>
       </section>
 
       {/* === パレット統合エリア === */}
@@ -718,7 +788,7 @@ export default function ProblemEditor({
             className={`palette-tab-btn${paletteTab === 'jokyo' ? ' palette-tab-btn--active' : ''}`}
             onClick={() => { setPaletteTab('jokyo'); setPaletteMode('dora') }}
           >
-            状況設定
+            点数・注釈
           </button>
           <button
             className={`palette-tab-btn${paletteTab === 'sutehai' ? ' palette-tab-btn--active' : ''}`}
@@ -782,12 +852,29 @@ export default function ProblemEditor({
             </div>
 
             <div className="palette-tab-divider" />
-            <div className="editor-section-label">副露（鳴き）</div>
+            <div className="editor-section-label">
+              副露（鳴き）<span className="tile-count">手牌 {tiles.length}枚</span>
+            </div>
+            {melds.length > 0 && (
+              <div className="editor-melds-inline">
+                {melds.map((meld, i) => (
+                  <div key={i} className="editor-meld-inline-item">
+                    <span className="editor-meld-inline-label">
+                      {MELD_TYPE_LABELS[meld.type]}
+                      <MeldFromSelect type={meld.type} value={meld.from} onChange={f => updateMeldFrom(i, f)} />
+                    </span>
+                    <MeldPreview meld={meld} />
+                    <button className="editor-meld-inline-remove" onClick={() => removeMeld(i)}>×</button>
+                  </div>
+                ))}
+              </div>
+            )}
             {addingMeld?.target === 'hand' ? (
               <MeldAddingPanel
                 meld={addingMeld}
                 onCancel={() => setAddingMeld(null)}
                 onRemoveTile={removeTileFromMeld}
+                onChangeFrom={changeAddingMeldFrom}
               />
             ) : (
               <div className="meld-add-btns">
@@ -801,60 +888,11 @@ export default function ProblemEditor({
           </div>
         )}
 
-        {/* 状況設定タブ */}
+        {/* 点数・注釈タブ。
+            ドラ・場風・局・自風・巡目は盤面の中央フィールドで直接設定するのでここには置かない
+            （盤面を見ながら設定できるほうが速く、右カラムの縦の長さも抑えられる） */}
         {paletteTab === 'jokyo' && (
           <div className="palette-tab-content">
-            <div className="editor-section-label">ドラ</div>
-            <div className="palette-tab-status">
-              現在のドラ: <strong>{dora ? getTileLabel(dora) : 'なし'}</strong>
-              {dora && <img src={getTileImageUrl(dora)} alt={getTileLabel(dora)} className="palette-tab-status-tile" />}
-              <button className="palette-mode-jump" onClick={() => setPaletteMode('dora')}>下のパレットで選ぶ ↓</button>
-            </div>
-
-            <div className="palette-tab-divider" />
-            <div className="editor-section-label">場風</div>
-            <WindSelector value={bakaze} onChange={setBakaze} winds={['東', '南', '西']} suffix="場" />
-
-            <div className="palette-tab-divider" />
-            <div className="editor-section-label">局（場風とセットで「南1局」のように表示されます）</div>
-            <div className="situation-selector">
-              <button
-                className={`situation-btn situation-btn--unset${kyoku === null ? ' situation-btn--active' : ''}`}
-                onClick={() => setKyoku(null)}
-              >
-                未設定
-              </button>
-              {[1, 2, 3, 4].map(n => (
-                <button
-                  key={n}
-                  className={`situation-btn${kyoku === n ? ' situation-btn--active' : ''}`}
-                  onClick={() => setKyoku(n)}
-                >
-                  {n}局
-                </button>
-              ))}
-            </div>
-
-            <div className="palette-tab-divider" />
-            <div className="editor-section-label">自風</div>
-            <WindSelector value={jikaze} onChange={setJikaze} winds={['東', '南', '西', '北']} />
-
-            <div className="palette-tab-divider" />
-            <div className="editor-section-label">巡目</div>
-            <div className="situation-selector">
-              <select
-                className="junme-select"
-                value={junme ?? ''}
-                onChange={e => setJunme(e.target.value === '' ? null : Number(e.target.value))}
-              >
-                <option value="">未設定</option>
-                {Array.from({ length: 18 }, (_, i) => i + 1).map(n => (
-                  <option key={n} value={n}>{n}巡目</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="palette-tab-divider" />
             <div className="editor-section-label">点数状況</div>
             <div className="situation-selector">
               <button
@@ -943,6 +981,7 @@ export default function ProblemEditor({
                   onChange={v => updateOtherDiscard(bi, o => ({ ...o, player: v }))}
                   winds={['東', '南', '西', '北']}
                   suffix="家"
+                  selfWind={jikaze}
                 />
 
                 <div className="editor-section-label">
@@ -1016,7 +1055,14 @@ export default function ProblemEditor({
                   <div className="editor-melds-inline">
                     {od.melds.map((meld, mi) => (
                       <div key={mi} className="editor-meld-inline-item">
-                        <span className="editor-meld-inline-label">{MELD_TYPE_LABELS[meld.type]}</span>
+                        <span className="editor-meld-inline-label">
+                          {MELD_TYPE_LABELS[meld.type]}
+                          <MeldFromSelect
+                            type={meld.type}
+                            value={meld.from}
+                            onChange={f => updateOtherDiscardMeldFrom(bi, mi, f)}
+                          />
+                        </span>
                         <MeldPreview meld={meld} />
                         <button className="editor-meld-inline-remove" onClick={() => removeOtherDiscardMeld(bi, mi)}>×</button>
                       </div>
@@ -1028,6 +1074,7 @@ export default function ProblemEditor({
                     meld={addingMeld}
                     onCancel={() => setAddingMeld(null)}
                     onRemoveTile={removeTileFromMeld}
+                    onChangeFrom={changeAddingMeldFrom}
                   />
                 ) : (
                   <div className="meld-add-btns">
@@ -1040,19 +1087,14 @@ export default function ProblemEditor({
                 )}
               </div>
             ))}
-            {otherDiscards.length < 3 && (
+            {otherDiscards.length < 4 && (
               <button className="other-discard-add-block" onClick={addOtherDiscardBlock}>
-                ＋ 家を追加（最大3人）
+                ＋ 家を追加（自分を含め最大4人）
               </button>
             )}
             {otherDiscardIncomplete && (
               <div className="other-discard-warning">
                 ⚠ 家と捨て牌の両方を設定してください。揃っていない家は（副露も含めて）保存されません。
-              </div>
-            )}
-            {otherDiscardSelfPlayer && (
-              <div className="other-discard-warning">
-                ⚠ 家が状況設定の自風（{jikaze}家＝自分）と同じです。この設定は保存されません。
               </div>
             )}
             {otherDiscardDuplicatePlayer && (
@@ -1277,21 +1319,16 @@ export default function ProblemEditor({
         )}
       </section>
 
-      {/* 保存ボタン */}
+      {/* 保存ボタンはヘッダー行に移したので、ここは警告と削除だけ */}
       <div className="editor-save-area">
         {otherDiscardIncomplete && (
           <span className="editor-save-warning">
-            ⚠ 他家捨て牌に未完成の家（家と捨て牌の両方が必要）があり、その分は副露も含めて保存されません
-          </span>
-        )}
-        {otherDiscardSelfPlayer && (
-          <span className="editor-save-warning">
-            ⚠ 他家捨て牌の家が自風と同じものは保存されません
+            ⚠ 捨て牌に未完成の家（家と捨て牌の両方が必要）があり、その分は副露も含めて保存されません
           </span>
         )}
         {otherDiscardDuplicatePlayer && (
           <span className="editor-save-warning">
-            ⚠ 他家捨て牌に同じ家が複数あり、最初の1つだけ保存されます
+            ⚠ 捨て牌に同じ家が複数あり、最初の1つだけ保存されます
           </span>
         )}
         {otherDiscardRiichiMissing && (
@@ -1299,12 +1336,6 @@ export default function ProblemEditor({
             ⚠ リーチ宣言牌が未設定です（このままでも保存されます）
           </span>
         )}
-        <button className="editor-save-btn" onClick={handleSave}>
-          保存のみ
-        </button>
-        <button className="editor-save-next-btn" onClick={handleSaveAndNext} disabled={!hasNext}>
-          保存して次へ → <kbd>Ctrl+S</kbd>
-        </button>
         <button
           className="editor-delete-btn"
           onClick={() => {
@@ -1316,6 +1347,9 @@ export default function ProblemEditor({
           この問題を削除
         </button>
       </div>
+
+      </div>{/* /editor-panel-col */}
+      </div>{/* /editor-columns */}
 
       {/* 共通牌パレット（画面下部固定）。送り先モードで牌の追加先を切り替える */}
       <div className="palette-dock">
@@ -1335,7 +1369,7 @@ export default function ProblemEditor({
           </div>
           <span className="palette-dock-status">{paletteStatus}</span>
         </div>
-        <TilePalette size={32} onTileClick={handlePaletteTile} />
+        <TilePalette size={28} onTileClick={handlePaletteTile} />
       </div>
     </div>
   )

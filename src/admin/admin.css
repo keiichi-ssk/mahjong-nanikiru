@@ -300,35 +300,475 @@ html {
   font-size: 1rem;
 }
 
-/* ===== エディター ===== */
+/* ===== エディター =====
+   1画面（スクロールなし）で編集できることを優先し、余白は詰めてある。
+   要素を足すときは縦の長さが伸びないか確認すること */
 .editor {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 10px;
 }
 
+/* 盤面（左）と編集パネル（右）の2カラム。狭い画面では縦積みに落とす */
+.editor-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+@media (max-width: 1200px) {
+  .editor-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* 盤面は編集中も見えていてほしいので、右カラムをスクロールしても追従させる */
+.editor-board-col {
+  position: sticky;
+  top: 0;
+}
+
+.editor-panel-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* ヘッダー行（ID・問題タイプ・フラグ・保存）に入る部品 */
+.editor-type-select {
+  background: #111827;
+  border: 1px solid #1a2a4a;
+  color: #ccc;
+  font-size: 0.78rem;
+  padding: 3px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+/* 問題画像を畳んでいるときの1行ボタン */
+.editor-image-open {
+  background: none;
+  border: 1px dashed #2a3a5a;
+  color: #7a8aa5;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+
+.editor-image-open:hover { border-color: #3a5a8a; color: #aab8cc; }
+
+/* 保存系はヘッダー行の右端へ寄せる */
+.editor-header .editor-save-btn { margin-left: auto; }
+
+/* 盤面の状況設定（場風・局・本場・巡目）のセレクタ。自風はセレクタではなく点数チップのクリックで変える */
+.board-select {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid #2e7d63;
+  color: #e8f4ee;
+  font-size: 0.65rem;
+  padding: 1px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+/* セレクタが3つ並ぶ行があるので、収まらなければ折り返す */
+.board-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+/* 王牌はクリックでドラ設定に切り替える */
+.board-dead-wall-btn {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 2px;
+  cursor: pointer;
+}
+
+.board-dead-wall-btn:hover { border-color: #f5c842; }
+
+/* 盤面の牌そのものをボタンにする（手牌タブ中はクリックで削除） */
+.board-tile-btn,
+.board-melds-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: block;
+}
+
+/* ===== 盤面ビュー ===== */
+/* 緑の卓。中は「3×3グリッド（各家の河と中央）」＋「自分の手牌」の縦並び */
+.board {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: #0e3b2e;
+  border: 1px solid #16543f;
+  border-radius: 10px;
+  overflow-x: auto;
+}
+
+/* 外側の枠：各家の手牌を盤面の端に置く。
+   手牌は幅が広いので内側グリッドに入れると中央の列を押し広げてしまう（実際に踏んだ） */
+.board-outer {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  grid-template-rows: auto auto auto;
+  justify-content: center;
+  align-items: center;
+  justify-items: center;
+  gap: 4px;
+}
+
+.board-outer--top    { grid-column: 2; grid-row: 1; }
+.board-outer--left   { grid-column: 1; grid-row: 2; }
+.board-outer--center { grid-column: 2; grid-row: 2; }
+.board-outer--right  { grid-column: 3; grid-row: 2; }
+.board-outer--bottom { grid-column: 2; grid-row: 3; }
+
+/* 列も行も内容ぴったり・隙間なしにして、各家の河を局設定の枠ギリギリまで寄せる */
+.board-grid {
+  display: grid;
+  grid-template-columns: auto auto auto;
+  grid-template-rows: auto auto auto;
+  justify-content: center;
+  align-items: center;
+  justify-items: center;
+  gap: 0;
+}
+
+.board-cell--top    { grid-column: 2; grid-row: 1; }
+.board-cell--left   { grid-column: 1; grid-row: 2; }
+.board-cell--center { grid-column: 2; grid-row: 2; }
+.board-cell--right  { grid-column: 3; grid-row: 2; }
+.board-cell--bottom { grid-column: 2; grid-row: 3; }
+
+/* クリックできる領域。素の卓に近づけるため、通常時は枠も背景も持たせない。
+   選択中だけ淡く色を敷いて、どのパネルを開いているかが分かるようにする */
+.board-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  padding: 1px;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: #cfe6dc;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.board-area:hover { background: rgba(255, 255, 255, 0.06); }
+.board-area--active { background: rgba(245, 200, 66, 0.12); }
+
+/* 中身が空の領域は大きさが 0 になってクリックできないので、破線の枠だけ残す */
+.board-area--empty {
+  min-height: 34px;
+  min-width: 34px;
+  border-style: dashed;
+  border-color: #2e7d63;
+}
+
+/* ===== 盤面の牌 =====
+   見た目は編集パネルの牌ボタン（.tile-btn / .editor-tile）に合わせる。
+   寸法は回転ラッパーのサイズ計算に使うため BoardView.jsx（TILE / HAND_TILE）が持ち、
+   ここでは指定しない（CSSとJSで二重に持つと必ずズレる） */
+.board-tile-slot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.board-tile {
+  display: block;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  background: #fff;
+  border: 2px solid #ccc;
+  border-radius: 6px;
+  padding: 1px;
+  object-fit: contain;
+}
+
+/* 裏向き。出題画面のドラ表示牌の裏（App.css の .dora-indicator-back）と同じ見た目。
+   admin.css は App.css を読み込まないため実体を複製している（変えるときは両方直す） */
+.board-tile--back {
+  background: linear-gradient(150deg, #f5cc7a 0%, #e0a045 55%, #c47e28 100%);
+  border: 1px solid #7a4a10;
+  border-radius: 3px;
+  box-shadow:
+    inset 1px 1px 3px rgba(255, 220, 120, 0.45),
+    inset -1px -1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* 鳴かれた牌は河に残したまま暗くする（枚数を減らさない方針のため）。
+   網掛け（斜線）だと小さい牌では見分けにくかったので明度で表現している */
+.board-tile--called {
+  filter: brightness(0.45) saturate(0.7);
+}
+
+.board-tile--answer {
+  outline: 2px solid #2ecc71;
+  outline-offset: -2px;
+  border-radius: 6px;
+}
+
+/* ===== 席ブロックの回転 =====
+   その家の視点で組み立てた「河＋副露」をブロックごと回す。
+   回転は要素の占有サイズを変えないので、外側(.board-rot)に入れ替え後のサイズを持たせ、
+   内側(.board-rot-inner)を中央に固定して回す */
+.board-rot {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* その家の視点で 河（奥）→ 手牌＋副露（手前）の縦並び。河は中央、手牌の行は右詰め
+   （副露をその家から見た右下端に置くため）。
+   ブロックの高さ（SEAT_DEPTH）まで space-between で振り分けるので、
+   河は卓の中央側・手牌は盤面の外端側に寄る */
+.board-rot-inner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform-origin: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px;
+}
+
+/* 手牌＋副露の1行（副露はその家から見て手牌の右） */
+.board-seat-hand-row {
+  flex-direction: row;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.board-seat-hand {
+  display: flex;
+  gap: 2px;
+}
+
+/* ===== 河 ===== */
+.board-river {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.board-river-row {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+}
+
+/* ===== 副露 ===== */
+/* 実卓と同じく「最初の鳴きが右端」。データは鳴いた順のままで、並びだけ反転させる */
+.board-melds {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.board-meld {
+  display: flex;
+  gap: 1px;
+  align-items: flex-end;
+}
+
+/* ===== 中央（局・点数・ドラ） =====
+   盤面で唯一、枠と濃い背景を持つ領域。点数（各家）まで含めた正方形にする */
+/* 各家の点数は四辺の中央（上＝対面 / 左＝上家 / 右＝下家 / 下＝自分）に絶対配置し、
+   王牌と局の設定を中央に置く。実卓の点数表示の並びに合わせている */
+.board-center {
+  position: relative;
+  /* 王牌と局の設定を枠のど真ん中に置く（display が無いと下の align/justify が効かない） */
+  display: flex;
+  width: 280px;
+  height: 280px;
+  padding: 10px;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid #2e7d63;
+  border-radius: 6px;
+}
+
+.board-score--top,
+.board-score--bottom {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.board-score--top    { top: 6px; }
+.board-score--bottom { bottom: 6px; }
+
+.board-score--left,
+.board-score--right {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.board-score--left  { left: 6px; }
+.board-score--right { right: 6px; }
+
+/* 背景を持つぶん、選択中の色は個別に上書きする（後勝ちで消えないように） */
+.board-center.board-area--active { background: rgba(245, 200, 66, 0.16); }
+.board-center:hover { background: rgba(0, 0, 0, 0.18); }
+
+/* 局・巡目・供託と王牌（枠と背景は親の .board-center が持つ）。
+   左右の点数（各52px）に重ならない幅に収める：280 − padding20 − 52×2 ＝ 156px まで */
+.board-center-info {
+  max-width: 152px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-align: center;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.board-kyoku {
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: #f5c842;
+}
+
+.board-junme, .board-kyotaku {
+  font-size: 0.65rem;
+  color: #9fd0bc;
+}
+
+/* 点数チップ。中の風・点数がそれぞれボタン（風＝自分だけ自風の切り替え / 点数＝編集パネル）。
+   button の入れ子は不正なのでチップ自体は div にしてある */
+.board-score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  font-size: 0.65rem;
+  color: #cfe6dc;
+  width: 52px;
+  flex-shrink: 0;
+}
+
+/* 見た目はボタンらしくしない */
+.board-score-wind,
+.board-score-value {
+  background: none;
+  border: none;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.board-score-wind {
+  padding: 0 4px;
+  border-radius: 3px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.board-score--self .board-score-wind {
+  background: #2b6cb0;
+  color: #fff;
+}
+
+/* hover は自分（青バッジ）にも効かせたいので、self より詳細度を上げて後に置く */
+.board-score-wind:hover { background: rgba(245, 200, 66, 0.3); }
+.board-score--self .board-score-wind:hover { background: #3b82d0; }
+
+.board-score-value { font-family: monospace; }
+
+/* 王牌（7枚）。3枚目がドラ表示牌で、残りは裏向き */
+.board-dead-wall {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+/* ===== 自分の河と手牌 ===== */
+.board-seat--self { align-items: center; }
+
+.board-hand { width: auto; }
+
+/* 幅は BoardView が固定値で指定する（手牌の増減で盤面がズレないように）。
+   牌は中央寄せ、副露は右端 */
+.board-hand-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 12px;
+  max-width: 100%;
+}
+
+.board-hand-tiles {
+  display: flex;
+  gap: 3px;
+}
+
+.board-empty-text {
+  font-size: 0.7rem;
+  color: #4e8a74;
+}
+
+/* ID・問題タイプ・フラグ・保存を1行にまとめたヘッダー。
+   要素が多いので、詰まって見えないよう行間と左右の余白を確保する */
 .editor-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 14px;
+  row-gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: #0d1426;
+  border: 1px solid #1a2a4a;
+  border-radius: 10px;
 }
 
 .editor-title {
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   color: #f5c842;
   margin: 0;
+  white-space: nowrap;
 }
 
 .editor-save-btn {
   background: #f5c842;
   color: #000;
   border: none;
-  padding: 8px 24px;
+  padding: 6px 16px;
   border-radius: 6px;
   font-weight: bold;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   cursor: pointer;
   transition: opacity 0.15s;
+  white-space: nowrap;
 }
 
 .editor-save-btn:hover { opacity: 0.85; }
@@ -355,10 +795,10 @@ html {
   background: #0d1426;
   border: 1px solid #1a2a4a;
   border-radius: 10px;
-  padding: 16px;
+  padding: 10px 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .editor-section-label {
@@ -586,6 +1026,26 @@ html {
 .editor-meld-inline-label {
   font-size: 0.65rem;
   color: #888;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* チーは上家からしか鳴けないので、選択肢ではなく固定表示にする */
+.meld-from-fixed {
+  color: #5e9ad0;
+  font-size: 0.65rem;
+}
+
+/* 副露の「鳴いた元」セレクタ（暗槓では表示しない） */
+.meld-from-select {
+  background: #111827;
+  border: 1px solid #1a2a4a;
+  color: #89c0f0;
+  font-size: 0.65rem;
+  padding: 1px 2px;
+  border-radius: 3px;
+  cursor: pointer;
 }
 
 .editor-meld-inline-remove {
@@ -898,12 +1358,13 @@ html {
   background: #2ecc71;
   color: #000;
   border: none;
-  padding: 8px 24px;
+  padding: 6px 16px;
   border-radius: 6px;
   font-weight: bold;
-  font-size: 0.95rem;
+  font-size: 0.85rem;
   cursor: pointer;
   transition: opacity 0.15s;
+  white-space: nowrap;
 }
 
 .editor-save-next-btn:hover:not(:disabled) { opacity: 0.85; }
@@ -1615,16 +2076,16 @@ kbd {
 .palette-tab-btn--active:hover { color: #000; }
 
 .palette-tab-content {
-  padding: 12px 16px;
+  padding: 10px 14px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .palette-tab-divider {
   height: 1px;
   background: #1a2a4a;
-  margin: 10px 0;
+  margin: 7px 0;
 }
 
 .palette-tab-status {

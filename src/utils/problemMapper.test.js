@@ -13,19 +13,20 @@ const fullRow = {
   explanation: 'ここは[5z]切り。',
   reviewed: true,
   disabled: false,
-  melds: [{ type: 'pon', tiles: ['1z', '1z', '1z'] }],
+  melds: [{ type: 'pon', tiles: ['1z', '1z', '1z'], from: '上家' }],
   problem_type: 'default',
   discarded_tile: null,
   naki_choices: [],
   question_image_url: null,
   bakaze: '東',
   kyoku: 2,
+  honba: 1,
   jikaze: '南',
   junme: 8,
   note: '3巡目に[1p]が2枚切れ。',
   other_discard: [
-    { player: '西', tiles: ['1z', '9m'], riichiIndex: null, melds: [{ type: 'pon', tiles: ['5p', '5p', '5p'] }] },
-    { player: '北', tiles: ['5p'], riichiIndex: 0 },
+    { player: '西', tiles: ['1z', '9m'], riichiIndex: null, melds: [{ type: 'pon', tiles: ['5p', '5p', '5p'], from: '対面' }] },
+    { player: '北', tiles: ['5p'], riichiIndex: 0, melds: [] },
   ],
   scores: { 東: 25000, 南: 31200, 西: 18800, 北: 24000, kyotaku: 1000 },
 };
@@ -43,7 +44,7 @@ describe('fromDb（DB行 → アプリ内オブジェクト）', () => {
 
   it('other_discard の旧形式（単一オブジェクト）は1要素の配列に正規化される', () => {
     const legacy = { ...fullRow, other_discard: { player: '西', tiles: ['1z'], riichiIndex: null } };
-    expect(fromDb(legacy).otherDiscards).toEqual([{ player: '西', tiles: ['1z'], riichiIndex: null }]);
+    expect(fromDb(legacy).otherDiscards).toEqual([{ player: '西', tiles: ['1z'], riichiIndex: null, melds: [] }]);
   });
 
   it('other_discard の空配列は null に正規化される', () => {
@@ -53,6 +54,45 @@ describe('fromDb（DB行 → アプリ内オブジェクト）', () => {
   it('dora の空文字は null に正規化される（未設定判定・引き継ぎのため）', () => {
     expect(fromDb({ ...fullRow, dora: '' }).dora).toBeNull();
     expect(fromDb({ ...fullRow, dora: '5m' }).dora).toBe('5m');
+  });
+
+  // 副露の「鳴いた元」(from) は後から追加したフィールド。
+  // 旧データには無いため、読み込み時に「上家から鳴いた」ものとして補完する（2026-07-27）
+  describe('副露の鳴いた元(from)の補完', () => {
+    it('from が無い自分の副露は上家になる', () => {
+      const legacy = { ...fullRow, melds: [{ type: 'chi', tiles: ['3m', '4m', '5m'] }] };
+      expect(fromDb(legacy).melds).toEqual([{ type: 'chi', tiles: ['3m', '4m', '5m'], from: '上家' }]);
+    });
+
+    it('暗槓は鳴いた元を持たない（from: null）', () => {
+      const legacy = { ...fullRow, melds: [{ type: 'ankan', tiles: ['5p', '5p', '5p', '5p'] }] };
+      expect(fromDb(legacy).melds[0].from).toBeNull();
+    });
+
+    it('すでに from があればその値を尊重する', () => {
+      const row = { ...fullRow, melds: [{ type: 'pon', tiles: ['1z', '1z', '1z'], from: '下家' }] };
+      expect(fromDb(row).melds[0].from).toBe('下家');
+    });
+
+    it('他家の副露にも補完される', () => {
+      const legacy = {
+        ...fullRow,
+        other_discard: [{ player: '西', tiles: ['1z'], riichiIndex: null, melds: [{ type: 'pon', tiles: ['2s', '2s', '2s'] }] }],
+      };
+      expect(fromDb(legacy).otherDiscards[0].melds[0].from).toBe('上家');
+    });
+
+    it('melds が無い古い行では空配列になる', () => {
+      const legacy = { ...fullRow };
+      delete legacy.melds;
+      expect(fromDb(legacy).melds).toEqual([]);
+    });
+  });
+
+  it('honba が無い古い行では null になる（後から追加したカラム）', () => {
+    const legacy = { ...fullRow };
+    delete legacy.honba;
+    expect(fromDb(legacy).honba).toBeNull();
   });
 
   it('question_image_url / other_discard / scores が無い古い行でも null になる', () => {
@@ -105,6 +145,7 @@ describe('toDb（アプリ内オブジェクト → DB行）', () => {
       question_image_url: null,
       bakaze: null,
       kyoku: null,
+      honba: null,
       jikaze: null,
       junme: null,
       note: '',
