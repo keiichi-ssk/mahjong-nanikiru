@@ -1,6 +1,17 @@
 // 出題画面（ProblemView）と管理画面（ProblemEditor）で共有する問題まわりの定数。
 // 片方だけ直して食い違う事故を防ぐため、ラベルや選択肢の定義は必ずここに置く。
 
+// 問題タイプ（problem_type）の表示ラベル。
+// 管理画面のセレクタと自作問題の一覧が同じ文言・同じ順序になるようここで一元管理する。
+// 廃止された image-quiz は含めない（judgeUtils の normalizeProblemType が default に寄せる）
+export const PROBLEM_TYPE_LABELS = {
+  'default':         '通常（何切る）',
+  'riichi-judgment': 'リーチ判断',
+  'naki-timing':     '鳴きタイミング',
+  'naki-choice':     '鳴き選択',
+  'betaori':         'ベタオリ',
+};
+
 // 鳴きタイミング問題（naki-timing）の4択
 export const NAKI_TIMING_OPTIONS = [
   { value: 'early', label: '序盤から鳴く' },

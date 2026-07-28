@@ -1,0 +1,349 @@
+/* マイ問題集（自作問題の作成画面）専用のスタイル。
+   認証画面・レイアウト（.admin-layout / .admin-sidebar / .admin-main）は admin.css のものを流用し、
+   この画面だけで使うものをここに置く（admin.css は AdminApp 用なので混ぜない）。
+   配色は admin.css に合わせている（背景 #0a0f1e 系・アクセント #f5c842）。 */
+
+/* ===== カテゴリ一覧 =====
+   下に問題一覧を置くので、カテゴリ側は高さの上限を決めておく
+   （カテゴリが増えても問題一覧が潰れないように） */
+.mp-cat-list {
+  flex: 0 1 auto;
+  max-height: 40vh;
+  overflow-y: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mp-cat-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 4px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+}
+
+.mp-cat-item--active {
+  background: #16213d;
+  border-color: #f5c842;
+}
+
+.mp-cat-item--muted {
+  opacity: 0.6;
+}
+
+/* 名前部分。クリックで選択、ダブルクリックでリネーム */
+.mp-cat-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: none;
+  border: none;
+  color: #ddd;
+  font-size: 0.9rem;
+  text-align: left;
+  padding: 8px 6px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.mp-cat-name--static {
+  cursor: default;
+}
+
+.mp-cat-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mp-cat-count {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: #888;
+  background: #0a0f1e;
+  border-radius: 10px;
+  padding: 1px 8px;
+}
+
+/* ===== 行内の操作ボタン ===== */
+.mp-cat-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.mp-icon-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: 1px solid #1a2a4a;
+  border-radius: 4px;
+  color: #888;
+  font-size: 0.8rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+}
+
+.mp-icon-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+.mp-icon-btn--danger:not(:disabled):hover {
+  border-color: #e74c3c;
+  color: #e74c3c;
+}
+
+/* タッチ端末でホバー装飾が貼り付くのを防ぐ（CLAUDE.md のタップUIルール） */
+@media (hover: hover) {
+  .mp-cat-name:hover { background: #16213d; }
+  .mp-icon-btn:not(:disabled):hover { border-color: #f5c842; color: #f5c842; }
+}
+
+/* ===== 追加フォーム ===== */
+.mp-cat-add {
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  border-top: 1px solid #1a2a4a;
+  flex-shrink: 0;
+}
+
+.mp-cat-input {
+  flex: 1;
+  min-width: 0;
+  background: #0a0f1e;
+  border: 1px solid #1a2a4a;
+  border-radius: 4px;
+  color: #ddd;
+  font-size: 0.85rem;
+  padding: 8px;
+}
+
+.mp-cat-input:focus {
+  outline: none;
+  border-color: #f5c842;
+}
+
+.mp-add-btn {
+  flex-shrink: 0;
+  background: #f5c842;
+  border: none;
+  border-radius: 4px;
+  color: #0a0f1e;
+  font-size: 0.85rem;
+  font-weight: bold;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+
+.mp-add-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* ===== 問題一覧（サイドバー下部） ===== */
+.mp-prob-section {
+  flex: 1;
+  min-height: 0;          /* これが無いと中身の高さで伸びてスクロールしない */
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid #1a2a4a;
+}
+
+.mp-prob-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  flex-shrink: 0;
+}
+
+.mp-prob-head-label {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.mp-add-btn--sm {
+  font-size: 0.75rem;
+  padding: 5px 10px;
+}
+
+.mp-prob-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.mp-prob-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  padding: 1px 4px;
+}
+
+.mp-prob-item--active {
+  background: #16213d;
+  border-color: #f5c842;
+}
+
+.mp-prob-name {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  background: none;
+  border: none;
+  color: #ddd;
+  text-align: left;
+  padding: 6px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.mp-prob-title {
+  font-size: 0.85rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mp-prob-sub {
+  font-size: 0.7rem;
+  color: #777;
+}
+
+@media (hover: hover) {
+  .mp-prob-name:hover { background: #16213d; }
+}
+
+/* ===== エディタのヘッダーに差し込む欄（タイトル・カテゴリ） ===== */
+.mp-editor-lead {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  flex: 1;
+  min-width: 200px;
+}
+
+.mp-title-input {
+  flex: 1;
+  min-width: 0;
+  background: #0a0f1e;
+  border: 1px solid #1a2a4a;
+  border-radius: 4px;
+  color: #ddd;
+  font-size: 0.85rem;
+  padding: 6px 8px;
+}
+
+.mp-title-input:focus {
+  outline: none;
+  border-color: #f5c842;
+}
+
+.mp-cat-select {
+  flex-shrink: 0;
+  max-width: 150px;
+  background: #0a0f1e;
+  border: 1px solid #1a2a4a;
+  border-radius: 4px;
+  color: #ddd;
+  font-size: 0.8rem;
+  padding: 6px;
+}
+
+/* ===== 状態表示 ===== */
+.mp-status {
+  margin: 0;
+  padding: 0 12px 8px;
+  font-size: 0.8rem;
+  color: #f5c842;
+  flex-shrink: 0;
+}
+
+.mp-empty,
+.mp-error {
+  margin: 0;
+  padding: 12px 6px;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: #888;
+}
+
+.mp-error { color: #e74c3c; }
+
+/* ===== サイドバー最下部 ===== */
+.mp-sidebar-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid #1a2a4a;
+  flex-shrink: 0;
+}
+
+.mp-user {
+  font-size: 0.72rem;
+  color: #666;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mp-text-btn {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 2px 4px;
+  text-decoration: underline;
+}
+
+/* ===== メイン領域 ===== */
+.mp-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 100%;
+  color: #666;
+  text-align: center;
+}
+
+.mp-placeholder-title {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #f5c842;
+}
+
+.mp-placeholder-desc {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* 保存結果の色分け（要素は ProblemEditor の .editor-save-status の中に入る） */
+.mp-save-ok  { color: #4caf50; }
+.mp-save-err { color: #e74c3c; }

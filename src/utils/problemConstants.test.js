@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest';
 import {
   MELD_FROMS, DEFAULT_MELD_FROM, canMeldHaveFrom, getMeldFromOptions,
   normalizeMeld, normalizeMelds, getMeldTileRole, windAt, relativeWind,
+  PROBLEM_TYPE_LABELS,
 } from './problemConstants';
+import { normalizeProblemType } from './judgeUtils';
 
 // 副露の各牌の表示形態を並びで受け取る（'normal' | 'rotated' | 'back'）
 function roles(type, count, from) {
@@ -117,5 +119,26 @@ describe('relativeWind（ある家から見て相手がどの位置か）', () =
   it('不正な値は null', () => {
     expect(relativeWind('東', '白')).toBeNull();
     expect(relativeWind(null, '南')).toBeNull();
+  });
+});
+
+// 問題タイプのラベルは管理画面のセレクタと自作問題の一覧が共有する対応表。
+// 文言や選択肢を変えたらこのテストも更新すること（片方だけ直す事故を防ぐ）
+describe('PROBLEM_TYPE_LABELS', () => {
+  it('問題タイプとラベルの対応（ゴールデン）', () => {
+    expect(PROBLEM_TYPE_LABELS).toEqual({
+      'default':         '通常（何切る）',
+      'riichi-judgment': 'リーチ判断',
+      'naki-timing':     '鳴きタイミング',
+      'naki-choice':     '鳴き選択',
+      'betaori':         'ベタオリ',
+    });
+  });
+
+  it('normalizeProblemType が返す値はすべてラベルを持つ', () => {
+    // 廃止された image-quiz や未知の値も default に寄るので、必ずラベルが引ける
+    for (const input of ['default', 'riichi-judgment', 'naki-timing', 'naki-choice', 'betaori', 'image-quiz', undefined]) {
+      expect(PROBLEM_TYPE_LABELS[normalizeProblemType(input)]).toBeTruthy();
+    }
   });
 });

@@ -318,7 +318,9 @@ export default function AdminApp() {
           onClick={async () => {
             const { error } = await supabase.auth.signInWithOAuth({
               provider: 'google',
-              options: { redirectTo: window.location.href },
+              // href はハッシュ（ログイン失敗後に付く #error=... 等）やクエリを含むため使わない。
+              // 壊れた redirectTo は Redirect URLs にマッチせず、Site URL（本番）へ飛ばされる
+              options: { redirectTo: `${window.location.origin}${window.location.pathname}` },
             })
             if (error) console.error('OAuth error:', error)
           }}

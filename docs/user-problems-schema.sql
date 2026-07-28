@@ -22,7 +22,7 @@
 create table if not exists public.user_categories (
   id         uuid primary key default gen_random_uuid(),
   user_id    uuid not null references auth.users(id) on delete cascade,
-  name       text not null,
+  name       text not null constraint user_categories_name_len check (char_length(name) between 1 and 100),
   sort_order int  not null default 0,          -- 表示順（ドラッグ並べ替え用）
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
@@ -39,7 +39,7 @@ create table if not exists public.user_problems (
   id             uuid primary key default gen_random_uuid(),
   user_id        uuid not null references auth.users(id) on delete cascade,
   category_id    uuid references public.user_categories(id) on delete set null,
-  title          text not null default '',     -- 一覧での見出し
+  title          text not null default '' constraint user_problems_title_len check (char_length(title) <= 200),
   sort_order     int  not null default 0,      -- カテゴリ内の並び順
 
   -- ここから problems と同じ列
@@ -60,6 +60,10 @@ create table if not exists public.user_problems (
   note           text    not null default '',
   other_discard  jsonb,
   scores         jsonb,
+  -- 問題画像。列だけ先に用意しておく（バケットの整理が済むまで UI は隠す。2026-07-28 追加）
+  question_image_url text,
+  -- 出題から一時的に外すフラグ。出題側が filter(p => !p.disabled) しているため揃えてある
+  disabled       boolean not null default false,
 
   -- 自作問題ならではの列
   source         text,        -- 'manual' | 'paifu' など入力元の記録
@@ -94,9 +98,13 @@ create index if not exists user_problems_category_id_idx
 -- 4. updated_at の自動更新
 --    アプリ側で毎回セットし忘れても腐らないようトリガーで担保する
 -- ------------------------------------------------------------
+-- ★ set search_path = '' を付けること。
+--   付けないと Supabase のデータベースリンターが function_search_path_mutable を警告する。
+--   （now() は pg_catalog が暗黙で解決されるのでそのまま動く）
 create or replace function public.set_updated_at()
 returns trigger
 language plpgsql
+set search_path = ''
 as $$
 begin
   new.updated_at = now();
@@ -127,11 +135,25 @@ create policy "own categories" on public.user_categories
   using      (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
+-- 問題は「本人の行」であることに加え、
+-- category_id が「本人のカテゴリ」であることも書き込み時に検証する。
+-- （user_id だけを見ると、他人のカテゴリIDを指定した問題を作れてしまうため）
+-- CHECK 制約ではなく RLS の with check に置くのは、CHECK が参照先の変更で再検証されないため。
 drop policy if exists "own problems" on public.user_problems;
 create policy "own problems" on public.user_problems
   for all
   using      (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+  with check (
+    auth.uid() = user_id
+    and (
+      category_id is null
+      or exists (
+        select 1 from public.user_categories c
+         where c.id = category_id
+           and c.user_id = auth.uid()
+      )
+    )
+  );
 
 
 -- ------------------------------------------------------------
@@ -141,6 +163,68 @@ create policy "own problems" on public.user_problems
 -- ------------------------------------------------------------
 grant select, insert, update, delete on public.user_categories to authenticated;
 grant select, insert, update, delete on public.user_problems   to authenticated;
+
+
+-- ============================================================
+-- 追加分（2026-07-28）
+--   ★ 既に上のテーブルを作成済みの場合はこれを実行する。
+--     新規に作る場合は上の CREATE TABLE に含まれているので不要。
+--
+--   足さなかった列と、その理由:
+--     - section  … category_id と二重管理になる。出題時に u:<category_id> として導出する
+--     - image    … レガシー列（旧 /samplequestions/... 形式）。現行は question_image_url
+--     - reviewed … 公式問題の校正管理用フラグ。自作問題では用途がないため（2026-07-28 判断）
+-- ============================================================
+
+alter table public.user_problems
+  add column if not exists question_image_url text,
+  add column if not exists disabled boolean not null default false;
+
+
+-- ============================================================
+-- セキュリティレビューの対応（2026-07-28）
+--   ★ 既にテーブルを作成済みの場合はこれを実行する。
+--     新規に作る場合は上の定義に反映済みなので不要。
+-- ============================================================
+
+-- (1) search_path の固定（Supabase リンターの function_search_path_mutable 対策）
+create or replace function public.set_updated_at()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+-- (2) category_id が「本人のカテゴリ」であることを書き込み時に検証する
+drop policy if exists "own problems" on public.user_problems;
+create policy "own problems" on public.user_problems
+  for all
+  using      (auth.uid() = user_id)
+  with check (
+    auth.uid() = user_id
+    and (
+      category_id is null
+      or exists (
+        select 1 from public.user_categories c
+         where c.id = category_id
+           and c.user_id = auth.uid()
+      )
+    )
+  );
+
+-- (3) 文字数の上限（将来ほかのユーザーへ開放したときの防御）
+--     制約に if not exists は使えないので、先に drop してから付け直す
+alter table public.user_categories drop constraint if exists user_categories_name_len;
+alter table public.user_categories
+  add constraint user_categories_name_len check (char_length(name) between 1 and 100);
+
+alter table public.user_problems drop constraint if exists user_problems_title_len;
+alter table public.user_problems
+  add constraint user_problems_title_len check (char_length(title) <= 200);
 
 
 -- ============================================================

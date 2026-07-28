@@ -3,7 +3,7 @@ import { getTileImageUrl, getTileLabel, sortTiles } from '../utils/tileUtils'
 import { normalizeProblemType, parseAnswers } from '../utils/judgeUtils'
 import {
   NAKI_TIMING_OPTIONS, MELD_TYPE_LABELS, MELD_TILE_COUNT, MELD_TYPES, getMeldTileRole,
-  getMeldFromOptions, normalizeMelds,
+  getMeldFromOptions, normalizeMelds, PROBLEM_TYPE_LABELS,
 } from '../utils/problemConstants'
 
 import BoardView from './BoardView'
@@ -212,8 +212,18 @@ function parseTilesText(text) {
   return result
 }
 
+// hideImage / hideReviewed / hideDelete / headerLead は自作問題の作成画面（MyProblemsApp）用の
+// オプション。既定値はすべて現行の管理画面の挙動なので、AdminApp 側は無変更で動く。
+//   hideImage    … user_problems の画像はバケットの整理が済むまで使わないため隠す
+//   hideReviewed … 「修正済み」は公式問題の校正用フラグで user_problems に列が無い
+//   hideDelete   … 削除は一覧側に集約する（id が uuid だと確認メッセージが不自然になるため）
+//   headerLead   … ヘッダー先頭の「ID 123」を差し替える（uuid をそのまま出すと場所を食う）
+//   saveStatus   … 保存ボタンの隣に出す状態表示（ReactNode 可）。
+//                  サイドバーに出すと保存ボタンから遠く、保存できたか分かりにくいため
 export default function ProblemEditor({
   problem, prevProblem, onSave, onSaveAndNext, onDelete, hasNext,
+  hideImage = false, hideReviewed = false, hideDelete = false, headerLead = null,
+  saveStatus = null,
 }) {
   // 手牌が未設定（新規追加直後）の問題は、手牌・正解・状況設定（ドラ・場風・自風・巡目）を
   // ひとつ前の問題から引き継いでおく。手牌がすでにある問題は自分自身の値を優先する。
@@ -727,27 +737,27 @@ export default function ProblemEditor({
 
       {/* ヘッダー：ID・問題タイプ・フラグ・保存を1行にまとめて縦の場所を節約する */}
       <div className="editor-header">
-        <h3 className="editor-title">ID {problem.id}</h3>
+        {headerLead ?? <h3 className="editor-title">ID {problem.id}</h3>}
         <select
           className="editor-type-select"
           value={problemType}
           onChange={e => setProblemType(e.target.value)}
           title="問題タイプ"
         >
-          <option value="default">通常（何切る）</option>
-          <option value="riichi-judgment">リーチ判断</option>
-          <option value="naki-timing">鳴きタイミング</option>
-          <option value="naki-choice">鳴き選択</option>
-          <option value="betaori">ベタオリ</option>
+          {Object.entries(PROBLEM_TYPE_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
         </select>
-        <label className="reviewed-check">
-          <input
-            type="checkbox"
-            checked={reviewed}
-            onChange={e => { reviewedTouchedRef.current = true; setReviewed(e.target.checked) }}
-          />
-          修正済み
-        </label>
+        {!hideReviewed && (
+          <label className="reviewed-check">
+            <input
+              type="checkbox"
+              checked={reviewed}
+              onChange={e => { reviewedTouchedRef.current = true; setReviewed(e.target.checked) }}
+            />
+            修正済み
+          </label>
+        )}
         <label className="reviewed-check" style={{ color: disabled ? '#e74c3c' : undefined }}>
           <input
             type="checkbox"
@@ -762,21 +772,25 @@ export default function ProblemEditor({
           <button className="editor-save-next-btn" onClick={handleSaveAndNext} disabled={!hasNext}>
             保存して次へ <kbd>Ctrl+S</kbd>
           </button>
-          <button
-            className="editor-delete-btn"
-            onClick={() => {
-              if (window.confirm(`問題 #${problem.id} を削除しますか？\nこの問題の全ユーザーの正誤記録も削除されます。この操作は取り消せません。`)) {
-                onDelete(problem.id)
-              }
-            }}
-          >
-            この問題を削除
-          </button>
+          {saveStatus && <span className="editor-save-status">{saveStatus}</span>}
+          {!hideDelete && (
+            <button
+              className="editor-delete-btn"
+              onClick={() => {
+                if (window.confirm(`問題 #${problem.id} を削除しますか？\nこの問題の全ユーザーの正誤記録も削除されます。この操作は取り消せません。`)) {
+                  onDelete(problem.id)
+                }
+              }}
+            >
+              この問題を削除
+            </button>
+          )}
         </div>
       </div>
 
       {/* 問題画像（任意・全タイプ共通）。ほとんどの問題では未設定なので、
           未設定のときは1行のボタンだけにして縦の場所を使わない */}
+      {!hideImage && (
       <section className="editor-section editor-section--image">
         {questionImageUrl || problem.image || imageOpen ? (
           <>
@@ -813,6 +827,7 @@ export default function ProblemEditor({
           <button className="editor-image-open" onClick={() => setImageOpen(true)}>＋ 問題画像を追加（任意）</button>
         )}
       </section>
+      )}
 
       {/* === パレット統合エリア === */}
       <section className="editor-section editor-section--palette">

@@ -2557,3 +2557,17 @@ kbd {
   height: var(--tile-h);
   transform: rotate(90deg);
 }
+
+/* 保存ボタンの隣に出す状態表示（自作問題の作成画面で使用）。
+   サイドバーに出すと保存ボタンから遠く、保存できたか分かりにくいため隣に置く */
+.editor-save-status {
+  font-size: 0.8rem;
+  white-space: nowrap;
+  align-self: center;
+  animation: editor-save-status-in 0.18s ease-out;
+}
+
+@keyframes editor-save-status-in {
+  from { opacity: 0; transform: translateX(-4px); }
+  to   { opacity: 1; transform: none; }
+}
