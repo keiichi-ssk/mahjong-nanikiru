@@ -36,6 +36,11 @@ scripts/tweet-drafts-out/
 # ゴミ箱（削除ファイルの一時退避先）
 .trash/
 
+# ローカル専用ツール（雀魂の牌譜取得スクリプト等）と取り込んだ牌譜（tools-local/paifu/）。
+# 前者は規約上グレーな外部ツールの改変物、後者は対局者名を含むため公開リポジトリに入れない
+# （docs/user-problems-plan.md 9章）
+tools-local/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

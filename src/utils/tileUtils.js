@@ -47,6 +47,24 @@ export function getDoraIndicator(doraTile) {
   return null;
 }
 
+// ドラ表示牌 → ドラ（1つ次の牌）。getDoraIndicator の逆。
+// 牌譜のように「ドラ表示牌」で記録されたデータを取り込むときに使う
+// （このアプリの problem.dora は表示牌ではなく★ドラそのもの★を持つ）。
+// 赤5（0m など）が表示牌になることはないが、来ても通常の5として扱う
+export function getDoraFromIndicator(indicator) {
+  if (!indicator) return null;
+  const suit = indicator.slice(-1);
+  const n = indicator[0] === '0' ? 5 : parseInt(indicator[0], 10);
+  if (suit === 'm' || suit === 'p' || suit === 's') {
+    return `${n === 9 ? 1 : n + 1}${suit}`;
+  }
+  if (suit === 'z') {
+    if (n <= 4) return `${n === 4 ? 1 : n + 1}z`; // 風牌は 東→南→西→北→東
+    return `${n === 7 ? 5 : n + 1}z`;              // 三元牌は 白→發→中→白
+  }
+  return null;
+}
+
 // ===== 牌の並び順（萬→筒→索→字、赤5は5.5扱い） =====
 
 const SUIT_ORDER = { m: 0, p: 1, s: 2, z: 3 };

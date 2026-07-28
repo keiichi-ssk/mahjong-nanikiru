@@ -3,6 +3,7 @@ import {
   getTileImageUrl,
   getTileLabel,
   getDoraIndicator,
+  getDoraFromIndicator,
   randomSuitMap,
   remapProblem,
 } from './tileUtils';
@@ -74,6 +75,47 @@ describe('getDoraIndicator（ドラ→ドラ表示牌の逆算）', () => {
     expect(getDoraIndicator(null)).toBeNull();
     expect(getDoraIndicator('')).toBeNull();
     expect(getDoraIndicator(undefined)).toBeNull();
+  });
+});
+
+describe('getDoraFromIndicator（ドラ表示牌→ドラ）', () => {
+  it('数牌は1つ次の牌', () => {
+    expect(getDoraFromIndicator('4m')).toBe('5m');
+    expect(getDoraFromIndicator('8p')).toBe('9p');
+    expect(getDoraFromIndicator('3s')).toBe('4s');
+  });
+
+  it('9の表示牌は1がドラ（巡回）', () => {
+    expect(getDoraFromIndicator('9m')).toBe('1m');
+    expect(getDoraFromIndicator('9p')).toBe('1p');
+    expect(getDoraFromIndicator('9s')).toBe('1s');
+  });
+
+  it('風牌は東南西北で巡回', () => {
+    expect(getDoraFromIndicator('1z')).toBe('2z');
+    expect(getDoraFromIndicator('4z')).toBe('1z'); // 北表示 → 東ドラ
+  });
+
+  it('三元牌は白發中で巡回', () => {
+    expect(getDoraFromIndicator('5z')).toBe('6z');
+    expect(getDoraFromIndicator('7z')).toBe('5z'); // 中表示 → 白ドラ
+  });
+
+  it('未設定なら null', () => {
+    expect(getDoraFromIndicator(null)).toBeNull();
+    expect(getDoraFromIndicator('')).toBeNull();
+  });
+
+  // 牌譜の取り込み（tenhouPaifu）はドラ表示牌からドラを求めるため、
+  // 表示のための getDoraIndicator と往復で一致していないと1つずれる
+  it('getDoraIndicator と往復で元に戻る', () => {
+    const all = [
+      ...['m', 'p', 's'].flatMap(s => [1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => `${n}${s}`)),
+      ...[1, 2, 3, 4, 5, 6, 7].map(n => `${n}z`),
+    ];
+    for (const dora of all) {
+      expect(getDoraFromIndicator(getDoraIndicator(dora)), dora).toBe(dora);
+    }
   });
 });
 
