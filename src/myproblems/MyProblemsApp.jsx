@@ -45,6 +45,15 @@ async function fetchAll() {
   }
 }
 
+// ログイン中のアカウントの表示。画面共有や撮影で写るので伏せ字にする。
+// 見分けがつけばよいので、頭1文字とドメインだけ残す（r***@gmail.com）
+function maskEmail(email) {
+  if (!email) return ''
+  const at = email.lastIndexOf('@')
+  if (at <= 0) return '***'
+  return `${email[0]}***${email.slice(at)}`
+}
+
 // 一覧に出す1行ぶんの要約。ラベルは problemConstants に集約してある
 // （管理画面のセレクタと文言がズレないようにするため）
 function problemSummary(p) {
@@ -716,7 +725,8 @@ export default function MyProblemsApp() {
         {status && <p className="mp-status">{status}</p>}
 
         <div className="mp-sidebar-foot">
-          <span className="mp-user">{session.user.email}</span>
+          {/* どのアカウントか見分けられればよいので伏せ字にする（title にも入れないこと） */}
+          <span className="mp-user">{maskEmail(session.user.email)}</span>
           <button className="mp-text-btn" onClick={() => supabase.auth.signOut()}>ログアウト</button>
         </div>
       </aside>

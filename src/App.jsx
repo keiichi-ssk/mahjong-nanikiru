@@ -518,16 +518,25 @@ export default function App() {
         <span className="app-header-title">座学する麻雀</span>
         {session ? (
           <div className="user-info">
-            {session.user.user_metadata?.avatar_url && (
+            {/* ログイン中であることはアイコンだけで示す。
+                Googleアカウントの表示名・メールは画面に出さない（画面共有や撮影で写るため）。
+                alt / title にも入れないこと */}
+            {session.user.user_metadata?.avatar_url ? (
               <img
                 src={session.user.user_metadata.avatar_url}
-                alt="avatar"
+                alt=""
                 className="user-avatar"
               />
+            ) : (
+              <span className="user-avatar user-avatar--fallback" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
+                     stroke="currentColor" strokeWidth="2"
+                     strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              </span>
             )}
-            <span className="user-name">
-              {session.user.user_metadata?.name ?? session.user.email}
-            </span>
             <button
               className="btn-logout"
               onClick={() => supabase.auth.signOut()}

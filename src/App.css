@@ -38,13 +38,13 @@
   border: 2px solid var(--color-border-strong);
 }
 
-.user-name {
-  font-size: 0.85rem;
+/* アイコンが取れないアカウント用の代替。名前の頭文字は出さない（名前を隠す意味が無くなるため） */
+.user-avatar--fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-surface);
   color: var(--color-text-secondary);
-  max-width: 140px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .btn-login {
@@ -2906,8 +2906,6 @@
     font-size: 0.8rem;
     padding: 7px 8px;
   }
-
-  .user-name { display: none; }
 
   /* カテゴリ一覧 */
   .category-grid {
