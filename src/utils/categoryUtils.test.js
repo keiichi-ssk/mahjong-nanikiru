@@ -4,6 +4,9 @@ import {
   ALL_MAJOR_CATEGORIES,
   sectionNumber,
   sectionLabel,
+  isUserSection,
+  userSection,
+  userCategoryId,
   getBookLabel,
   getMajorCategory,
   getMajorCategoryKey,
@@ -254,5 +257,88 @@ describe('categories.json の整合性', () => {
       expect(c.book).not.toContain('::');
       expect(c.major).not.toContain('::');
     }
+  });
+});
+
+// ===== 自作問題（my問題集）の section =====
+// uuid をそのまま section に入れると parseInt が NaN になり、groupByBook から漏れて
+// 「エラーも出ないのに画面に何も表示されない」状態になる。接頭辞で名前空間を分けている
+describe('自作問題の section', () => {
+  const userCats = [
+    { id: 'aaa', name: 'リーチ判断' },
+    { id: 'bbb', name: '押し引き' },
+  ];
+
+  it('userSection / userCategoryId は往復する', () => {
+    expect(userSection('aaa')).toBe('u:aaa');
+    expect(userCategoryId('u:aaa')).toBe('aaa');
+  });
+
+  it('未分類（categoryId が null）でも section を持つ', () => {
+    expect(userSection(null)).toBe('u:none');
+    expect(userCategoryId('u:none')).toBeNull();
+  });
+
+  it('isUserSection は公式の section を誤検出しない', () => {
+    expect(isUserSection('u:aaa')).toBe(true);
+    expect(isUserSection('1')).toBe(false);
+    expect(isUserSection('25')).toBe(false);
+    expect(isUserSection(undefined)).toBe(false);
+    expect(userCategoryId('1')).toBeNull();
+  });
+
+  it('sectionLabel は user_categories から名前を引く', () => {
+    expect(sectionLabel('u:aaa', userCats)).toBe('リーチ判断');
+    expect(sectionLabel('u:none', userCats)).toBe('未分類');
+  });
+
+  it('sectionLabel は公式 section の挙動を変えない（第2引数なしでも動く）', () => {
+    expect(sectionLabel('1')).toBe('リーチ判断');
+    expect(sectionLabel('1', userCats)).toBe('リーチ判断');
+  });
+
+  it('消えたカテゴリを参照していても uuid を露出しない', () => {
+    expect(sectionLabel('u:zzz', userCats)).toBe('（削除されたカテゴリ）');
+  });
+
+  // 自作問題は本人のものなので、大カテゴリ単位の閲覧制限の対象外
+  it('isSectionAllowed は自作問題を常に許可する', () => {
+    expect(isSectionAllowed([], 'u:aaa')).toBe(true);
+    expect(isSectionAllowed(['現代麻雀技術論::テンパイの技術'], 'u:aaa')).toBe(true);
+    // 公式問題は従来どおり制限される
+    expect(isSectionAllowed([], '1')).toBe(false);
+  });
+});
+
+describe('groupByBook（自作問題）', () => {
+  const userCats = [
+    { id: 'aaa', name: 'リーチ判断' },
+    { id: 'bbb', name: '押し引き' },
+  ];
+
+  it('自作問題が無ければ書籍構成は変わらない', () => {
+    const before = groupByBook(['1']);
+    const after = groupByBook(['1'], userCats);
+    expect(after).toEqual(before);
+    expect(after.some(b => b.label === 'my問題集')).toBe(false);
+  });
+
+  it('自作問題があれば末尾に「my問題集」書籍が付く', () => {
+    const books = groupByBook(['1', 'u:aaa'], userCats);
+    const mine = books[books.length - 1];
+    expect(mine.label).toBe('my問題集');
+    expect(mine.majorGroups[0].sections).toEqual(['u:aaa']);
+  });
+
+  it('公式問題は「my問題集」に混ざらない', () => {
+    const books = groupByBook(['1', 'u:aaa'], userCats);
+    const mine = books.find(b => b.label === 'my問題集');
+    expect(mine.majorGroups.flatMap(g => g.sections)).not.toContain('1');
+  });
+
+  it('user_categories の並び順に従い、未分類は最後', () => {
+    const books = groupByBook(['u:none', 'u:bbb', 'u:aaa'], userCats);
+    const mine = books.find(b => b.label === 'my問題集');
+    expect(mine.majorGroups[0].sections).toEqual(['u:aaa', 'u:bbb', 'u:none']);
   });
 });

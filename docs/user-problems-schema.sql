@@ -41,6 +41,9 @@ create table if not exists public.user_problems (
   category_id    uuid references public.user_categories(id) on delete set null,
   title          text not null default '' constraint user_problems_title_len check (char_length(title) <= 200),
   sort_order     int  not null default 0,      -- カテゴリ内の並び順
+  -- 画面に出す番号（#12 など）。uuid は長くて読めないため別に持つ。
+  -- ユーザーごとに1から。採番は下のトリガーが行うのでアプリからは渡さない
+  display_no     int,
 
   -- ここから problems と同じ列
   tiles          jsonb   not null default '[]'::jsonb,
@@ -121,6 +124,31 @@ drop trigger if exists user_problems_set_updated_at on public.user_problems;
 create trigger user_problems_set_updated_at
   before update on public.user_problems
   for each row execute function public.set_updated_at();
+
+
+-- 表示用の連番（display_no）をユーザーごとに1から採番する。
+-- アプリ側で max+1 を計算すると、複数タブでの同時作成時に同じ番号が振られるため
+-- DB 側の1箇所に寄せている
+create or replace function public.set_user_problem_display_no()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if new.display_no is null then
+    select coalesce(max(display_no), 0) + 1
+      into new.display_no
+      from public.user_problems
+     where user_id = new.user_id;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists user_problems_set_display_no on public.user_problems;
+create trigger user_problems_set_display_no
+  before insert on public.user_problems
+  for each row execute function public.set_user_problem_display_no();
 
 
 -- ------------------------------------------------------------
@@ -225,6 +253,51 @@ alter table public.user_categories
 alter table public.user_problems drop constraint if exists user_problems_title_len;
 alter table public.user_problems
   add constraint user_problems_title_len check (char_length(title) <= 200);
+
+
+-- ============================================================
+-- 表示用の連番（2026-07-28 追加）
+--   ★ 既にテーブルを作成済みの場合はこれを実行する。
+--     新規に作る場合は上の定義に反映済みなので不要。
+--
+--   uuid は画面に出すと読めないため、ユーザーごとの連番を別に持つ。
+--   全ユーザー通しにしないのは、他人の作成で番号が飛ぶのを避けるため
+--   （一意性は uuid の主キーが担保している）。
+-- ============================================================
+
+alter table public.user_problems add column if not exists display_no int;
+
+create or replace function public.set_user_problem_display_no()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if new.display_no is null then
+    select coalesce(max(display_no), 0) + 1
+      into new.display_no
+      from public.user_problems
+     where user_id = new.user_id;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists user_problems_set_display_no on public.user_problems;
+create trigger user_problems_set_display_no
+  before insert on public.user_problems
+  for each row execute function public.set_user_problem_display_no();
+
+-- 既存行に作成順で採番する
+with numbered as (
+  select id, row_number() over (partition by user_id order by created_at) as n
+    from public.user_problems
+)
+update public.user_problems p
+   set display_no = numbered.n
+  from numbered
+ where p.id = numbered.id
+   and p.display_no is null;
 
 
 -- ============================================================

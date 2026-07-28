@@ -5,7 +5,7 @@ import { toUserDb, fromUserDb, makeNewUserProblem } from '../utils/userProblemMa
 import { PROBLEM_TYPE_LABELS } from '../utils/problemConstants'
 import { normalizeProblemType } from '../utils/judgeUtils'
 
-// 自作問題集（マイ問題集）の作成画面。
+// 自作問題集（my問題集）の作成画面。
 // 計画: docs/user-problems-plan.md
 //
 // 認証まわりは AdminApp と同じ形にしてある（セッション保持 → allowed_users.is_admin 判定）。
@@ -25,7 +25,9 @@ const UNCATEGORIZED = '__uncategorized__'
 async function fetchAll() {
   const [cats, probs] = await Promise.all([
     supabase.from('user_categories').select('*').order('sort_order'),
-    supabase.from('user_problems').select('*').order('sort_order'),
+    // 一覧・出題順ともに表示番号（#1, #2 …）に揃える。
+    // sort_order（カテゴリ内の手動並べ替え用）は将来のために列だけ残してある
+    supabase.from('user_problems').select('*').order('display_no'),
   ])
   const error = cats.error || probs.error
   if (error) return { error: error.message }
@@ -109,6 +111,10 @@ export default function MyProblemsApp() {
   const [newName, setNewName]               = useState('')
   const [editingId, setEditingId]           = useState(null)
   const [editingName, setEditingName]       = useState('')
+  // 問題一覧での番号・タイトルの直接編集
+  const [editingProbId, setEditingProbId]   = useState(null)
+  const [editProbTitle, setEditProbTitle]   = useState('')
+  const [editProbNo, setEditProbNo]         = useState('')
   const [status, setStatus]                 = useState('')
   // 保存ボタンの隣に出す状態表示。{ text, error } | null
   // 成功は数秒で自動的に消す（消えずに残っていると、次の保存で変化が無く保存されたか分からないため）
@@ -300,6 +306,48 @@ export default function MyProblemsApp() {
     if (i >= 0 && i < list.length - 1) setSelectedProbId(list[i + 1].id)
   }
 
+  function startEditingProb(p) {
+    setEditingProbId(p.id)
+    setEditProbTitle(p.title ?? '')
+    setEditProbNo(String(p.displayNo ?? ''))
+  }
+
+  // 一覧から番号とタイトルを直接変更する。
+  // 番号が既に使われていたら相手と入れ替える（display_no に unique 制約は無いので
+  // 一時的に重複しても問題なく、2行の更新だけで済む）
+  async function saveProbMeta(p) {
+    const title = editProbTitle.trim()
+    const raw = editProbNo.trim()
+    // 空欄は「変更しない」扱い（番号を消せてしまうと並び順が崩れるため）
+    const no = raw === '' ? p.displayNo : Number(raw)
+    if (no !== null && (!Number.isInteger(no) || no < 1)) {
+      setStatus('番号は1以上の整数で入力してください')
+      return
+    }
+
+    const tasks = []
+    if (no !== p.displayNo) {
+      const conflict = problems.find(x => x.id !== p.id && x.displayNo === no)
+      if (conflict) {
+        tasks.push(supabase.from('user_problems')
+          .update({ display_no: p.displayNo }).eq('id', conflict.id).select('id'))
+      }
+    }
+    tasks.push(supabase.from('user_problems')
+      .update({ title, display_no: no }).eq('id', p.id).select('id'))
+
+    const settled = await Promise.all(tasks)
+    const failed = settled.find(r => r.error)
+    if (failed) { setStatus(`変更に失敗しました: ${failed.error.message}`); return }
+    if (settled.some(r => !r.data || r.data.length === 0)) {
+      setStatus('変更できませんでした（権限の可能性）')
+      return
+    }
+    setEditingProbId(null)
+    setStatus('変更しました ✓')
+    await reload()
+  }
+
   async function deleteProblem(p) {
     if (!window.confirm(`問題「${p.title || '（無題）'}」を削除しますか？\nこの操作は取り消せません。`)) return
     const { data, error } = await supabase
@@ -322,7 +370,7 @@ export default function MyProblemsApp() {
   if (!session) {
     return (
       <div className="admin-auth-screen">
-        <h1 className="admin-auth-title">マイ問題集</h1>
+        <h1 className="admin-auth-title">my問題集</h1>
         <p className="admin-auth-desc">ログインが必要です</p>
         <button
           className="admin-auth-btn"
@@ -345,7 +393,7 @@ export default function MyProblemsApp() {
   if (!isAdmin) {
     return (
       <div className="admin-auth-screen">
-        <h1 className="admin-auth-title">マイ問題集</h1>
+        <h1 className="admin-auth-title">my問題集</h1>
         <p className="admin-auth-desc">この画面はまだ公開されていません</p>
         <button className="admin-auth-btn" onClick={() => supabase.auth.signOut()}>
           ログアウト
@@ -364,7 +412,7 @@ export default function MyProblemsApp() {
   return (
     <div className="admin-layout">
       <aside className="admin-sidebar">
-        <h1 className="admin-sidebar-title">マイ問題集</h1>
+        <h1 className="admin-sidebar-title">my問題集</h1>
 
         <div className="mp-cat-list">
           {!ready && !loadError && <p className="mp-empty">読み込んでいます...</p>}
@@ -452,22 +500,74 @@ export default function MyProblemsApp() {
             {selectedCatId && visibleProblems.length === 0 && (
               <p className="mp-empty">問題がありません。「＋ 新しい問題」で追加してください。</p>
             )}
-            {visibleProblems.map(p => (
-              <div
-                key={p.id}
-                className={`mp-prob-item${selectedProbId === p.id ? ' mp-prob-item--active' : ''}`}
-              >
-                <button className="mp-prob-name" onClick={() => setSelectedProbId(p.id)}>
-                  <span className="mp-prob-title">{p.title || '（無題）'}</span>
-                  <span className="mp-prob-sub">{problemSummary(p)}</span>
-                </button>
-                <button
-                  className="mp-icon-btn mp-icon-btn--danger"
-                  onClick={() => deleteProblem(p)}
-                  title="削除"
-                >×</button>
-              </div>
-            ))}
+            {visibleProblems.map(p => {
+              const isEditingProb = editingProbId === p.id
+              // input が2つあるので onBlur では確定しない（片方からもう片方へ移るだけで閉じてしまう）
+              const editKeys = e => {
+                if (e.key === 'Enter') saveProbMeta(p)
+                if (e.key === 'Escape') setEditingProbId(null)
+              }
+              return (
+                <div
+                  key={p.id}
+                  className={`mp-prob-item${selectedProbId === p.id ? ' mp-prob-item--active' : ''}`}
+                >
+                  {isEditingProb ? (
+                    <div className="mp-prob-edit">
+                      <input
+                        className="mp-prob-no-input"
+                        value={editProbNo}
+                        inputMode="numeric"
+                        aria-label="番号"
+                        onChange={e => setEditProbNo(e.target.value)}
+                        onKeyDown={editKeys}
+                      />
+                      <input
+                        className="mp-prob-title-input"
+                        value={editProbTitle}
+                        autoFocus
+                        placeholder="タイトル"
+                        aria-label="タイトル"
+                        onChange={e => setEditProbTitle(e.target.value)}
+                        onKeyDown={editKeys}
+                      />
+                    </div>
+                  ) : (
+                    <button
+                      className="mp-prob-name"
+                      onClick={() => setSelectedProbId(p.id)}
+                      onDoubleClick={() => startEditingProb(p)}
+                      title="クリックで編集・ダブルクリックで番号とタイトルを変更"
+                    >
+                      <span className="mp-prob-title">
+                        {/* 出題画面と同じ番号。採番前（null）は uuid を出さずに — にする */}
+                        <span className="mp-prob-no">#{p.displayNo ?? '—'}</span>
+                        <span className="mp-prob-label">{p.title || '（無題）'}</span>
+                      </span>
+                      <span className="mp-prob-sub">{problemSummary(p)}</span>
+                    </button>
+                  )}
+
+                  <div className="mp-cat-actions">
+                    {isEditingProb ? (
+                      <>
+                        <button className="mp-icon-btn" onClick={() => saveProbMeta(p)} title="確定">✓</button>
+                        <button className="mp-icon-btn" onClick={() => setEditingProbId(null)} title="取消">×</button>
+                      </>
+                    ) : (
+                      <>
+                        <button className="mp-icon-btn" onClick={() => startEditingProb(p)} title="番号・タイトルを変更">✎</button>
+                        <button
+                          className="mp-icon-btn mp-icon-btn--danger"
+                          onClick={() => deleteProblem(p)}
+                          title="削除"
+                        >×</button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
 

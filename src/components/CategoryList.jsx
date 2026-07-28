@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { groupByBook, sectionLabel } from '../utils/categoryUtils';
+import { groupByBook, sectionLabel, USER_BOOK_LABEL } from '../utils/categoryUtils';
 import { useTap } from '../utils/useTap';
 
 function ToggleRow({ label, checked, onToggle }) {
@@ -69,7 +69,7 @@ function MajorGroup({
   majorLabel, sections, getSectionProblems, results, session, onResetResults,
   filterActive, filterLabelText, isProblemIncluded, availableSections,
   checkedSections, toggleSection, toggleGroup, resetSection, resetMajor,
-  isOpen, onToggleOpen,
+  isOpen, onToggleOpen, userCategories,
 }) {
   const majorAvailable = availableSections(sections);
   const majorAllChecked = majorAvailable.length > 0 && majorAvailable.every(s => checkedSections.has(s));
@@ -141,7 +141,7 @@ function MajorGroup({
             return (
               <CategoryCard
                 key={cat}
-                label={sectionLabel(cat)}
+                label={sectionLabel(cat, userCategories)}
                 available={available}
                 isChecked={checkedSections.has(cat)}
                 countText={countText}
@@ -160,8 +160,10 @@ function MajorGroup({
   );
 }
 
-export default function CategoryList({ categories, problems, randomMode, onToggleRandom, unansweredOnlyMode, onToggleUnansweredOnly, wrongOnlyMode, onToggleWrongOnly, onStart, results = {}, session, onResetResults }) {
-  const books = groupByBook(categories);
+export default function CategoryList({ categories, problems, randomMode, onToggleRandom, unansweredOnlyMode, onToggleUnansweredOnly, wrongOnlyMode, onToggleWrongOnly, onStart, results = {}, session, onResetResults, userCategories = [] }) {
+  // 自作問題（section が u: で始まる）は categories.json に無いので、
+  // groupByBook に user_categories を渡して「my問題集」書籍としてまとめてもらう
+  const books = groupByBook(categories, userCategories);
   // section → 問題配列。render のたびに全問題を何度も filter しないための索引
   const problemsBySection = useMemo(() => {
     const map = new Map();
@@ -258,7 +260,7 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
   const activeBookData = books.find(b => b.label === activeBook) ?? books[0];
 
   function resetSection(cat, catProblems) {
-    if (!window.confirm(`「${sectionLabel(cat)}」の進捗をリセットしますか？`)) return;
+    if (!window.confirm(`「${sectionLabel(cat, userCategories)}」の進捗をリセットしますか？`)) return;
     onResetResults(catProblems.map(p => p.id));
   }
 
@@ -333,6 +335,15 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
 
       {activeBookData && activeBookData.majorGroups.length > 0 && (
         <div key={activeBook} className="book-content">
+          {/* 自作問題の作成・編集は専用ページ。別タブで開く（本体の読み込み直しを避けるため） */}
+          {activeBook === USER_BOOK_LABEL && (
+            <div className="my-problems-bar">
+              <a className="my-problems-link" href="/myproblems.html" target="_blank" rel="noopener">
+                問題を作る・編集する
+              </a>
+            </div>
+          )}
+
           {session && onResetResults && (() => {
             const bookProblems = activeBookData.majorGroups
               .flatMap(g => g.sections)
@@ -362,6 +373,7 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
                 filterLabelText={filterLabel()}
                 isProblemIncluded={isProblemIncluded}
                 availableSections={availableSections}
+                userCategories={userCategories}
                 checkedSections={checkedSections}
                 toggleSection={toggleSection}
                 toggleGroup={toggleGroup}

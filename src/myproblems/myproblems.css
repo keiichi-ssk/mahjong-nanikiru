@@ -1,4 +1,4 @@
-/* マイ問題集（自作問題の作成画面）専用のスタイル。
+/* my問題集（自作問題の作成画面）専用のスタイル。
    認証画面・レイアウト（.admin-layout / .admin-sidebar / .admin-main）は admin.css のものを流用し、
    この画面だけで使うものをここに置く（admin.css は AdminApp 用なので混ぜない）。
    配色は admin.css に合わせている（背景 #0a0f1e 系・アクセント #f5c842）。 */
@@ -220,10 +220,26 @@
 }
 
 .mp-prob-title {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
   font-size: 0.85rem;
   overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* 番号はタイトルより控えめに。長いタイトルでも番号が潰れないよう縮ませない */
+.mp-prob-no {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: #777;
+  font-variant-numeric: tabular-nums;
+}
+
+/* 省略表示は要素にしか効かないので、タイトルは span で包んである */
+.mp-prob-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .mp-prob-sub {
@@ -233,6 +249,41 @@
 
 @media (hover: hover) {
   .mp-prob-name:hover { background: #16213d; }
+}
+
+/* 一覧から番号・タイトルを直接変更するときの入力欄 */
+.mp-prob-edit {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 4px;
+  padding: 4px 2px;
+}
+
+.mp-prob-no-input,
+.mp-prob-title-input {
+  background: #0a0f1e;
+  border: 1px solid #1a2a4a;
+  border-radius: 4px;
+  color: #ddd;
+  font-size: 0.8rem;
+  padding: 5px 6px;
+  min-width: 0;
+}
+
+.mp-prob-no-input {
+  width: 48px;
+  flex-shrink: 0;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.mp-prob-title-input { flex: 1; }
+
+.mp-prob-no-input:focus,
+.mp-prob-title-input:focus {
+  outline: none;
+  border-color: #f5c842;
 }
 
 /* ===== エディタのヘッダーに差し込む欄（タイトル・カテゴリ） ===== */

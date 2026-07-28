@@ -250,17 +250,24 @@ export default function AdminApp() {
     }
   }
 
+  // id はクライアント側で max+1 を計算して指定している（DB採番ではない）。
+  // 管理者が複数いて同時に追加すると同じ id を計算して主キー衝突で失敗するため、
+  // 無言で終わらせずに理由を表示する
+  function reportAddError(error) {
+    setSaveStatus(`問題の追加に失敗しました: ${error.message}`)
+  }
+
   async function handleAddFromForm() {
     if (!addForm.section) return
     const maxId = problems.reduce((m, p) => Math.max(m, p.id), 0)
     const newProblem = makeNewProblem(String(addForm.section), maxId + 1)
     const { error } = await supabase.from('problems').insert(toDb(newProblem))
-    if (!error) {
-      setProblems(prev => [...prev, newProblem])
-      setSelectedCat(String(addForm.section))
-      setSelectedId(newProblem.id)
-      setAddForm({ book: '', major: '', section: '' })
-    }
+    if (error) { reportAddError(error); return }
+    setProblems(prev => [...prev, newProblem])
+    setSelectedCat(String(addForm.section))
+    setSelectedId(newProblem.id)
+    setAddForm({ book: '', major: '', section: '' })
+    setSaveStatus('')
   }
 
   async function handleAddProblem() {
@@ -268,10 +275,10 @@ export default function AdminApp() {
     const maxId = problems.reduce((m, p) => Math.max(m, p.id), 0)
     const newProblem = makeNewProblem(selectedCat, maxId + 1)
     const { error } = await supabase.from('problems').insert(toDb(newProblem))
-    if (!error) {
-      setProblems([...problems, newProblem])
-      setSelectedId(newProblem.id)
-    }
+    if (error) { reportAddError(error); return }
+    setProblems([...problems, newProblem])
+    setSelectedId(newProblem.id)
+    setSaveStatus('')
   }
 
   const handlePrev = useCallback(() => {

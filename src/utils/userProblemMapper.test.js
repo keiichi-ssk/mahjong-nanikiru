@@ -46,6 +46,11 @@ describe('toUserDb', () => {
     expect(toUserDb(sample, { categoryId: 'c1' })).not.toHaveProperty('user_id');
   });
 
+  // 採番はDBのトリガーに任せ、更新でも番号を変えない
+  it('display_no を含まない', () => {
+    expect(toUserDb({ ...sample, displayNo: 3 }, { categoryId: 'c1' })).not.toHaveProperty('display_no');
+  });
+
   it('categoryId 未指定なら category_id は null（未分類）', () => {
     const row = toUserDb(sample, {});
     expect(row.category_id).toBeNull();
@@ -88,6 +93,12 @@ describe('fromUserDb', () => {
     const p = fromUserDb({ id: 'p1', tiles: [], melds: [] });
     expect(p.title).toBe('');
     expect(p.categoryId).toBeNull();
+    expect(p.displayNo).toBeNull();
+  });
+
+  // 画面に出す番号。採番はDBのトリガーが行う
+  it('display_no を displayNo として取り出す', () => {
+    expect(fromUserDb({ id: 'p1', display_no: 12, tiles: [], melds: [] }).displayNo).toBe(12);
   });
 });
 

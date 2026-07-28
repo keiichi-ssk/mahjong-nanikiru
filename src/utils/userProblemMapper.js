@@ -56,6 +56,8 @@ export function fromUserDb(row) {
     ...fromDb(row),
     title:      row.title ?? '',
     categoryId: row.category_id ?? null,
+    // 画面に出す番号。採番はDBのトリガーが行うので toUserDb には含めない
+    displayNo:  row.display_no ?? null,
   }
 }
 

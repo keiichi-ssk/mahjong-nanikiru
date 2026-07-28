@@ -588,7 +588,8 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
         <button className="btn-back" onClick={onBack}>← カテゴリへ</button>
         <div className="problem-header-right">
           <span className="problem-counter">問題 {index + 1} / {total}</span>
-          <span className="problem-id-label">#{problem.id}</span>
+          {/* 自作問題の id は uuid で読めないため、表示用の連番があればそちらを出す */}
+          <span className="problem-id-label">#{problem.displayNo ?? problem.id}</span>
         </div>
       </div>
 

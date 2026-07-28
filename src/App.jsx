@@ -5,8 +5,9 @@ import FeedbackWidget from './components/FeedbackWidget';
 import LandingPage from './components/LandingPage';
 import ProblemView from './components/ProblemView';
 import SessionSummary from './components/SessionSummary';
-import { isSectionAllowed } from './utils/categoryUtils';
+import { isSectionAllowed, userSection } from './utils/categoryUtils';
 import { fromDb } from './utils/problemMapper';
+import { fromUserDb } from './utils/userProblemMapper';
 import { shouldDeferResult, collectPendingUpgrades } from './utils/sessionResultsUtils';
 import {
   saveRoundStart, saveRoundRetry, clearRound, loadRound,
@@ -164,10 +165,23 @@ export default function App() {
     return () => { cancelled = true; };
   }, [session]);
 
-  const results = session && resultsState?.userId === session.user.id ? resultsState.map : {};
   const sessionKey = session?.user?.id ?? 'anon';
   const problems = problemsState?.problems ?? [];
+  const userCategories = problemsState?.userCategories ?? [];
   const loading = problemsState?.key !== sessionKey;
+
+  // 正誤は2箇所に分かれている。
+  //   公式問題 … user_results（resultsState）
+  //   自作問題 … user_problems.correct（problems の各行が持っている）
+  // resultsState を後から重ねるのは、回答直後の楽観的更新を優先するため
+  const results = (() => {
+    const base = session && resultsState?.userId === session.user.id ? resultsState.map : {};
+    const merged = {};
+    for (const p of problems) {
+      if (p.isUserProblem && p.correct != null) merged[p.id] = p.correct;
+    }
+    return Object.assign(merged, base);
+  })();
 
   // 取得済みの正誤マップへの楽観的更新（未取得・別ユーザーの状態には触らない）
   function applyResultsUpdate(mutate) {
@@ -175,6 +189,70 @@ export default function App() {
       if (!prev || !session || prev.userId !== session.user.id) return prev;
       return { userId: prev.userId, map: mutate(prev.map) };
     });
+  }
+
+  // 自作問題の正誤は user_results ではなく問題の行そのものが持つので、
+  // 楽観的更新も problems 側へ書く（results はこの2つをマージして作っている）
+  function applyUserProblemCorrect(ids, value) {
+    const idSet = new Set(ids);
+    setProblemsState(prev => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        problems: prev.problems.map(p =>
+          p.isUserProblem && idSet.has(p.id) ? { ...p, correct: value } : p
+        ),
+      };
+    });
+  }
+
+  function isUserProblemId(problemId) {
+    return problems.find(p => p.id === problemId)?.isUserProblem === true;
+  }
+
+  // 正誤の保存先は問題の出所で変わる。
+  //   公式問題 … user_results（problem_id は problems.id への FK）
+  //   自作問題 … user_problems.correct（uuid は上の FK に入れられないため行が持つ）
+  async function writeResults(entries) {
+    if (!session || entries.length === 0) return;
+    const official = entries.filter(e => !isUserProblemId(e.id));
+    const mine     = entries.filter(e =>  isUserProblemId(e.id));
+
+    const tasks = [];
+    if (official.length > 0) {
+      tasks.push(supabase.from('user_results').upsert(
+        official.map(e => ({ user_id: session.user.id, problem_id: e.id, correct: e.correct })),
+        { onConflict: 'user_id,problem_id' }
+      ));
+    }
+    for (const e of mine) {
+      tasks.push(supabase.from('user_problems')
+        .update({ correct: e.correct, answered_at: new Date().toISOString() })
+        .eq('id', e.id));
+    }
+    const failed = (await Promise.all(tasks)).find(r => r.error);
+    if (failed) console.error('[writeResults]', failed.error);
+  }
+
+  // 進捗のリセット。自作問題は correct を null に戻す
+  async function clearResults(problemIds) {
+    if (!session || problemIds.length === 0) return;
+    const official = problemIds.filter(id => !isUserProblemId(id));
+    const mine     = problemIds.filter(id =>  isUserProblemId(id));
+
+    const tasks = [];
+    if (official.length > 0) {
+      tasks.push(supabase.from('user_results').delete()
+        .eq('user_id', session.user.id)
+        .in('problem_id', official));
+    }
+    for (const id of mine) {
+      tasks.push(supabase.from('user_problems')
+        .update({ correct: null, answered_at: null })
+        .eq('id', id));
+    }
+    const failed = (await Promise.all(tasks)).find(r => r.error);
+    if (failed) console.error('[clearResults]', failed.error);
   }
 
   async function handleAnswer(problemId, isCorrect) {
@@ -194,32 +272,29 @@ export default function App() {
     // サマリー画面での選択（正解済みに更新するか）まで保留する
     if (shouldDeferResult(sessionStartResults, problemId, isCorrect)) return;
 
-    applyResultsUpdate(map => ({ ...map, [problemId]: isCorrect }));
-    const { error } = await supabase
-      .from('user_results')
-      .upsert(
-        { user_id: session.user.id, problem_id: problemId, correct: isCorrect },
-        { onConflict: 'user_id,problem_id' }
-      );
-    if (error) console.error('[handleAnswer]', error);
+    if (isUserProblemId(problemId)) {
+      applyUserProblemCorrect([problemId], isCorrect);
+    } else {
+      applyResultsUpdate(map => ({ ...map, [problemId]: isCorrect }));
+    }
+    await writeResults([{ id: problemId, correct: isCorrect }]);
   }
 
   // サマリーで「正解済みにする」を選んだとき、保留していた問題をまとめて正解で確定する
   async function handleConfirmUpgrades(problemIds) {
     if (!session || !problemIds.length) return;
-    const ids = problemIds.map(Number);
-    applyResultsUpdate(map => {
-      const next = { ...map };
-      ids.forEach(id => { next[id] = true; });
-      return next;
-    });
-    const rows = ids.map(id => ({
-      user_id: session.user.id, problem_id: id, correct: true,
-    }));
-    const { error } = await supabase
-      .from('user_results')
-      .upsert(rows, { onConflict: 'user_id,problem_id' });
-    if (error) console.error('[handleConfirmUpgrades]', error);
+    // 自作問題の id は uuid なので Number 変換しない（NaN になって保存先を見失う）
+    const official = problemIds.filter(id => !isUserProblemId(id));
+    const mine     = problemIds.filter(id =>  isUserProblemId(id));
+    if (official.length > 0) {
+      applyResultsUpdate(map => {
+        const next = { ...map };
+        official.forEach(id => { next[id] = true; });
+        return next;
+      });
+    }
+    if (mine.length > 0) applyUserProblemCorrect(mine, true);
+    await writeResults(problemIds.map(id => ({ id, correct: true })));
   }
 
   function persistAnswer(problemId, payload) {
@@ -235,12 +310,8 @@ export default function App() {
       problemIds.forEach(id => delete next[id]);
       return next;
     });
-    const { error } = await supabase
-      .from('user_results')
-      .delete()
-      .eq('user_id', session.user.id)
-      .in('problem_id', problemIds);
-    if (error) console.error('[handleResetResults]', error);
+    applyUserProblemCorrect(problemIds.filter(isUserProblemId), null);
+    await clearResults(problemIds);
   }
 
   useEffect(() => {
@@ -265,12 +336,31 @@ export default function App() {
       setPlayingKey(k => k + 1);
     }
 
-    supabase.from('problems').select('*').order('id')
-      .then(({ data, error }) => {
+    // 公式問題と自作問題（my問題集）をまとめて取得する。
+    // 自作問題は RLS により本人ぶんだけ返る（未ログインなら0件。エラーにはならない）。
+    // section を u:<category_id> にして同じ配列に入れ、書籍タブで分離する
+    Promise.all([
+      supabase.from('problems').select('*').order('id'),
+      // 出題順は表示番号（#1, #2 …）に揃える。公式問題の .order('id') と同じ考え方
+      supabase.from('user_problems').select('*').order('display_no'),
+      supabase.from('user_categories').select('*').order('sort_order'),
+    ]).then(([official, mine, cats]) => {
         if (cancelled) return;
-        const fetched = error ? null : (data || []).map(fromDb).filter(p => !p.disabled);
+        const officialList = official.error
+          ? null
+          : (official.data || []).map(fromDb).filter(p => !p.disabled);
+        const myList = mine.error
+          ? []
+          : (mine.data || []).map(fromUserDb)
+              .filter(p => !p.disabled)
+              .map(p => ({ ...p, section: userSection(p.categoryId), isUserProblem: true }));
+        const fetched = officialList === null ? null : [...officialList, ...myList];
         // 取得失敗時は前回の一覧を維持したままロード完了扱いにする（従来挙動）
-        setProblemsState(prev => ({ key: sessionKey, problems: fetched ?? prev?.problems ?? [] }));
+        setProblemsState(prev => ({
+          key: sessionKey,
+          problems: fetched ?? prev?.problems ?? [],
+          userCategories: cats.error ? [] : (cats.data || []),
+        }));
         if (fetched && fetched.length > 0) restoreRound(fetched);
       });
     return () => { cancelled = true; };
@@ -394,6 +484,7 @@ export default function App() {
           results={results}
           session={session}
           onResetResults={handleResetResults}
+          userCategories={userCategories}
         />
       );
     }
@@ -409,6 +500,7 @@ export default function App() {
           onConfirmUpgrades={handleConfirmUpgrades}
           onRetryWrong={retryWrong}
           onBack={backToCategories}
+          userCategories={userCategories}
         />
       );
     }

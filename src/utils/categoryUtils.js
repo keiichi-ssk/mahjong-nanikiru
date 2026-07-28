@@ -10,6 +10,43 @@ function getCategory(section) {
   return CATEGORY_INDEX[parseInt(section, 10)];
 }
 
+// ===== 自作問題（my問題集）の section =====
+// 公式問題の section は categories.json のIDを指す数値文字列。
+// 自作問題は user_categories の uuid を使うため、接頭辞で名前空間を分ける。
+// これを付けずに uuid をそのまま入れると parseInt が NaN になり、
+// groupByBook から漏れて「画面に何も出ない」状態になる（エラーは出ない）。
+const USER_SECTION_PREFIX = 'u:';
+const UNCATEGORIZED_KEY = 'none';
+export const USER_BOOK_LABEL = 'my問題集';
+
+export function isUserSection(section) {
+  return typeof section === 'string' && section.startsWith(USER_SECTION_PREFIX);
+}
+
+// categoryId が null（未分類）でも section を持たせる（出題対象から漏れないように）
+export function userSection(categoryId) {
+  return `${USER_SECTION_PREFIX}${categoryId ?? UNCATEGORIZED_KEY}`;
+}
+
+// 未分類は null を返す
+export function userCategoryId(section) {
+  if (!isUserSection(section)) return null;
+  const id = section.slice(USER_SECTION_PREFIX.length);
+  return id === UNCATEGORIZED_KEY ? null : id;
+}
+
+// user_categories の並び順（sort_order で取得済みの配列順）に合わせる。未分類は最後
+function sortUserSections(sections, userCategories) {
+  const order = new Map((userCategories ?? []).map((c, i) => [c.id, i]));
+  return [...sections].sort((a, b) => {
+    const ia = userCategoryId(a);
+    const ib = userCategoryId(b);
+    if (ia === null) return ib === null ? 0 : 1;
+    if (ib === null) return -1;
+    return (order.get(ia) ?? Infinity) - (order.get(ib) ?? Infinity);
+  });
+}
+
 function buildBooks(categories) {
   const books = [];
   const bookMap = new Map();
@@ -53,7 +90,14 @@ export function sectionNumber(section) {
   return parseInt(section, 10);
 }
 
-export function sectionLabel(section) {
+// 自作問題の section は categories.json に無いので、user_categories から名前を引く。
+// 第2引数はオプショナル（公式問題しか扱わない既存の呼び出しは無変更で動く）
+export function sectionLabel(section, userCategories = null) {
+  if (isUserSection(section)) {
+    const id = userCategoryId(section);
+    if (id === null) return '未分類';
+    return (userCategories ?? []).find(c => c.id === id)?.name ?? '（削除されたカテゴリ）';
+  }
   return getCategory(section)?.title ?? String(section);
 }
 
@@ -77,14 +121,19 @@ export function getSituationText(section) {
 // allowed: allowed_users.allowed_major_categories の値。null/undefined は無制限。
 // 複合キー（"書籍::大カテゴリ"）に加え、移行前のレガシー裸ラベル（"大カテゴリ"）も受理する
 export function isSectionAllowed(allowed, section) {
+  // 自作問題は本人のものなので、大カテゴリ単位の閲覧制限の対象外（常に許可）
+  if (isUserSection(section)) return true;
   if (allowed == null) return true;
   const c = getCategory(section);
   if (!c) return false;
   return allowed.includes(majorCategoryKey(c.book, c.major)) || allowed.includes(c.major);
 }
 
-export function groupByBook(categories) {
-  return BOOKS.map(({ label: bookLabel, majorCategories }) => {
+// 自作問題の section は categories.json 由来の categoryIds に含まれないため、
+// そのままでは全ての majorGroup から漏れて画面に出ない。
+// 「my問題集」書籍を末尾に足すことで拾う（userCategories はオプショナル）
+export function groupByBook(categories, userCategories = null) {
+  const books = BOOKS.map(({ label: bookLabel, majorCategories }) => {
     const majorGroups = majorCategories
       .map(({ label: majorLabel, categoryIds }) => ({
         label: majorLabel,
@@ -93,4 +142,16 @@ export function groupByBook(categories) {
       .filter(({ sections }) => sections.length > 0);
     return { label: bookLabel, majorGroups };
   });
+
+  const userSections = categories.filter(isUserSection);
+  if (userSections.length === 0) return books;
+
+  return [
+    ...books,
+    {
+      label: USER_BOOK_LABEL,
+      // 自作問題に大分類は無いので1グループにまとめる
+      majorGroups: [{ label: USER_BOOK_LABEL, sections: sortUserSections(userSections, userCategories) }],
+    },
+  ];
 }

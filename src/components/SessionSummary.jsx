@@ -6,6 +6,7 @@ import { sectionLabel } from '../utils/categoryUtils';
 // pendingUpgradeProblems は「過去に不正解登録されていて今回正解した」問題（正解済みへ更新するか選ばせる対象）
 export default function SessionSummary({
   problems, roundResults, pendingUpgradeProblems = [], onConfirmUpgrades, onRetryWrong, onBack,
+  userCategories = [],
 }) {
   // null = 未選択, 'upgraded' = 正解済みにした, 'kept' = 不正解のまま残した
   const [upgradeDecision, setUpgradeDecision] = useState(null);
@@ -42,8 +43,9 @@ export default function SessionSummary({
           <ul className="session-summary-wrong-list">
             {wrong.map(p => (
               <li key={p.id}>
-                {sectionLabel(p.section)}
-                <span className="session-summary-wrong-id"> #{p.id}</span>
+                {/* 自作問題のカテゴリ名は categories.json に無いので user_categories から引く */}
+                {sectionLabel(p.section, userCategories)}
+                <span className="session-summary-wrong-id"> #{p.displayNo ?? p.id}</span>
               </li>
             ))}
           </ul>
