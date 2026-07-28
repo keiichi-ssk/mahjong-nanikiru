@@ -14,9 +14,10 @@ import {
 // 自作問題集（my問題集）の作成画面。
 // 計画: docs/user-problems-plan.md
 //
-// 認証まわりは AdminApp と同じ形にしてある（セッション保持 → allowed_users.is_admin 判定）。
-// 当面はスーパー管理者だけに開放するためのUIゲートで、実効防御は user_problems / user_categories の RLS。
-// 将来ほかのユーザーへ開放するときは isAdmin のゲートを外すだけでよい。
+// ゲートは「ログインしているか」だけ（2026-07-28 一般公開）。
+// allowed_users（公式問題の閲覧許可リスト）にも is_admin にも依存しない。
+// 実効防御は user_problems / user_categories の RLS（auth.uid() = user_id）で、
+// 作れる件数・文字数の上限も DB 側で強制する（UIで止めても anon キーで直接叩けるため）。
 
 // サイドバーで「未分類」を選んでいる状態。null（＝カテゴリ未選択）と区別する必要があるため
 // 専用の値を使う（category_id が null の問題にもアクセスできるようにするため）
@@ -78,9 +79,6 @@ function ProblemPane({ problem, prevProblem, hasNext, onSave, onSaveAndNext, sav
 export default function MyProblemsApp() {
   const [session, setSession]         = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
-  // 管理者判定。どのメールに対する判定かをセットで持ち、
-  // ログアウト・アカウント切替時は描画側で自動的に「判定中」へ戻す
-  const [adminCheck, setAdminCheck]   = useState(null) // { email, isAdmin } | null
 
   const [categories, setCategories] = useState([])
   const [problems, setProblems]     = useState([])
@@ -141,23 +139,10 @@ export default function MyProblemsApp() {
     return () => subscription.unsubscribe()
   }, [])
 
-  useEffect(() => {
-    if (!session) return undefined
-    let cancelled = false
-    const email = session.user.email
-    supabase
-      .from('allowed_users')
-      .select('is_admin')
-      .eq('email', email)
-      .single()
-      .then(({ data, error }) => {
-        if (!cancelled) setAdminCheck({ email, isAdmin: !error && data?.is_admin === true })
-      })
-    return () => { cancelled = true }
-  }, [session])
-
-  // null = 判定中
-  const isAdmin = (session && adminCheck?.email === session.user.email) ? adminCheck.isAdmin : null
+  // my問題集は「ログイン済みなら誰でも使える」（2026-07-28 一般公開）。
+  // allowed_users（公式問題の閲覧許可）とも is_admin とも無関係で、
+  // user_problems / user_categories の RLS は auth.uid() だけを見ている。
+  // 作れる件数の上限は DB 側（RLS の with check）で強制する
   const userId  = session?.user?.id ?? null
 
   // ===== 牌譜のドラフト（描画時に導出する） =====
@@ -208,7 +193,7 @@ export default function MyProblemsApp() {
   }, [paifuResult, paifu, draft.roundIndex])
 
   useEffect(() => {
-    if (!session || isAdmin !== true) return undefined
+    if (!session) return undefined
     let cancelled = false
     fetchAll().then(r => {
       if (cancelled) return
@@ -219,7 +204,7 @@ export default function MyProblemsApp() {
       setReady(true)
     })
     return () => { cancelled = true }
-  }, [session, isAdmin])
+  }, [session])
 
   // 操作後の再取得。イベントハンドラからだけ呼ぶ（effect からは上の Promise チェーンを使う）
   async function reload() {
@@ -452,8 +437,8 @@ export default function MyProblemsApp() {
     await reload()
   }
 
-  // ===== 認証ガード =====
-  if (authLoading || (session && isAdmin === null)) {
+  // ===== 認証ガード（ログインしているかどうかだけ） =====
+  if (authLoading) {
     return <div className="admin-auth-screen">読み込み中...</div>
   }
 
@@ -475,18 +460,6 @@ export default function MyProblemsApp() {
           }}
         >
           Googleでログイン
-        </button>
-      </div>
-    )
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="admin-auth-screen">
-        <h1 className="admin-auth-title">my問題集</h1>
-        <p className="admin-auth-desc">この画面はまだ公開されていません</p>
-        <button className="admin-auth-btn" onClick={() => supabase.auth.signOut()}>
-          ログアウト
         </button>
       </div>
     )

@@ -301,6 +301,156 @@ update public.user_problems p
 
 
 -- ============================================================
+-- 一般公開の準備（2026-07-28）
+--   ★ ここから下を実行すると、my問題集が「ログイン済みなら誰でも使える」前提の
+--     防御に切り替わる。上限はすべて DB 側で強制する。
+--
+--   なぜ DB 側なのか:
+--     anon キーは公開されているので、REST を直接叩けば insert できる。
+--     アプリのUIで止めても防御にならない（UIは「残り N 問」の案内として二重に持つ）。
+--
+--   上限（docs/user-problems-plan.md「一般公開の方針」）:
+--     問題 20 / カテゴリ 5 / 解説 200字 / 注釈 200字
+--   ★ 数値を変えるときは下の関数ではなくポリシー側の定数を直す（2箇所ある）。
+-- ============================================================
+
+-- ------------------------------------------------------------
+-- (1) 件数を数える関数
+--
+--     ★ security definer が必須。
+--       RLS ポリシーの中で同じテーブルを select すると、その副問い合わせにも
+--       RLS が適用されて【無限再帰】になる。security definer は所有者権限で
+--       動くため RLS を迂回でき、既存の public.is_admin() と同じ手口。
+-- ------------------------------------------------------------
+create or replace function public.my_user_problem_count()
+returns int language sql security definer set search_path = '' stable as $$
+  select count(*)::int from public.user_problems where user_id = auth.uid();
+$$;
+
+create or replace function public.my_user_category_count()
+returns int language sql security definer set search_path = '' stable as $$
+  select count(*)::int from public.user_categories where user_id = auth.uid();
+$$;
+
+-- 関数は誰でも呼べるが、数えるのは常に「呼んだ本人のぶん」なので他人の情報は漏れない
+grant execute on function public.my_user_problem_count()  to authenticated;
+grant execute on function public.my_user_category_count() to authenticated;
+
+
+-- ------------------------------------------------------------
+-- (2) 件数上限を RLS に入れる
+--
+--     ★ for all のままでは駄目。
+--       with check は INSERT と UPDATE の両方に効くため、ちょうど上限に達した状態で
+--       既存の問題を編集できなくなる（count < 20 が false になる）。
+--       INSERT だけを分離し、件数条件はそこにだけ置く。
+-- ------------------------------------------------------------
+drop policy if exists "own problems" on public.user_problems;
+
+create policy "own problems read" on public.user_problems
+  for select using (auth.uid() = user_id);
+
+create policy "own problems delete" on public.user_problems
+  for delete using (auth.uid() = user_id);
+
+create policy "own problems update" on public.user_problems
+  for update
+  using      (auth.uid() = user_id)
+  with check (
+    auth.uid() = user_id
+    and (
+      category_id is null
+      or exists (
+        select 1 from public.user_categories c
+         where c.id = category_id and c.user_id = auth.uid()
+      )
+    )
+  );
+
+create policy "own problems insert" on public.user_problems
+  for insert
+  with check (
+    auth.uid() = user_id
+    and (
+      category_id is null
+      or exists (
+        select 1 from public.user_categories c
+         where c.id = category_id and c.user_id = auth.uid()
+      )
+    )
+    and public.my_user_problem_count() < 20     -- ★ 問題数の上限
+  );
+
+
+drop policy if exists "own categories" on public.user_categories;
+
+create policy "own categories read" on public.user_categories
+  for select using (auth.uid() = user_id);
+
+create policy "own categories delete" on public.user_categories
+  for delete using (auth.uid() = user_id);
+
+create policy "own categories update" on public.user_categories
+  for update
+  using      (auth.uid() = user_id)
+  with check (auth.uid() = user_id);
+
+create policy "own categories insert" on public.user_categories
+  for insert
+  with check (
+    auth.uid() = user_id
+    and public.my_user_category_count() < 5     -- ★ カテゴリ数の上限
+  );
+
+
+-- ------------------------------------------------------------
+-- (3) 文字数の上限
+--     既存行が上限を超えていると ALTER が失敗する。
+--     その場合は下の「既存データの確認」で該当行を直してから実行すること
+-- ------------------------------------------------------------
+alter table public.user_problems drop constraint if exists user_problems_explanation_len;
+alter table public.user_problems
+  add constraint user_problems_explanation_len check (char_length(explanation) <= 200);
+
+alter table public.user_problems drop constraint if exists user_problems_note_len;
+alter table public.user_problems
+  add constraint user_problems_note_len check (char_length(note) <= 200);
+
+
+-- ------------------------------------------------------------
+-- (4) 検証
+-- ------------------------------------------------------------
+-- 既存データが新しい上限に収まっているか（0件なら (3) をそのまま実行できる）
+--
+-- select id, display_no, char_length(explanation) as exp_len, char_length(note) as note_len
+--   from public.user_problems
+--  where char_length(explanation) > 200 or char_length(note) > 200;
+
+-- 上限を超えているユーザー（既存行は消えない。増やせなくなるだけ）
+--
+-- select user_id, count(*) from public.user_problems  group by user_id having count(*) > 20;
+-- select user_id, count(*) from public.user_categories group by user_id having count(*) > 5;
+
+-- ポリシーが差し替わったか（user_problems は4件・user_categories も4件になること）
+--
+-- select tablename, policyname, cmd
+--   from pg_policies
+--  where schemaname = 'public'
+--    and tablename in ('user_categories', 'user_problems')
+--  order by tablename, policyname;
+
+-- ★ 上限が本当に効いているかは【アプリを通さずに】確認すること。
+--   UIの無効化だけでは「DB側で止まっているか」が分からない。
+--   ログイン後のアクセストークンを使って REST を直接叩き、
+--   21件目の insert が 403 / new row violates row-level security policy になることを見る:
+--
+--   curl -X POST "https://<PROJECT>.supabase.co/rest/v1/user_problems" \
+--     -H "apikey: <ANON_KEY>" -H "Authorization: Bearer <ACCESS_TOKEN>" \
+--     -H "Content-Type: application/json" \
+--     -d '{"user_id":"<YOUR_USER_ID>","title":"上限テスト"}'
+
+
+-- ============================================================
 -- 検証（ここから下は上のDDLとは別に、確認したいときに実行する）
 -- ============================================================
 
