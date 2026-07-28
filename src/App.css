@@ -2474,6 +2474,15 @@
   margin: 0 0 10px;
 }
 
+/* 機能ごとの小見出し（h2 の下の階層）。段落だけだと何の説明か掴みにくいので付けている */
+.chinitsu-about h3,
+.site-about h3 {
+  margin: 18px 0 6px;
+  font-size: 0.85rem;
+  font-weight: bold;
+  color: var(--color-text-secondary);
+}
+
 /* 本文に牌姿の例（例：11123334445678）を載せるときに使う。
    2026-07-26 の本文短縮で例を外したため現在は未使用。書き戻し用に残してある */
 .chinitsu-about-hand {
