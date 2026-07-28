@@ -199,6 +199,15 @@ function ScoreInputRow({ label, isSelf, active, value, onChange, steps }) {
   )
 }
 
+// 入力欄の残数表示（textLimits を渡したときだけ出る）
+function TextCount({ len, max }) {
+  return (
+    <span className={`editor-text-count${len >= max ? ' editor-text-count--full' : ''}`}>
+      {len} / {max}
+    </span>
+  )
+}
+
 // hideImage / hideReviewed / hideDelete / headerLead は自作問題の作成画面（MyProblemsApp）用の
 // オプション。既定値はすべて現行の管理画面の挙動なので、AdminApp 側は無変更で動く。
 //   hideImage    … user_problems の画像はバケットの整理が済むまで使わないため隠す
@@ -214,11 +223,14 @@ function ScoreInputRow({ label, isSelf, active, value, onChange, steps }) {
 //   concealedCounts … 他家の手牌の実際の枚数。BoardView へそのまま渡す（表示専用・保存されない）
 //   hideDisabled … 「非表示」チェックを隠す（自作問題は自分しか見ないので使い道がない）
 //   paletteAside … 牌パレットの右の余白に出す内容（操作ガイド等）。渡さなければ牌だけが並ぶ
+//   textLimits   … { explanation, note } の文字数上限。入力欄に maxLength と残数表示を付ける。
+//                  自作問題は DB 側の CHECK 制約で 200字までなので、書いてから保存で弾かれるのを防ぐ。
+//                  公式問題に上限は無いので既定は null（管理画面の挙動は変わらない）
 export default function ProblemEditor({
   problem, prevProblem, onSave, onSaveAndNext, onDelete, hasNext,
   hideImage = false, hideReviewed = false, hideDelete = false, headerLead = null,
   saveStatus = null, lockBoard = false, concealedCounts = null,
-  hideDisabled = false, paletteAside = null,
+  hideDisabled = false, paletteAside = null, textLimits = null,
 }) {
   // 手牌が未設定（新規追加直後）の問題は、手牌・正解・状況設定（ドラ・場風・自風・巡目）を
   // ひとつ前の問題から引き継いでおく。手牌がすでにある問題は自分自身の値を優先する。
@@ -652,7 +664,10 @@ export default function ProblemEditor({
   const noteEditor = (
     <>
       <div className="palette-tab-divider" />
-      <div className="editor-section-label">注釈</div>
+      <div className="editor-section-label">
+        注釈
+        {textLimits?.note && <TextCount len={note.length} max={textLimits.note} />}
+      </div>
       <textarea
         ref={noteRef}
         className="explanation-textarea"
@@ -661,6 +676,7 @@ export default function ProblemEditor({
         onFocus={() => { noteTouchedRef.current = true; setPaletteMode('note') }}
         placeholder="状況設定に関する注釈を入力してください（牌は下のパレットからカーソル位置に挿入できます）"
         rows={2}
+        maxLength={textLimits?.note ?? undefined}
       />
     </>
   )
@@ -1394,7 +1410,12 @@ export default function ProblemEditor({
             )}
 
             <div className="palette-tab-divider" />
-            <div className="editor-section-label">解説テキスト</div>
+            <div className="editor-section-label">
+              解説テキスト
+              {textLimits?.explanation && (
+                <TextCount len={explanation.length} max={textLimits.explanation} />
+              )}
+            </div>
             <textarea
               ref={explanationRef}
               className="explanation-textarea"
@@ -1403,6 +1424,7 @@ export default function ProblemEditor({
               onFocus={() => { explanationTouchedRef.current = true; setPaletteMode('explanation') }}
               placeholder="解説を入力してください（牌は下のパレットからカーソル位置に挿入できます）"
               rows={3}
+              maxLength={textLimits?.explanation ?? undefined}
             />
 
             {/* 盤面ロック中は手牌タブが無いので、注釈をここに出す */}

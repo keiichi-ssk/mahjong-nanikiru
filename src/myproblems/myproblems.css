@@ -20,6 +20,25 @@
 /* 見出しの上余白は戻る導線ぶん詰める（admin.css の 16px のままだと離れて見える） */
 .mp-back-link + .admin-sidebar-title { padding-top: 8px; }
 
+/* 残数の案内。上限は DB 側（RLS）で止めているが、押しても失敗するだけなので画面でも伝える。
+   数値は limits.js（＝docs/user-problems-schema.sql と同じ値）から来る */
+.mp-limit {
+  margin: 0;
+  padding: 4px 16px 8px;
+  color: #6b7c94;
+  font-size: 0.72rem;
+  line-height: 1.5;
+}
+
+.mp-limit--full { color: #e0a04a; }
+
+.mp-limit-badge {
+  margin-left: 6px;
+  color: #6b7c94;
+  font-size: 0.72rem;
+  font-weight: normal;
+}
+
 /* ===== カテゴリ一覧 =====
    下に問題一覧を置くので、カテゴリ側は高さの上限を決めておく
    （カテゴリが増えても問題一覧が潰れないように） */

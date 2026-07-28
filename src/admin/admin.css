@@ -983,6 +983,16 @@ html {
   .board-empty-text:hover { color: var(--gold); }
 }
 
+/* 解説・注釈の残数（textLimits を渡したときだけ出る。自作問題は200字まで） */
+.editor-text-count {
+  margin-left: 8px;
+  color: #6b7c94;
+  font-size: 0.72rem;
+  font-weight: normal;
+}
+
+.editor-text-count--full { color: #e0a04a; }
+
 /* ID・問題タイプ・フラグ・保存を1行にまとめたヘッダー。
    要素が多いので、詰まって見えないよう行間と左右の余白を確保する */
 .editor-header {

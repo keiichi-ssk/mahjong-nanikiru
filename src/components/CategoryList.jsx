@@ -160,11 +160,16 @@ function MajorGroup({
   );
 }
 
-export default function CategoryList({ categories, problems, randomMode, onToggleRandom, unansweredOnlyMode, onToggleUnansweredOnly, wrongOnlyMode, onToggleWrongOnly, onStart, results = {}, session, onResetResults, userCategories = [], canUseMyProblems = false }) {
+export default function CategoryList({ categories, problems, randomMode, onToggleRandom, unansweredOnlyMode, onToggleUnansweredOnly, wrongOnlyMode, onToggleWrongOnly, onStart, results = {}, session, onResetResults, userCategories = [], canUseMyProblems = false, officialLocked = false }) {
   // 自作問題（section が u: で始まる）は categories.json に無いので、
   // groupByBook に user_categories を渡して「my問題集」書籍としてまとめてもらう。
   // 作成画面への入口はこのタブの中にあるので、使える人には1問も無くてもタブを出す
-  const books = groupByBook(categories, userCategories, { alwaysUser: canUseMyProblems });
+  const allBooks = groupByBook(categories, userCategories, { alwaysUser: canUseMyProblems });
+  // 公式問題の閲覧許可が無いユーザーには、中身が空の書籍タブを並べても意味が無いので落とす。
+  // 許可ユーザーの従来挙動（大カテゴリ制限で空になった書籍タブ＋「非公開のコンテンツです」）は変えない
+  const books = officialLocked
+    ? allBooks.filter(b => b.majorGroups.length > 0 || b.label === USER_BOOK_LABEL)
+    : allBooks;
   // section → 問題配列。render のたびに全問題を何度も filter しないための索引
   const problemsBySection = useMemo(() => {
     const map = new Map();
@@ -328,6 +333,14 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
 
       {!session && lockedTabSelected && (
         <div className="pending-notice">非公開のコンテンツです</div>
+      )}
+
+      {/* 公式問題を見られないユーザーへの案内。行き止まりにせず、使えるものを伝える */}
+      {officialLocked && (
+        <p className="limited-notice">
+          一部のコンテンツは限定公開です。<br />
+          自分で作る「my問題集」と「メンチン何切るドリル」はご利用いただけます。
+        </p>
       )}
 
       {/* my問題集は0件でもタブを出すので、ここの「非公開」からは除く（中身は下の空状態が出す） */}

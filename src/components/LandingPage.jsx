@@ -67,8 +67,12 @@ const FEATURES = [
 /**
  * 未ログインでトップページに来た人向けのランディング。
  * 主目的は「無料ドリル（/chinitsu.html）へ送ること」なので、主CTAは1つだけ置く。
- * ログイン導線は対象が許可済みユーザーに限られるため、あえて最下部の副次セクションに置いている
- * （同格に並べると権限のない訪問者が押して行き止まりに落ちるため）。
+ *
+ * ログイン導線は最下部の副次セクションのまま。ドリルは登録不要で遊べるので、
+ * 訪問者にとって最初の一歩はログインではないため（同格に並べると main CTA が薄まる）。
+ * ただし my問題集の一般公開（2026-07-28）で、ログインすれば誰でも使えるものが増えたので、
+ * 「ログインしてできること」を具体的に書いて行き止まり感を無くしている。
+ * **CTAを増やして解決しないこと** — 増やすなら主CTAの格上げとして設計し直す。
  */
 export default function LandingPage({ onLogin }) {
   return (
@@ -91,8 +95,22 @@ export default function LandingPage({ onLogin }) {
       </section>
 
       <section className="landing-secondary">
-        <h2>何切る問題集について</h2>
-        <p>局面つきの何切る問題を分野別に収録した問題集は、現在限定公開です。</p>
+        <h2>ログインしてできること</h2>
+        <ul className="landing-benefits">
+          <li>
+            <strong>my問題集をつくる</strong>
+            <span>
+              気になった局面を自分の問題として登録し、何度でも解き直せます。
+              牌譜（JSONファイル）を読み込めば、実戦の局面をそのまま問題にできます。
+              <br />
+              どなたでもご利用いただけます（20問まで）。
+            </span>
+          </li>
+          <li>
+            <strong>何切る問題集を解く</strong>
+            <span>局面つきの何切る問題を分野別に収録した問題集です。こちらは現在<b>限定公開</b>です。</span>
+          </li>
+        </ul>
         <button className="landing-login-btn" onClick={onLogin}>
           Googleでログイン
         </button>

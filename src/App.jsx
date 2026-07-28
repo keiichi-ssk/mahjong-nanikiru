@@ -452,24 +452,9 @@ export default function App() {
     if (isAllowed === null) {
       return <LoadingSkeleton />;
     }
-    if (isAllowed === false) {
-      return (
-        <div className="access-denied">
-          <p className="access-denied-title">このアカウントでは問題集を利用できません</p>
-          <p className="access-denied-sub">
-            何切る問題集は限定公開です。
-            <br />
-            メンチン何切るドリルは登録不要でどなたでも遊べます。
-          </p>
-          <a className="landing-cta landing-cta--compact" href="/chinitsu.html">
-            ドリルを始める
-          </a>
-          <button className="btn-logout" onClick={() => supabase.auth.signOut()}>
-            ログアウト
-          </button>
-        </div>
-      );
-    }
+    // ★ 許可の無いユーザーもここから先へ通す（2026-07-28 my問題集の一般公開）。
+    //   公式問題は RLS でどのみち0件になるので、書籍タブは自作問題とドリルだけになる。
+    //   以前はここでアクセス拒否画面を出していたが、行き止まりになるのでやめた
     if (loading) {
       return <LoadingSkeleton />;
     }
@@ -490,6 +475,7 @@ export default function App() {
           onResetResults={handleResetResults}
           userCategories={userCategories}
           canUseMyProblems={canUseMyProblems}
+          officialLocked={isAllowed === false}
         />
       );
     }

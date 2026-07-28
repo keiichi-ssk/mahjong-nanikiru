@@ -6,6 +6,7 @@ import { PROBLEM_TYPE_LABELS } from '../utils/problemConstants'
 import { normalizeProblemType } from '../utils/judgeUtils'
 import PaifuImport from './PaifuImport'
 import EditorGuide from './EditorGuide'
+import { MAX_PROBLEMS, MAX_CATEGORIES, MAX_EXPLANATION, MAX_NOTE, insertErrorText } from './limits'
 import { snapshotToProblem } from '../utils/importBoard'
 import {
   validatePaifu, listRounds, listSteps, snapshotAt, filterSteps, defaultProblemTitle,
@@ -51,6 +52,10 @@ function problemSummary(p) {
   return PROBLEM_TYPE_LABELS[type] ?? type
 }
 
+// 解説・注釈の文字数上限（DB 側の CHECK 制約と同じ値）。
+// 書いてから保存で弾かれるのを防ぐため、入力欄の maxLength と残数表示に使う
+const TEXT_LIMITS = { explanation: MAX_EXPLANATION, note: MAX_NOTE }
+
 // 1問ぶんの編集ペイン。
 // 番号・タイトル・カテゴリは**左の一覧から**変更するので、ここでは持たない
 // （同じ設定の入口が2つあると、どちらが有効か分からなくなるため）。
@@ -68,6 +73,7 @@ function ProblemPane({ problem, prevProblem, hasNext, onSave, onSaveAndNext, sav
       hideDisabled
       headerLead={<h3 className="editor-title">#{problem.displayNo ?? '—'}</h3>}
       paletteAside={<EditorGuide mode="manual" />}
+      textLimits={TEXT_LIMITS}
       saveStatus={saveStatus}
       onSave={onSave}
       onSaveAndNext={onSaveAndNext}
@@ -229,7 +235,8 @@ export default function MyProblemsApp() {
       .from('user_categories')
       .insert({ user_id: userId, name, sort_order: nextOrder })
       .select('id')
-    if (error) { setStatus(`追加に失敗しました: ${error.message}`); return }
+    // 上限は DB 側（RLS）で止まる。エラー文がそのままだと理由が伝わらないので置き換える
+    if (error) { setStatus(insertErrorText(error, { kind: 'category', count: categories.length })); return }
     // RLS で弾かれると 0 行のまま成功扱いになるため、実際に入ったかを確認する
     if (!data || data.length === 0) { setStatus('追加できませんでした（権限の可能性）'); return }
     setNewName('')
@@ -308,7 +315,7 @@ export default function MyProblemsApp() {
     // user_id は insert のときだけ付ける（toUserDb は含めない）
     const row = { ...toUserDb(makeNewUserProblem(), { categoryId }), user_id: userId }
     const { data, error } = await supabase.from('user_problems').insert(row).select('*')
-    if (error) { setStatus(`問題の追加に失敗しました: ${error.message}`); return }
+    if (error) { setStatus(insertErrorText(error, { kind: 'problem', count: problems.length })); return }
     if (!data || data.length === 0) { setStatus('追加できませんでした（権限の可能性）'); return }
     await reload()
     selectProblem(data[0].id)
@@ -347,7 +354,7 @@ export default function MyProblemsApp() {
       user_id: userId,
     }
     const { data, error } = await supabase.from('user_problems').insert(row).select('id')
-    if (error) { showSaveError(`保存に失敗: ${error.message}`); return false }
+    if (error) { showSaveError(insertErrorText(error, { kind: 'problem', count: problems.length })); return false }
     if (!data || data.length === 0) { showSaveError('保存できませんでした（権限の可能性）'); return false }
     showSaved('保存しました ✓')
     setSavedKeys(prev => new Set(prev).add(draftKey))
@@ -465,6 +472,10 @@ export default function MyProblemsApp() {
     )
   }
 
+  // 上限に達しているか（DB 側の RLS と同じ値。limits.js を参照）
+  const probFull = problems.length >= MAX_PROBLEMS
+  const catFull  = categories.length >= MAX_CATEGORIES
+
   const uncategorized  = problems.filter(p => p.categoryId == null)
   const visibleProblems = selectedCatId === UNCATEGORIZED
     ? uncategorized
@@ -542,6 +553,7 @@ export default function MyProblemsApp() {
           )}
         </div>
 
+        {/* 上限は DB 側で止めているが、押しても失敗するだけなので画面でも残数を出して無効化する */}
         <div className="mp-cat-add">
           <input
             className="mp-cat-input"
@@ -549,14 +561,31 @@ export default function MyProblemsApp() {
             value={newName}
             onChange={e => setNewName(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') addCategory() }}
+            disabled={catFull}
           />
-          <button className="mp-add-btn" onClick={addCategory} disabled={!newName.trim()}>追加</button>
+          <button
+            className="mp-add-btn"
+            onClick={addCategory}
+            disabled={!newName.trim() || catFull}
+          >
+            追加
+          </button>
         </div>
+        <p className={`mp-limit${catFull ? ' mp-limit--full' : ''}`}>
+          {catFull
+            ? `カテゴリは${MAX_CATEGORIES}件までです（不要なカテゴリを削除すると追加できます）`
+            : `カテゴリ ${categories.length} / ${MAX_CATEGORIES}`}
+        </p>
 
         {/* 選択中カテゴリの問題一覧 */}
         <div className="mp-prob-section">
           <div className="mp-prob-head">
-            <span className="mp-prob-head-label">問題</span>
+            <span className="mp-prob-head-label">
+              問題
+              <span className={`mp-limit-badge${probFull ? ' mp-limit--full' : ''}`}>
+                {problems.length} / {MAX_PROBLEMS}
+              </span>
+            </span>
             <div className="mp-prob-head-actions">
               <input
                 ref={paifuFileRef}
@@ -577,14 +606,24 @@ export default function MyProblemsApp() {
                   }
                 }}
                 title="牌譜のJSONファイルから局面を切り出して問題にする"
+                disabled={probFull}
               >
                 牌譜から
               </button>
-              <button className="mp-add-btn mp-add-btn--sm" onClick={addProblem} disabled={!selectedCatId}>
+              <button
+                className="mp-add-btn mp-add-btn--sm"
+                onClick={addProblem}
+                disabled={!selectedCatId || probFull}
+              >
                 ＋ 新しい問題
               </button>
             </div>
           </div>
+          {probFull && (
+            <p className="mp-limit mp-limit--full">
+              問題は{MAX_PROBLEMS}問までです（不要な問題を削除すると追加できます）
+            </p>
+          )}
           <div className="mp-prob-list">
             {!selectedCatId && <p className="mp-empty">カテゴリを選んでください。</p>}
             {selectedCatId && visibleProblems.length === 0 && (
@@ -699,6 +738,7 @@ export default function MyProblemsApp() {
             hideDisabled
             concealedCounts={concealedCounts}
             paletteAside={<EditorGuide mode="paifu" />}
+            textLimits={TEXT_LIMITS}
             headerLead={
               <PaifuImport
                 paifu={paifu}

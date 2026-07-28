@@ -144,12 +144,6 @@
   filter: brightness(0.92);
 }
 
-.landing-cta--compact {
-  min-height: 44px;
-  padding: 0 22px;
-  font-size: 0.95rem;
-}
-
 @media (hover: hover) {
   .landing-cta:hover {
     background: #9ed0de;
@@ -219,6 +213,33 @@
   color: var(--color-text-muted);
 }
 
+/* ログインでできることの一覧。ドリル（登録不要）との違いが伝わるよう具体的に書く。
+   ここにCTAを増やさないこと（主CTAはドリルの1つだけ） */
+.landing-benefits {
+  max-width: 520px;
+  margin: 0 auto 18px;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.landing-benefits li {
+  margin-bottom: 12px;
+}
+
+.landing-benefits strong {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 0.9rem;
+  color: var(--color-text);
+}
+
+.landing-benefits span {
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: var(--color-text-muted);
+}
+
 .landing-login-btn {
   min-height: 44px;
   padding: 0 22px;
@@ -253,39 +274,9 @@
   }
 }
 
-/* ===== アクセス拒否画面 ===== */
-.access-denied {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 80px 24px;
-  text-align: center;
-}
-
-.access-denied-title {
-  font-size: 1.2rem;
-  font-weight: bold;
-  color: var(--color-text-bright);
-  margin: 0;
-}
-
-.access-denied-sub {
-  font-size: 0.9rem;
-  line-height: 1.7;
-  color: var(--color-text-muted);
-  margin: 0;
-}
-
-/* ドリルへの導線とログアウトは役割が違うので間隔を空けて分ける */
-.access-denied .landing-cta {
-  margin-top: 6px;
-}
-
-.access-denied .btn-logout {
-  margin-top: 12px;
-}
+/* アクセス拒否画面（.access-denied）は廃止した（2026-07-28）。
+   許可の無いユーザーもカテゴリ画面へ通し、my問題集とドリルを使ってもらう方針に変更したため。
+   案内は .limited-notice（書籍タブの下）が担当する */
 
 /* ===== カテゴリー一覧 ===== */
 .category-list {
@@ -2630,6 +2621,15 @@
   border: 1px dashed var(--color-border);
   border-radius: 8px;
   margin: 8px 0;
+}
+
+/* 公式問題の閲覧許可が無いユーザーへの案内（書籍タブの下）。
+   「使えないもの」より「使えるもの」を伝えるのが目的なので、警告色にはしない */
+.limited-notice {
+  margin: 4px 0 12px;
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
+  line-height: 1.7;
 }
 
 /* ===== ナビゲーション ===== */
