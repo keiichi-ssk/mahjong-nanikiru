@@ -5,6 +5,7 @@ import {
   NAKI_TIMING_OPTIONS, MELD_TYPE_LABELS, MELD_TILE_COUNT, MELD_TYPES, getMeldTileRole,
   getMeldFromOptions, normalizeMelds, PROBLEM_TYPE_LABELS,
 } from '../utils/problemConstants'
+import { parseTileNotation } from '../utils/importBoard'
 
 import BoardView from './BoardView'
 
@@ -196,20 +197,6 @@ function ScoreInputRow({ label, isSelf, active, value, onChange, steps }) {
       </div>
     </div>
   )
-}
-
-function parseTilesText(text) {
-  const result = []
-  let buf = []
-  for (const ch of text.trim()) {
-    if ('0123456789'.includes(ch)) {
-      buf.push(ch)
-    } else if ('mpsz'.includes(ch)) {
-      for (const n of buf) result.push(n + ch)
-      buf = []
-    }
-  }
-  return result
 }
 
 // hideImage / hideReviewed / hideDelete / headerLead は自作問題の作成画面（MyProblemsApp）用の
@@ -513,6 +500,15 @@ export default function ProblemEditor({
 
   function removeNakiChoice(index) {
     setNakiChoices(prev => prev.filter((_, i) => i !== index))
+  }
+
+  // 牌姿テキストの一括入力。1枚も読み取れなかったときは手牌を消さずに入力欄も残す
+  // （打ち間違いで手牌が消えないようにするため）
+  function applyTilesText() {
+    const parsed = parseTileNotation(tilesInput)
+    if (parsed.length === 0) return
+    setTiles(sortTiles(parsed))
+    setTilesInput('')
   }
 
   const buildSaveData = useCallback(() => ({
@@ -876,24 +872,14 @@ export default function ProblemEditor({
                 onKeyDown={e => {
                   if (e.key === 'Enter') {
                     e.preventDefault()
-                    const parsed = parseTilesText(tilesInput)
-                    if (parsed.length > 0) {
-                      setTiles(sortTiles(parsed))
-                      setTilesInput('')
-                    }
+                    applyTilesText()
                   }
                 }}
                 placeholder="例: 23467m234p234888s（Enterで適用）"
               />
               <button
                 className="tiles-text-apply-btn"
-                onClick={() => {
-                  const parsed = parseTilesText(tilesInput)
-                  if (parsed.length > 0) {
-                    setTiles(sortTiles(parsed))
-                    setTilesInput('')
-                  }
-                }}
+                onClick={applyTilesText}
               >
                 適用
               </button>
