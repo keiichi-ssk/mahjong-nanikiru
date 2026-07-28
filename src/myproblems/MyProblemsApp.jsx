@@ -5,6 +5,7 @@ import { toUserDb, fromUserDb, makeNewUserProblem } from '../utils/userProblemMa
 import { PROBLEM_TYPE_LABELS } from '../utils/problemConstants'
 import { normalizeProblemType } from '../utils/judgeUtils'
 import PaifuImport from './PaifuImport'
+import EditorGuide from './EditorGuide'
 import { snapshotToProblem } from '../utils/importBoard'
 import {
   validatePaifu, listRounds, listSteps, snapshotAt, filterSteps, defaultProblemTitle,
@@ -50,38 +51,11 @@ function problemSummary(p) {
 }
 
 // 1問ぶんの編集ペイン。
-// タイトルとカテゴリは ProblemEditor が知らないのでここで持ち、保存時に混ぜて渡す。
-// key={problem.id} で再マウントさせる前提なので、初期 state で組んでよい
-// （effect で setState すると cascading render になる）
-function ProblemPane({ problem, prevProblem, categories, hasNext, onSave, onSaveAndNext, saveStatus }) {
-  const [title, setTitle]           = useState(problem.title ?? '')
-  const [categoryId, setCategoryId] = useState(problem.categoryId ?? '')
-
-  // 保存時にタイトル・カテゴリで上書きする（buildSaveData は {...problem} なので古い値が入っている）
-  const withMeta = updated => ({ ...updated, title, categoryId: categoryId || null })
-
-  const headerLead = (
-    <div className="mp-editor-lead">
-      <input
-        className="mp-title-input"
-        value={title}
-        onChange={e => setTitle(e.target.value)}
-        placeholder="タイトル（任意）"
-      />
-      <select
-        className="mp-cat-select"
-        value={categoryId}
-        onChange={e => setCategoryId(e.target.value)}
-        title="カテゴリ"
-      >
-        <option value="">未分類</option>
-        {categories.map(c => (
-          <option key={c.id} value={c.id}>{c.name}</option>
-        ))}
-      </select>
-    </div>
-  )
-
+// 番号・タイトル・カテゴリは**左の一覧から**変更するので、ここでは持たない
+// （同じ設定の入口が2つあると、どちらが有効か分からなくなるため）。
+// 保存時は問題が元々持っている値をそのまま引き継ぐ。
+function ProblemPane({ problem, prevProblem, hasNext, onSave, onSaveAndNext, saveStatus }) {
+  // buildSaveData は {...problem} を土台にするので title / categoryId は自動で残る
   return (
     <ProblemEditor
       problem={problem}
@@ -90,10 +64,12 @@ function ProblemPane({ problem, prevProblem, categories, hasNext, onSave, onSave
       hideImage
       hideReviewed
       hideDelete
-      headerLead={headerLead}
+      hideDisabled
+      headerLead={<h3 className="editor-title">#{problem.displayNo ?? '—'}</h3>}
+      paletteAside={<EditorGuide mode="manual" />}
       saveStatus={saveStatus}
-      onSave={u => onSave(withMeta(u))}
-      onSaveAndNext={u => onSaveAndNext(withMeta(u))}
+      onSave={onSave}
+      onSaveAndNext={onSaveAndNext}
       onDelete={() => {}}
     />
   )
@@ -132,6 +108,7 @@ export default function MyProblemsApp() {
   const [editingProbId, setEditingProbId]   = useState(null)
   const [editProbTitle, setEditProbTitle]   = useState('')
   const [editProbNo, setEditProbNo]         = useState('')
+  const [editProbCat, setEditProbCat]       = useState('')
   const [status, setStatus]                 = useState('')
   // 保存ボタンの隣に出す状態表示。{ text, error } | null
   // 成功は数秒で自動的に消す（消えずに残っていると、次の保存で変化が無く保存されたか分からないため）
@@ -421,9 +398,10 @@ export default function MyProblemsApp() {
     setEditingProbId(p.id)
     setEditProbTitle(p.title ?? '')
     setEditProbNo(String(p.displayNo ?? ''))
+    setEditProbCat(p.categoryId ?? '')
   }
 
-  // 一覧から番号とタイトルを直接変更する。
+  // 一覧から番号・タイトル・カテゴリを直接変更する（エディタ側には同じ設定を置かない）。
   // 番号が既に使われていたら相手と入れ替える（display_no に unique 制約は無いので
   // 一時的に重複しても問題なく、2行の更新だけで済む）
   async function saveProbMeta(p) {
@@ -445,7 +423,8 @@ export default function MyProblemsApp() {
       }
     }
     tasks.push(supabase.from('user_problems')
-      .update({ title, display_no: no }).eq('id', p.id).select('id'))
+      .update({ title, display_no: no, category_id: editProbCat || null })
+      .eq('id', p.id).select('id'))
 
     const settled = await Promise.all(tasks)
     const failed = settled.find(r => r.error)
@@ -523,6 +502,9 @@ export default function MyProblemsApp() {
   return (
     <div className="admin-layout">
       <aside className="admin-sidebar">
+        {/* 本体からは別タブで開かれるので、ブラウザの「戻る」では帰れない。
+            同じタブで出題画面へ移動する（target を付けないこと） */}
+        <a className="mp-back-link" href="/">← 座学する麻雀</a>
         <h1 className="admin-sidebar-title">my問題集</h1>
 
         <div className="mp-cat-list">
@@ -666,13 +648,26 @@ export default function MyProblemsApp() {
                         onChange={e => setEditProbTitle(e.target.value)}
                         onKeyDown={editKeys}
                       />
+                      {/* カテゴリの変更もここに集約する（エディタ側には置かない） */}
+                      <select
+                        className="mp-prob-cat-select"
+                        value={editProbCat}
+                        aria-label="カテゴリ"
+                        onChange={e => setEditProbCat(e.target.value)}
+                        onKeyDown={editKeys}
+                      >
+                        <option value="">未分類</option>
+                        {categories.map(c => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
                     </div>
                   ) : (
                     <button
                       className="mp-prob-name"
                       onClick={() => selectProblem(p.id)}
                       onDoubleClick={() => startEditingProb(p)}
-                      title="クリックで編集・ダブルクリックで番号とタイトルを変更"
+                      title="クリックで編集・ダブルクリックで番号/タイトル/カテゴリを変更"
                     >
                       <span className="mp-prob-title">
                         {/* 出題画面と同じ番号。採番前（null）は uuid を出さずに — にする */}
@@ -691,7 +686,7 @@ export default function MyProblemsApp() {
                       </>
                     ) : (
                       <>
-                        <button className="mp-icon-btn" onClick={() => startEditingProb(p)} title="番号・タイトルを変更">✎</button>
+                        <button className="mp-icon-btn" onClick={() => startEditingProb(p)} title="番号・タイトル・カテゴリを変更">✎</button>
                         <button
                           className="mp-icon-btn mp-icon-btn--danger"
                           onClick={() => deleteProblem(p)}
@@ -728,7 +723,9 @@ export default function MyProblemsApp() {
             hideDelete
             // 実在の局面をそのまま出題するのが基本。変えたいときはヘッダーのトグルで解除する
             lockBoard
+            hideDisabled
             concealedCounts={concealedCounts}
+            paletteAside={<EditorGuide mode="paifu" />}
             headerLead={
               <PaifuImport
                 paifu={paifu}
@@ -768,7 +765,6 @@ export default function MyProblemsApp() {
             key={selectedProb.id}
             problem={selectedProb}
             prevProblem={selectedIdx > 0 ? visibleProblems[selectedIdx - 1] : null}
-            categories={categories}
             hasNext={selectedIdx < visibleProblems.length - 1}
             onSave={saveProblem}
             onSaveAndNext={saveProblemAndNext}
@@ -781,6 +777,9 @@ export default function MyProblemsApp() {
         ) : (
           <div className="mp-placeholder">
             <p className="mp-placeholder-desc">左のリストから問題を選んでください。</p>
+            {/* エディタを開く前にしかできない操作（カテゴリ作成・問題追加）はここで案内する。
+                手牌から先の手順はエディタ側のガイド（paletteAside）に出る */}
+            <EditorGuide mode="start" />
           </div>
         )}
       </main>

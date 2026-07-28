@@ -128,7 +128,10 @@ export default function App() {
     const email = session.user.email;
     supabase
       .from('allowed_users')
-      .select('email, allowed_major_categories')
+      // is_admin は my問題集（作成画面）へのリンクを出すかどうかの判定にだけ使う。
+      // 自分の行は RLS で読めるので権限は増えない。実際の防御は画面側のゲートと RLS。
+      // my問題集を一般公開したら、この列の判定は不要になる
+      .select('email, allowed_major_categories, is_admin')
       .eq('email', email)
       .single()
       .then(({ data }) => {
@@ -137,6 +140,7 @@ export default function App() {
           email,
           isAllowed: !!data,
           allowedMajorCategories: data?.allowed_major_categories ?? null,
+          isAdmin: data?.is_admin === true,
         });
       });
     return () => { cancelled = true; };
@@ -146,6 +150,8 @@ export default function App() {
   const currentAllowed = session && allowedInfo?.email === session.user.email ? allowedInfo : null;
   const isAllowed = currentAllowed ? currentAllowed.isAllowed : null;
   const allowedMajorCategories = currentAllowed?.allowedMajorCategories ?? null;
+  // my問題集を使えるか（＝作成画面へのリンクを出すか）。当面は管理者のみ
+  const canUseMyProblems = currentAllowed?.isAdmin === true;
 
   useEffect(() => {
     if (!session) return undefined;
@@ -485,6 +491,7 @@ export default function App() {
           session={session}
           onResetResults={handleResetResults}
           userCategories={userCategories}
+          canUseMyProblems={canUseMyProblems}
         />
       );
     }

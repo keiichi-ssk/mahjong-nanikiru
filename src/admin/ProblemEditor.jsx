@@ -212,10 +212,13 @@ function ScoreInputRow({ label, isSelf, active, value, onChange, steps }) {
 //                  ヘッダーのトグルで解除する。ロック中はパレットのタブが「正解設定」だけになり、
 //                  注釈はそのタブに出る（手牌タブが隠れて編集できなくなるのを防ぐため）
 //   concealedCounts … 他家の手牌の実際の枚数。BoardView へそのまま渡す（表示専用・保存されない）
+//   hideDisabled … 「非表示」チェックを隠す（自作問題は自分しか見ないので使い道がない）
+//   paletteAside … 牌パレットの右の余白に出す内容（操作ガイド等）。渡さなければ牌だけが並ぶ
 export default function ProblemEditor({
   problem, prevProblem, onSave, onSaveAndNext, onDelete, hasNext,
   hideImage = false, hideReviewed = false, hideDelete = false, headerLead = null,
   saveStatus = null, lockBoard = false, concealedCounts = null,
+  hideDisabled = false, paletteAside = null,
 }) {
   // 手牌が未設定（新規追加直後）の問題は、手牌・正解・状況設定（ドラ・場風・自風・巡目）を
   // ひとつ前の問題から引き継いでおく。手牌がすでにある問題は自分自身の値を優先する。
@@ -755,7 +758,14 @@ export default function ProblemEditor({
             </div>
             <span className="palette-dock-status">{paletteStatus}</span>
           </div>
-          <TilePalette size={28} onTileClick={handlePaletteTile} />
+          {/* 牌は4行で 310px ほどしか使わないので、右の余白を操作ガイドに使う。
+              paletteAside を渡さなければ従来どおり牌だけが並ぶ（管理画面はこちら） */}
+          <div className="palette-dock-body">
+            <div className="palette-dock-tiles">
+              <TilePalette size={28} onTileClick={handlePaletteTile} />
+            </div>
+            {paletteAside && <div className="palette-dock-aside">{paletteAside}</div>}
+          </div>
         </div>
       </div>
 
@@ -767,16 +777,19 @@ export default function ProblemEditor({
       {/* ヘッダー：ID・問題タイプ・フラグ・保存を1行にまとめて縦の場所を節約する */}
       <div className="editor-header">
         {headerLead ?? <h3 className="editor-title">ID {problem.id}</h3>}
-        <select
-          className="editor-type-select"
-          value={problemType}
-          onChange={e => setProblemType(e.target.value)}
-          title="問題タイプ"
-        >
-          {Object.entries(PROBLEM_TYPE_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>{label}</option>
-          ))}
-        </select>
+        {/* 何のプルダウンか分かるようラベルを付ける（値だけだと用途が読み取れないため） */}
+        <label className="editor-type-field">
+          <span className="editor-type-label">問題タイプ:</span>
+          <select
+            className="editor-type-select"
+            value={problemType}
+            onChange={e => setProblemType(e.target.value)}
+          >
+            {Object.entries(PROBLEM_TYPE_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+        </label>
         {!hideReviewed && (
           <label className="reviewed-check">
             <input
@@ -787,14 +800,16 @@ export default function ProblemEditor({
             修正済み
           </label>
         )}
-        <label className="reviewed-check" style={{ color: disabled ? '#e74c3c' : undefined }}>
-          <input
-            type="checkbox"
-            checked={disabled}
-            onChange={e => setDisabled(e.target.checked)}
-          />
-          非表示
-        </label>
+        {!hideDisabled && (
+          <label className="reviewed-check" style={{ color: disabled ? '#e74c3c' : undefined }}>
+            <input
+              type="checkbox"
+              checked={disabled}
+              onChange={e => setDisabled(e.target.checked)}
+            />
+            非表示
+          </label>
+        )}
         {/* 牌譜から作った問題は実在の局面をそのまま出すのが基本なので、
             盤面はロックしておき、変えたいときだけここで解除する */}
         {lockBoard && (

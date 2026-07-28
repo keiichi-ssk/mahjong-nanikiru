@@ -380,6 +380,19 @@ html {
 }
 
 /* ヘッダー行（ID・問題タイプ・フラグ・保存）に入る部品 */
+/* 値だけだと何のプルダウンか読み取れないのでラベルを添える */
+.editor-type-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.editor-type-label {
+  font-size: 0.75rem;
+  color: #888;
+  white-space: nowrap;
+}
+
 .editor-type-select {
   background: #111827;
   border: 1px solid #1a2a4a;
@@ -950,9 +963,24 @@ html {
   gap: 3px;
 }
 
+/* 手牌が空のときのプレースホルダー。button なので UA の背景・枠を消して卓に溶け込ませる
+   （素の button だと灰色の箱が卓の上に浮いて見える） */
 .board-empty-text {
-  font-size: 0.7rem;
-  color: #4e8a74;
+  /* 辺の中央に置くため、幅は BoardView.jsx の EMPTY_HAND_LEN と揃える（片方だけ変えるとずれる） */
+  width: 150px;
+  text-align: center;
+  background: none;
+  border: none;
+  padding: 4px 0;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: rgba(233, 241, 250, 0.72);
+  cursor: pointer;
+  transition: color 0.15s var(--ease);
+}
+
+@media (hover: hover) {
+  .board-empty-text:hover { color: var(--gold); }
 }
 
 /* ID・問題タイプ・フラグ・保存を1行にまとめたヘッダー。
@@ -2471,6 +2499,43 @@ kbd {
   border: 1px solid #2a3a5a;
   border-radius: 10px;
   padding: 10px 12px;
+}
+
+/* 牌は4行で 310px ほどしか使わないので、右の余白を操作ガイド等に使う
+   （paletteAside を渡したときだけ .palette-dock-aside が出る） */
+.palette-dock-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+/* ドックの高さは牌の並びだけで決める（下端揃え）。
+   右の内容が長くても牌は下に残る */
+.palette-dock-tiles {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+/* paletteAside はドックの高さに寄与させない（中身を絶対配置にする）。
+   寄与させると内容量でドックが伸び、そのぶん盤面（.board は flex:1）が縮んでしまうため。
+   はみ出すぶんは中でスクロールする */
+.palette-dock-aside {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  align-self: stretch;
+  border-left: 1px solid #2a3a5a;
+  padding-left: 16px;
+}
+
+.palette-dock-aside > * {
+  position: absolute;
+  /* 絶対配置の基準は padding ボックスなので、左の余白は自分で取る */
+  inset: 0 0 0 16px;
+  overflow-y: auto;
 }
 
 .palette-dock-header {

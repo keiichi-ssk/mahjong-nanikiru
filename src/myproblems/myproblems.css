@@ -3,6 +3,23 @@
    この画面だけで使うものをここに置く（admin.css は AdminApp 用なので混ぜない）。
    配色は admin.css に合わせている（背景 #0a0f1e 系・アクセント #f5c842）。 */
 
+/* 出題画面（トップ）へ戻る導線。作成画面は本体から別タブで開かれるため、
+   ブラウザの「戻る」では帰れない。サイドバーの一番上に置く */
+.mp-back-link {
+  display: block;
+  padding: 10px 16px 0;
+  color: #8fa8c8;
+  font-size: 0.8rem;
+  text-decoration: none;
+}
+
+@media (hover: hover) {
+  .mp-back-link:hover { color: #f5c842; }
+}
+
+/* 見出しの上余白は戻る導線ぶん詰める（admin.css の 16px のままだと離れて見える） */
+.mp-back-link + .admin-sidebar-title { padding-top: 8px; }
+
 /* ===== カテゴリ一覧 =====
    下に問題一覧を置くので、カテゴリ側は高さの上限を決めておく
    （カテゴリが増えても問題一覧が潰れないように） */
@@ -252,10 +269,12 @@
 }
 
 /* 一覧から番号・タイトルを直接変更するときの入力欄 */
+/* 番号・タイトル・カテゴリの3つを入れるので、サイドバーの幅では折り返す */
 .mp-prob-edit {
   flex: 1;
   min-width: 0;
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   padding: 4px 2px;
 }
@@ -286,29 +305,16 @@
   border-color: #f5c842;
 }
 
-/* ===== エディタのヘッダーに差し込む欄（タイトル・カテゴリ） ===== */
-.mp-editor-lead {
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  flex: 1;
-  min-width: 200px;
-}
-
-.mp-title-input {
-  flex: 1;
-  min-width: 0;
+/* 一覧での編集はカテゴリまで含む（エディタ側には同じ設定を置かない） */
+.mp-prob-cat-select {
+  flex-shrink: 0;
+  max-width: 110px;
   background: #0a0f1e;
   border: 1px solid #1a2a4a;
   border-radius: 4px;
   color: #ddd;
-  font-size: 0.85rem;
-  padding: 6px 8px;
-}
-
-.mp-title-input:focus {
-  outline: none;
-  border-color: #f5c842;
+  font-size: 0.75rem;
+  padding: 4px 4px;
 }
 
 .mp-cat-select {
@@ -494,6 +500,116 @@
 .paifu-step-label {
   color: #ccc;
   white-space: nowrap;
+}
+
+/* ===== 操作ガイド（EditorGuide。牌パレットの右の余白に出る） ===== */
+.guide {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.guide-title {
+  font-size: 0.8rem;
+  color: #f5c842;
+  font-weight: 700;
+}
+
+.guide-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* パレットの右に出すときは横幅に余裕があるので2列に並べ、牌の並び（4行）の高さに収める。
+   1列のままだと縦にはみ出してスクロールが要る */
+.palette-dock-aside .guide-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 18px;
+  row-gap: 6px;
+}
+
+.guide-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.guide-step {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #1a2a4a;
+  color: #aaa;
+  font-size: 0.7rem;
+  line-height: 18px;
+  text-align: center;
+}
+
+.guide-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.guide-step-title {
+  font-size: 0.78rem;
+  color: #ddd;
+}
+
+.guide-hint {
+  font-size: 0.7rem;
+  color: #777;
+  line-height: 1.5;
+}
+
+/* 手順に入れると長くなる補足。番号を振らずに末尾へ置く。
+   区切り線は手順との境目の1本だけにする（補足どうしの間には引かない） */
+.guide-note + .guide-note {
+  border-top: none;
+  padding-top: 0;
+}
+
+.guide-note {
+  margin: 0;
+  padding-top: 6px;
+  border-top: 1px solid #2a3a5a;
+  font-size: 0.7rem;
+  color: #777;
+  line-height: 1.5;
+}
+
+/* 開始画面のガイド。.mp-placeholder は中央揃えなので、中身だけ左寄せに戻す。
+   ここは画面に他の要素が無く場所に余裕があるので、パレット内より一回り大きくする */
+.mp-placeholder .guide {
+  width: 100%;
+  max-width: 440px;
+  margin-top: 12px;
+  padding: 22px 26px;
+  gap: 12px;
+  border: 1px solid #2a3a5a;
+  border-radius: 10px;
+  background: #16203a;
+  text-align: left;
+}
+
+.mp-placeholder .guide-title      { font-size: 1rem; }
+.mp-placeholder .guide-list       { gap: 12px; }
+.mp-placeholder .guide-item       { gap: 10px; }
+.mp-placeholder .guide-step-title { font-size: 0.95rem; }
+.mp-placeholder .guide-hint       { font-size: 0.85rem; }
+.mp-placeholder .guide-note       { font-size: 0.85rem; padding-top: 10px; }
+
+.mp-placeholder .guide-step {
+  width: 22px;
+  height: 22px;
+  font-size: 0.8rem;
+  line-height: 22px;
 }
 
 .paifu-actual-tile {

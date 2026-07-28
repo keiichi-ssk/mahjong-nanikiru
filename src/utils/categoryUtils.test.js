@@ -341,4 +341,24 @@ describe('groupByBook（自作問題）', () => {
     const mine = books.find(b => b.label === 'my問題集');
     expect(mine.majorGroups[0].sections).toEqual(['u:aaa', 'u:bbb', 'u:none']);
   });
+
+  // 作成画面への入口は「my問題集」タブの中にしか無いので、
+  // 1問も作っていない人のためにタブだけは出せるようにしてある
+  describe('alwaysUser: 0件でもタブを出す', () => {
+    it('自作問題が無くても空の「my問題集」が末尾に付く', () => {
+      const books = groupByBook(['1'], userCats, { alwaysUser: true });
+      const mine = books[books.length - 1];
+      expect(mine.label).toBe('my問題集');
+      expect(mine.majorGroups).toEqual([]);
+    });
+
+    it('自作問題があれば alwaysUser の有無で結果は変わらない', () => {
+      const withFlag = groupByBook(['1', 'u:aaa'], userCats, { alwaysUser: true });
+      expect(withFlag).toEqual(groupByBook(['1', 'u:aaa'], userCats));
+    });
+
+    it('既定（省略時）は従来どおり付かない', () => {
+      expect(groupByBook(['1'], userCats).some(b => b.label === 'my問題集')).toBe(false);
+    });
+  });
 });

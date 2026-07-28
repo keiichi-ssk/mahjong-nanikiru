@@ -24,6 +24,11 @@ function handLength(count, size) {
   return count > 0 ? count * size.w + (count - 1) * size.gap : 0
 }
 
+// 手牌が空のときに出す「手牌が未設定です」の幅。手牌と同じ扱いで辺の中央に置くため、
+// 長さ0ではなくこの値を渡す（0 だと左端が辺の中央に来て右へずれる）。
+// admin.css の .board-empty-text の width と必ず揃えること
+const EMPTY_HAND_LEN = 150
+
 // 手牌の置き場は各辺いっぱい。手牌は辺の中央、副露はその家から見た右端に置き、
 // 両者が重なるときだけ手牌を必要な分だけ左へ寄せる（実際の判定は CSS の min() が行う）。
 // その計算に使う長さをカスタムプロパティで渡す
@@ -499,7 +504,11 @@ export default function BoardView({
               (handEditable ? ' board-area--active' : '') +
               (tiles.length === 0 ? ' board-area--empty' : '')
             }
-            style={seatVars(handLength(tiles.length, HAND_TILE), meldsWidth(melds, HAND_TILE), HAND_TILE.h)}
+            style={seatVars(
+              tiles.length > 0 ? handLength(tiles.length, HAND_TILE) : EMPTY_HAND_LEN,
+              meldsWidth(melds, HAND_TILE),
+              HAND_TILE.h,
+            )}
           >
             <div className="board-hand-row">
               <div className="board-hand-tiles board-seat-hand-slot">

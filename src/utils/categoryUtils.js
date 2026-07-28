@@ -131,8 +131,13 @@ export function isSectionAllowed(allowed, section) {
 
 // 自作問題の section は categories.json 由来の categoryIds に含まれないため、
 // そのままでは全ての majorGroup から漏れて画面に出ない。
-// 「my問題集」書籍を末尾に足すことで拾う（userCategories はオプショナル）
-export function groupByBook(categories, userCategories = null) {
+// 「my問題集」書籍を末尾に足すことで拾う（userCategories はオプショナル）。
+//
+// alwaysUser を true にすると、自作問題が1問も無くても空の「my問題集」を作る。
+// 作成画面への入口をここに置いているため、0件だとタブごと消えて
+// 「まだ1問も作っていない人だけ作成画面へ行けない」状態になるのを防ぐ。
+// 既定は false なので、既存の呼び出し（出題順の組み立て等）の挙動は変わらない
+export function groupByBook(categories, userCategories = null, { alwaysUser = false } = {}) {
   const books = BOOKS.map(({ label: bookLabel, majorCategories }) => {
     const majorGroups = majorCategories
       .map(({ label: majorLabel, categoryIds }) => ({
@@ -144,14 +149,17 @@ export function groupByBook(categories, userCategories = null) {
   });
 
   const userSections = categories.filter(isUserSection);
-  if (userSections.length === 0) return books;
+  if (userSections.length === 0 && !alwaysUser) return books;
 
   return [
     ...books,
     {
       label: USER_BOOK_LABEL,
-      // 自作問題に大分類は無いので1グループにまとめる
-      majorGroups: [{ label: USER_BOOK_LABEL, sections: sortUserSections(userSections, userCategories) }],
+      // 自作問題に大分類は無いので1グループにまとめる。
+      // 0件のときは空の majorGroups にする（画面側が「まだ問題がありません」を出す）
+      majorGroups: userSections.length === 0
+        ? []
+        : [{ label: USER_BOOK_LABEL, sections: sortUserSections(userSections, userCategories) }],
     },
   ];
 }

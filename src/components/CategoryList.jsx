@@ -160,10 +160,11 @@ function MajorGroup({
   );
 }
 
-export default function CategoryList({ categories, problems, randomMode, onToggleRandom, unansweredOnlyMode, onToggleUnansweredOnly, wrongOnlyMode, onToggleWrongOnly, onStart, results = {}, session, onResetResults, userCategories = [] }) {
+export default function CategoryList({ categories, problems, randomMode, onToggleRandom, unansweredOnlyMode, onToggleUnansweredOnly, wrongOnlyMode, onToggleWrongOnly, onStart, results = {}, session, onResetResults, userCategories = [], canUseMyProblems = false }) {
   // 自作問題（section が u: で始まる）は categories.json に無いので、
-  // groupByBook に user_categories を渡して「my問題集」書籍としてまとめてもらう
-  const books = groupByBook(categories, userCategories);
+  // groupByBook に user_categories を渡して「my問題集」書籍としてまとめてもらう。
+  // 作成画面への入口はこのタブの中にあるので、使える人には1問も無くてもタブを出す
+  const books = groupByBook(categories, userCategories, { alwaysUser: canUseMyProblems });
   // section → 問題配列。render のたびに全問題を何度も filter しないための索引
   const problemsBySection = useMemo(() => {
     const map = new Map();
@@ -329,18 +330,27 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
         <div className="pending-notice">非公開のコンテンツです</div>
       )}
 
-      {session && activeBookData && activeBookData.majorGroups.length === 0 && (
+      {/* my問題集は0件でもタブを出すので、ここの「非公開」からは除く（中身は下の空状態が出す） */}
+      {session && activeBookData && activeBookData.majorGroups.length === 0
+        && activeBookData.label !== USER_BOOK_LABEL && (
         <div className="pending-notice">非公開のコンテンツです</div>
       )}
 
-      {activeBookData && activeBookData.majorGroups.length > 0 && (
+      {activeBookData && (activeBookData.majorGroups.length > 0
+        || activeBookData.label === USER_BOOK_LABEL) && (
         <div key={activeBook} className="book-content">
-          {/* 自作問題の作成・編集は専用ページ。別タブで開く（本体の読み込み直しを避けるため） */}
-          {activeBook === USER_BOOK_LABEL && (
+          {/* 自作問題の作成・編集は専用ページ。別タブで開く（本体の読み込み直しを避けるため）。
+              1問も無いときはこのボタンだけが出る（作成画面への入口を絶やさないため） */}
+          {activeBookData.label === USER_BOOK_LABEL && (
             <div className="my-problems-bar">
               <a className="my-problems-link" href="/myproblems.html" target="_blank" rel="noopener">
-                問題を作る・編集する
+                ＋ 問題を作る・編集する
               </a>
+              {activeBookData.majorGroups.length === 0 && (
+                <p className="my-problems-empty">
+                  まだ問題がありません。作成画面で自分だけの問題集を作れます。
+                </p>
+              )}
             </div>
           )}
 

@@ -3184,25 +3184,41 @@
 }
 
 /* ===== my問題集（自作問題）の書籍タブ内に出す編集への導線 ===== */
+/* 作成画面への入口。このタブにしか無いので、中央に置いて塗りのボタンで目立たせる
+   （問題が1問も無いときは、下の空状態の文とこのボタンだけが出る） */
 .my-problems-bar {
   display: flex;
-  justify-content: flex-end;
-  margin-bottom: 12px;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
 }
 
 .my-problems-link {
   display: inline-block;
-  padding: 8px 16px;
-  border: 1px solid var(--color-primary);
+  padding: 12px 24px;
+  border: none;
   border-radius: 8px;
-  color: var(--color-primary);
-  font-size: 0.85rem;
+  background: var(--color-primary);
+  color: var(--color-text-bright);
+  font-size: 0.95rem;
+  font-weight: bold;
   text-decoration: none;
+}
+
+/* 押下は filter のみ。scale だと当たり判定が動いて誤爆する（mobile-touch-ui のルール） */
+.my-problems-link:active {
+  filter: brightness(0.92);
 }
 
 @media (hover: hover) {
   .my-problems-link:hover {
-    background: var(--color-primary);
-    color: var(--color-bg);
+    background: var(--color-primary-hover);
   }
+}
+
+.my-problems-empty {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.85rem;
 }
