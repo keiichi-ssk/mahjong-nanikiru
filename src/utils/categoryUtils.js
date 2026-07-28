@@ -17,7 +17,10 @@ function getCategory(section) {
 // groupByBook から漏れて「画面に何も出ない」状態になる（エラーは出ない）。
 const USER_SECTION_PREFIX = 'u:';
 const UNCATEGORIZED_KEY = 'none';
-export const USER_BOOK_LABEL = 'my問題集';
+// 画面に出る書籍タブ・大カテゴリの表示名。（β）は試験公開中であることを示す。
+// ★ localStorage の activeBook / openMajorCategories はこの文字列をキーに保存しているので、
+//   変更すると保存済みの選択が一度リセットされる（先頭の書籍に戻るだけで実害は無い）
+export const USER_BOOK_LABEL = 'my問題集(β)';
 
 export function isUserSection(section) {
   return typeof section === 'string' && section.startsWith(USER_SECTION_PREFIX);

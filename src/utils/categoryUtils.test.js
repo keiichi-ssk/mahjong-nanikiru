@@ -260,7 +260,7 @@ describe('categories.json の整合性', () => {
   });
 });
 
-// ===== 自作問題（my問題集）の section =====
+// ===== 自作問題（my問題集(β)）の section =====
 // uuid をそのまま section に入れると parseInt が NaN になり、groupByBook から漏れて
 // 「エラーも出ないのに画面に何も表示されない」状態になる。接頭辞で名前空間を分けている
 describe('自作問題の section', () => {
@@ -320,35 +320,35 @@ describe('groupByBook（自作問題）', () => {
     const before = groupByBook(['1']);
     const after = groupByBook(['1'], userCats);
     expect(after).toEqual(before);
-    expect(after.some(b => b.label === 'my問題集')).toBe(false);
+    expect(after.some(b => b.label === 'my問題集(β)')).toBe(false);
   });
 
-  it('自作問題があれば末尾に「my問題集」書籍が付く', () => {
+  it('自作問題があれば末尾に「my問題集(β)」書籍が付く', () => {
     const books = groupByBook(['1', 'u:aaa'], userCats);
     const mine = books[books.length - 1];
-    expect(mine.label).toBe('my問題集');
+    expect(mine.label).toBe('my問題集(β)');
     expect(mine.majorGroups[0].sections).toEqual(['u:aaa']);
   });
 
-  it('公式問題は「my問題集」に混ざらない', () => {
+  it('公式問題は「my問題集(β)」に混ざらない', () => {
     const books = groupByBook(['1', 'u:aaa'], userCats);
-    const mine = books.find(b => b.label === 'my問題集');
+    const mine = books.find(b => b.label === 'my問題集(β)');
     expect(mine.majorGroups.flatMap(g => g.sections)).not.toContain('1');
   });
 
   it('user_categories の並び順に従い、未分類は最後', () => {
     const books = groupByBook(['u:none', 'u:bbb', 'u:aaa'], userCats);
-    const mine = books.find(b => b.label === 'my問題集');
+    const mine = books.find(b => b.label === 'my問題集(β)');
     expect(mine.majorGroups[0].sections).toEqual(['u:aaa', 'u:bbb', 'u:none']);
   });
 
-  // 作成画面への入口は「my問題集」タブの中にしか無いので、
+  // 作成画面への入口は「my問題集(β)」タブの中にしか無いので、
   // 1問も作っていない人のためにタブだけは出せるようにしてある
   describe('alwaysUser: 0件でもタブを出す', () => {
-    it('自作問題が無くても空の「my問題集」が末尾に付く', () => {
+    it('自作問題が無くても空の「my問題集(β)」が末尾に付く', () => {
       const books = groupByBook(['1'], userCats, { alwaysUser: true });
       const mine = books[books.length - 1];
-      expect(mine.label).toBe('my問題集');
+      expect(mine.label).toBe('my問題集(β)');
       expect(mine.majorGroups).toEqual([]);
     });
 
@@ -358,7 +358,7 @@ describe('groupByBook（自作問題）', () => {
     });
 
     it('既定（省略時）は従来どおり付かない', () => {
-      expect(groupByBook(['1'], userCats).some(b => b.label === 'my問題集')).toBe(false);
+      expect(groupByBook(['1'], userCats).some(b => b.label === 'my問題集(β)')).toBe(false);
     });
   });
 });

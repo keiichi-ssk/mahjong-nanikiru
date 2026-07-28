@@ -12,7 +12,7 @@ import {
   validatePaifu, listRounds, listSteps, snapshotAt, filterSteps, defaultProblemTitle,
 } from '../utils/tenhouPaifu'
 
-// 自作問題集（my問題集）の作成画面。
+// 自作問題集（my問題集(β)）の作成画面。
 // 計画: docs/user-problems-plan.md
 //
 // ゲートは「ログインしているか」だけ（2026-07-28 一般公開）。
@@ -145,7 +145,7 @@ export default function MyProblemsApp() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // my問題集は「ログイン済みなら誰でも使える」（2026-07-28 一般公開）。
+  // my問題集(β)は「ログイン済みなら誰でも使える」（2026-07-28 一般公開）。
   // allowed_users（公式問題の閲覧許可）とも is_admin とも無関係で、
   // user_problems / user_categories の RLS は auth.uid() だけを見ている。
   // 作れる件数の上限は DB 側（RLS の with check）で強制する
@@ -452,7 +452,7 @@ export default function MyProblemsApp() {
   if (!session) {
     return (
       <div className="admin-auth-screen">
-        <h1 className="admin-auth-title">my問題集</h1>
+        <h1 className="admin-auth-title">my問題集(β)</h1>
         <p className="admin-auth-desc">ログインが必要です</p>
         <button
           className="admin-auth-btn"
@@ -489,7 +489,7 @@ export default function MyProblemsApp() {
         {/* 本体からは別タブで開かれるので、ブラウザの「戻る」では帰れない。
             同じタブで出題画面へ移動する（target を付けないこと） */}
         <a className="mp-back-link" href="/">← 座学する麻雀</a>
-        <h1 className="admin-sidebar-title">my問題集</h1>
+        <h1 className="admin-sidebar-title">my問題集(β)</h1>
 
         <div className="mp-cat-list">
           {!ready && !loadError && <p className="mp-empty">読み込んでいます...</p>}
