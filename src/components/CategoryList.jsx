@@ -197,8 +197,10 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
   const [questionCount, setQuestionCount] = useState(null);
   // 未ログイン時の「非公開のコンテンツ」タブが選択されているか（選択時のみ下に文言を出す）
   const [lockedTabSelected, setLockedTabSelected] = useState(false);
-  // 開いている大カテゴリ（"書籍::大カテゴリ" キーの集合）。初回は全部畳む
-  const [openMajors, setOpenMajors] = useState(() => {
+  // 既定と違う開閉状態にトグルされた大カテゴリ（"書籍::大カテゴリ" キーの集合）。
+  // 既定は書籍ごとに違う（my問題集は開く・他は畳む）ので「開いているキー」ではなく差分で持つ。
+  // 公式書籍の既定は従来どおり「畳む」なので、localStorage の既存の値はそのままの意味で使える
+  const [toggledMajors, setToggledMajors] = useState(() => {
     try {
       return new Set(JSON.parse(localStorage.getItem('openMajorCategories') ?? '[]'));
     } catch {
@@ -207,7 +209,7 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
   });
 
   function toggleMajorOpen(key) {
-    setOpenMajors(prev => {
+    setToggledMajors(prev => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
@@ -264,6 +266,8 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
   }
 
   const activeBookData = books.find(b => b.label === activeBook) ?? books[0];
+  // my問題集は自作カテゴリが数個しかなく毎回開くのが手間なので、既定で開いておく
+  const majorsOpenByDefault = activeBookData?.label === USER_BOOK_LABEL;
 
   function resetSection(cat, catProblems) {
     if (!window.confirm(`「${sectionLabel(cat, userCategories)}」の進捗をリセットしますか？`)) return;
@@ -404,7 +408,7 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
                 toggleGroup={toggleGroup}
                 resetSection={resetSection}
                 resetMajor={resetMajor}
-                isOpen={openMajors.has(majorKey)}
+                isOpen={majorsOpenByDefault !== toggledMajors.has(majorKey)}
                 onToggleOpen={() => toggleMajorOpen(majorKey)}
               />
             );
