@@ -79,7 +79,8 @@ export default function LandingPage({ onLogin }) {
     <div className="landing">
       <section className="landing-hero">
         <h1 className="landing-title">解いて、強くなる</h1>
-        <p className="landing-lead">一問一答形式の麻雀学習サイト。</p>
+        {/* 見出しに準じる短い一行なので句点は付けない */}
+        <p className="landing-lead">一問一答形式の麻雀学習サイト</p>
         <a className="landing-cta" href="/chinitsu.html">今すぐメンチン何切るドリルを始める</a>
         <p className="landing-note">登録不要・PC / スマートフォンからそのまま遊べます</p>
       </section>
