@@ -398,3 +398,120 @@
 /* 保存結果の色分け（要素は ProblemEditor の .editor-save-status の中に入る） */
 .mp-save-ok  { color: #4caf50; }
 .mp-save-err { color: #e74c3c; }
+
+/* 選択中であることを示すボタン（牌譜画面を開いている間の「牌譜から」） */
+.mp-add-btn--active {
+  background: #0a0f1e;
+  color: #f5c842;
+  box-shadow: inset 0 0 0 1px #f5c842;
+}
+
+.mp-prob-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ===== 牌譜ナビ（PaifuImport。エディタのヘッダー行に入る） =====
+   エディタは「スクロールせず1画面で編集する」方針なので、ここは高さを取りすぎないこと。
+   横に収まらない場合は行を折り返す（縦に伸びるのは最大2行ぶんまでを想定） */
+.paifu-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.paifu-nav-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* ファイル選択は自前のボタンから開くので、input 自体は隠す */
+.paifu-file-input { display: none; }
+
+.paifu-file-name {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.72rem;
+  color: #666;
+}
+
+.paifu-seats {
+  display: flex;
+  gap: 4px;
+}
+
+.paifu-seat {
+  max-width: 96px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: #0d1424;
+  border: 1px solid #2a3a5a;
+  border-radius: 4px;
+  color: #ccc;
+  font-size: 0.75rem;
+  padding: 5px 8px;
+  cursor: pointer;
+}
+
+.paifu-seat--active {
+  background: #f5c842;
+  border-color: #f5c842;
+  color: #0a0f1e;
+  font-weight: 700;
+}
+
+.paifu-turn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.paifu-turn-count {
+  font-size: 0.75rem;
+  color: #f5c842;
+  min-width: 62px;
+  text-align: center;
+}
+
+/* 実戦の打牌は「正解」ではないので、正解設定のUIとは見た目を分けて控えめにする */
+.paifu-actual {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #666;
+}
+
+/* いまどの瞬間を見ているか（「9巡目 ツモ」「南家 打」） */
+.paifu-step-label {
+  color: #ccc;
+  white-space: nowrap;
+}
+
+.paifu-actual-tile {
+  background: #fff;
+  border-radius: 3px;
+}
+
+.paifu-actual-label { color: #aaa; }
+
+.paifu-save-to {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.paifu-saved {
+  font-size: 0.75rem;
+  color: #4caf50;
+}

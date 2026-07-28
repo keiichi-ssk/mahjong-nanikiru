@@ -128,6 +128,45 @@ export function listRounds(paifu) {
   });
 }
 
+// ===== 読み込めるかの判定 =====
+
+// 1局ぶんの要素数。[局情報, 点数, ドラ, 裏ドラ] + 4人×[配牌, ツモ, 打牌] + 結果
+const ROUND_LENGTH = 17;
+
+/**
+ * 読み込んだ JSON がこのアダプタで扱えるかを判定する。
+ * 返り値 { ok: true } または { ok: false, reason: '理由' }（画面にそのまま出せる文言）。
+ *
+ * ★ 再生は4人麻雀を前提にしているので、3人麻雀の牌譜はここで弾く
+ *   （3人麻雀は1局の要素数が 14 になり、席と風の対応も変わる）。
+ */
+export function validatePaifu(json) {
+  if (!json || typeof json !== 'object' || Array.isArray(json)) {
+    return { ok: false, reason: '牌譜のJSONファイルではないようです' };
+  }
+  if (!Array.isArray(json.log) || json.log.length === 0) {
+    return { ok: false, reason: '牌譜のデータ（log）が見つかりません' };
+  }
+  if (!Array.isArray(json.name) || json.name.length !== 4) {
+    return { ok: false, reason: '4人麻雀の牌譜ではないようです（対応していません）' };
+  }
+  const bad = json.log.find(r => !Array.isArray(r) || r.length !== ROUND_LENGTH);
+  if (bad) {
+    return { ok: false, reason: '4人麻雀の牌譜ではないようです（対応していません）' };
+  }
+  return { ok: true };
+}
+
+/**
+ * 牌譜から作った問題の既定のタイトル（例: '東1局 9巡目'）。
+ * 巡目は打牌の回数ではなくツモ回数なので、replayRound の結果（snapshot.junme）を渡すこと。
+ */
+export function defaultProblemTitle(paifu, roundIndex, junme) {
+  const round = listRounds(paifu)[roundIndex];
+  if (!round) return '';
+  return junme > 0 ? `${round.label} ${junme}巡目` : round.label;
+}
+
 // ===== 局の再生 =====
 
 // 手牌から牌番号を1枚だけ取り除く。赤5（51）と通常の5（15）は別の牌として扱うため、
@@ -152,29 +191,34 @@ function meldCodes(str) {
 }
 
 /**
- * 1局を先頭から再生し、指定した席が turn 回目の打牌をする「直前」の盤面を返す。
- * ＝ その席が牌を引き終えた 14 枚の状態。何切る問題にするのはこの瞬間。
+ * 1局を最初から最後まで再生し、局面（ステップ）を並べて返す。
+ * このモジュールの再生はここが唯一の実装で、listSteps / snapshotAt / replayRound は
+ * すべてこの結果を読むだけ。**再生ロジックを2つに分けないこと**（必ずズレる）。
  *
- * @param paifu       天鳳形式の牌譜オブジェクト
- * @param roundIndex  paifu.log のインデックス
- * @param seat        席（プレイヤー番号 0〜3）。paifu.name と同じ並び
- * @param turn        その席の何回目の打牌の直前か（1始まり）
+ * ステップの種類（kind）:
+ *   'tsumo'   … 牌を引いた直後 ＝ 打牌の直前（手牌14枚）。何切るを問える瞬間
+ *   'call'    … 鳴いた直後 ＝ 打牌の直前。同じく何切るを問える
+ *   'discard' … 牌を切った直後。**他家がここで鳴くか・押すかを問える瞬間**
  *
- * 返り値 { snapshot, actualDiscard, riichiDeclared, isLast } … 見つからなければ null。
- *   actualDiscard  … 実際に切られた牌。**正解ではない**が、正解を決めるときの参考に画面へ出せる
- *   riichiDeclared … その打牌がリーチ宣言だったか
- *   isLast         … その席の最後の打牌か（次の巡目が無い＝UIで「次へ」を無効にできる）
+ * ★ 'tsumo' / 'call' は「打牌の直前」なので turn（その家の何回目の打牌か）を持つ。
+ *   暗槓・加槓を挟んだ場合は嶺上牌を引いたあとに1つだけ積む（カンの前では積まない）。
+ *
+ * 返り値 { steps, meta } … 局が無ければ null
  */
-export function replayRound(paifu, roundIndex, { seat = 0, turn = 1 } = {}) {
+function replayAll(paifu, roundIndex) {
   const round = paifu?.log?.[roundIndex];
   if (!round) return null;
 
   // ★ 天鳳形式の供託は「リーチ棒の本数」。このアプリの scores.kyotaku は「点数」なので
   //   1000倍する（1本 = 1000点）。ここを取り違えると供託が 1点 で保存される
   const [kyokuNo = 0, honba = 0, kyotakuSticks = 0] = round[0] ?? [];
-  const kyotaku = (Number(kyotakuSticks) || 0) * 1000;
-  const startScores = round[1] ?? [];
-  const doraIndicators = round[2] ?? [];
+  const meta = {
+    kyokuNo,
+    honba,
+    kyotaku:        (Number(kyotakuSticks) || 0) * 1000,
+    startScores:    round[1] ?? [],
+    doraIndicators: round[2] ?? [],
+  };
 
   // プレイヤーごとの [配牌, ツモ列, 打牌列]
   const seats = [0, 1, 2, 3].map(p => ({
@@ -192,6 +236,28 @@ export function replayRound(paifu, roundIndex, { seat = 0, turn = 1 } = {}) {
   }));
 
   const windOf = p => playerWind(p, kyokuNo);
+  const steps  = [];
+
+  // その瞬間の全員の状態を控える。あとから任意のステップの盤面を作れるようにするため。
+  // 1局は高々100手なのでコストは問題にならない
+  function pushStep(player, kind, tile, extra = {}) {
+    steps.push({
+      index:  steps.length,
+      player,
+      wind:   windOf(player),
+      kind,
+      tile,                              // 牌コード（ツモ牌 / 鳴いた牌 / 切った牌）
+      junme:  seats[player].drawCount,
+      state:  seats.map(s => ({
+        hand:        [...s.hand],
+        melds:       [...s.melds],       // 要素は作ったあと書き換えないので浅くてよい
+        river:       [...s.river],
+        riichiIndex: s.riichiIndex,
+        drawCount:   s.drawCount,
+      })),
+      ...extra,
+    });
+  }
 
   // 鳴きが入ると手番が飛ぶ。次にツモ／鳴きをする家を、
   // 「次の要素が鳴きで、その鳴き元が今の打牌者」かどうかで判定する
@@ -237,36 +303,6 @@ export function replayRound(paifu, roundIndex, { seat = 0, turn = 1 } = {}) {
     s.melds.push({ type: meld.type, tiles: meld.tiles, from: null });
   }
 
-  function buildResult(s, rawDiscard) {
-    const snapshot = makeBoardSnapshot({
-      ...splitKyoku(kyokuNo),
-      honba,
-      kyotaku,
-      junme:  s.drawCount,
-      jikaze: windOf(seat),
-      // 牌譜が持つのは★ドラ表示牌★。このアプリの dora はドラそのものなので1つ進める。
-      // カンドラは problem が持てないので最初の1枚だけを採る
-      dora:   getDoraFromIndicator(parseTenhouTile(doraIndicators[0])),
-      scores: Object.fromEntries(
-        [0, 1, 2, 3].map(p => [windOf(p), startScores[p] ?? 0])
-      ),
-      seats: Object.fromEntries([0, 1, 2, 3].map(p => [windOf(p), {
-        hand:        parseTenhouTiles(seats[p].hand),
-        melds:       seats[p].melds,
-        discards:    parseTenhouTiles(seats[p].river),
-        riichiIndex: seats[p].riichiIndex,
-      }])),
-    });
-    const riichiDeclared = typeof rawDiscard === 'string' && rawDiscard.startsWith('r');
-    const tile = riichiDeclared ? Number(rawDiscard.slice(1)) : Number(rawDiscard);
-    return {
-      snapshot,
-      actualDiscard: parseTenhouTile(tile === TSUMOGIRI ? s.lastDraw : tile),
-      riichiDeclared,
-      isLast: s.discardPtr >= s.discards.length - 1,
-    };
-  }
-
   let current = kyokuNo % 4;   // 親から開始
   // 牌譜が壊れていても止まるように上限を設ける（1局の打牌は多くても100手程度）
   for (let guard = 0; guard < 400; guard++) {
@@ -274,58 +310,190 @@ export function replayRound(paifu, roundIndex, { seat = 0, turn = 1 } = {}) {
 
     // --- ツモ または 鳴き ---
     const drawn = s.draws[s.drawPtr];
-    if (drawn === undefined) return null;
+    if (drawn === undefined) break;   // 牌譜の終わり
     s.drawPtr++;
-    if (typeof drawn === 'string') applyCall(s, current, drawn);
-    else {
+
+    // 打牌の直前に積むステップの種類と牌（暗槓・加槓を挟むと嶺上ツモで上書きされる）
+    let kind, kindTile;
+    if (typeof drawn === 'string') {
+      applyCall(s, current, drawn);
+      const meld = parseMeldString(drawn);
+      kind     = 'call';
+      kindTile = meld ? meld.tiles[meld.calledIndex] ?? null : null;
+    } else {
       s.hand.push(drawn);
       s.lastDraw = drawn;
       s.drawCount++;
+      kind     = 'tsumo';
+      kindTile = parseTenhouTile(drawn);
     }
 
     // --- 打牌（暗槓・加槓を挟むと嶺上ツモに戻る） ---
     let discarded = false;
     while (!discarded) {
       const raw = s.discards[s.discardPtr];
-      if (raw === undefined) return null;
+      if (raw === undefined) return { steps, meta };
 
       if (typeof raw === 'string' && !raw.startsWith('r')) {
         // 暗槓・加槓。処理して嶺上牌を引き、同じ手番で打牌へ戻る
         s.discardPtr++;
         applySelfKan(s, raw);
         const rinshan = s.draws[s.drawPtr];
-        if (rinshan === undefined) return null;
+        if (rinshan === undefined) return { steps, meta };
         s.drawPtr++;
         s.hand.push(rinshan);
         s.lastDraw = rinshan;
         s.drawCount++;
+        kind     = 'tsumo';
+        kindTile = parseTenhouTile(rinshan);
         continue;
       }
 
-      // ここが「打牌の直前」＝手牌14枚の状態
-      if (current === seat && s.discardCount === turn - 1) return buildResult(s, raw);
+      const isRiichi = typeof raw === 'string';
+      const tileNo   = isRiichi ? Number(raw.slice(1)) : Number(raw);
+      const actual   = tileNo === TSUMOGIRI ? s.lastDraw : tileNo;
+      const actualCode = parseTenhouTile(actual);
+
+      // ここが「打牌の直前」＝手牌14枚の状態。
+      // この後どの牌を切るかも持たせる（正解ではないが参考として画面に出せる）
+      pushStep(current, kind, kindTile, {
+        turn:         s.discardCount + 1,
+        nextDiscard:  actualCode,
+        nextRiichi:   isRiichi,
+      });
 
       s.discardPtr++;
       s.discardCount++;
-      const isRiichi = typeof raw === 'string';
-      const tile = isRiichi ? Number(raw.slice(1)) : Number(raw);
-      const actual = tile === TSUMOGIRI ? s.lastDraw : tile;
       if (isRiichi) s.riichiIndex = s.river.length;
       s.river.push(actual);
       removeTile(s.hand, actual);
+
+      // 打牌の直後。他家から見れば「鳴くか・押すか」を問える瞬間
+      pushStep(current, 'discard', actualCode, {
+        riichi:      isRiichi,
+        lastDiscard: { wind: windOf(current), tile: actualCode },
+      });
       discarded = true;
     }
 
     current = nextPlayer(current);
   }
-  return null;
+  return { steps, meta };
+}
+
+// ステップの状態から BoardSnapshot を作る。seat（どの席の視点か）はステップとは独立
+function buildSnapshot(step, seat, meta) {
+  const windOf = p => playerWind(p, meta.kyokuNo);
+  return makeBoardSnapshot({
+    ...splitKyoku(meta.kyokuNo),
+    honba:   meta.honba,
+    kyotaku: meta.kyotaku,
+    junme:   step.state[seat].drawCount,
+    jikaze:  windOf(seat),
+    // 牌譜が持つのは★ドラ表示牌★。このアプリの dora はドラそのものなので1つ進める。
+    // カンドラは problem が持てないので最初の1枚だけを採る
+    dora:    getDoraFromIndicator(parseTenhouTile(meta.doraIndicators[0])),
+    scores:  Object.fromEntries(
+      [0, 1, 2, 3].map(p => [windOf(p), meta.startScores[p] ?? 0])
+    ),
+    seats: Object.fromEntries([0, 1, 2, 3].map(p => [windOf(p), {
+      hand:        parseTenhouTiles(step.state[p].hand),
+      melds:       step.state[p].melds,
+      discards:    parseTenhouTiles(step.state[p].river),
+      riichiIndex: step.state[p].riichiIndex,
+    }])),
+    // 直前に切られた牌。problem.discardedTile になり、鳴き系の問題タイプで使う
+    lastDiscard: step.lastDiscard ?? null,
+  });
+}
+
+// ステップから状態（内部用の重いデータ）を取り除いた、画面に渡してよい形
+function publicStep(step) {
+  const { state, ...rest } = step;   // eslint-disable-line no-unused-vars
+  return rest;
 }
 
 /**
- * ある席がその局で何回打牌したか（＝選べる巡目の数）。局面選択UIのスライダー上限に使う。
+ * 局の局面（ステップ）を並べて返す。局面選択UIの選択肢に使う。
+ * 各要素: { index, player, wind, kind, tile, junme, turn?, nextDiscard?, riichi? }
+ */
+export function listSteps(paifu, roundIndex) {
+  return (replayAll(paifu, roundIndex)?.steps ?? []).map(publicStep);
+}
+
+/**
+ * 指定した局面の盤面を返す。
+ *
+ * @param stepIndex  listSteps のインデックス
+ * @param seat       どの席の視点で見るか（0〜3）。**ステップの player とは独立**
+ *
+ * 返り値 { snapshot, step, actualDiscard, riichiDeclared } … 見つからなければ null。
+ *   actualDiscard  … 打牌直前のステップで「この後実際に切られる牌」。
+ *                    **正解ではない**が、正解を決めるときの参考に画面へ出せる
+ */
+export function snapshotAt(paifu, roundIndex, stepIndex, { seat = 0 } = {}) {
+  const all = replayAll(paifu, roundIndex);
+  const step = all?.steps?.[stepIndex];
+  if (!step) return null;
+  return {
+    snapshot:       buildSnapshot(step, seat, all.meta),
+    step:           publicStep(step),
+    actualDiscard:  step.nextDiscard ?? null,
+    riichiDeclared: step.nextRiichi ?? false,
+  };
+}
+
+/**
+ * 指定した席が turn 回目の打牌をする「直前」の盤面を返す。
+ * ＝ その席が牌を引き終えた 14 枚の状態。何切る問題を作る最短路。
+ *
+ * 中身は snapshotAt を呼ぶだけ（再生は replayAll に一本化してある）。
+ * 返り値は snapshotAt に isLast（その席の最後の打牌か）を足したもの。
+ */
+export function replayRound(paifu, roundIndex, { seat = 0, turn = 1 } = {}) {
+  const all = replayAll(paifu, roundIndex);
+  if (!all) return null;
+  // 暗槓・加槓を挟むと同じ turn の打牌直前が複数あり得るため、最後（実際に切る直前）を採る
+  const index = all.steps.findLastIndex(
+    s => s.player === seat && s.turn === turn && (s.kind === 'tsumo' || s.kind === 'call')
+  );
+  if (index < 0) return null;
+  return {
+    ...snapshotAt(paifu, roundIndex, index, { seat }),
+    isLast: turn >= countTurns(paifu, roundIndex, seat),
+  };
+}
+
+/**
+ * ある席がその局で何回打牌したか（＝選べる巡目の数）。局面選択UIの上限に使う。
  * 暗槓・加槓は打牌ではないので数えない。
  */
 export function countTurns(paifu, roundIndex, seat) {
   const list = paifu?.log?.[roundIndex]?.[6 + seat * 3] ?? [];
   return list.filter(el => typeof el !== 'string' || el.startsWith('r')).length;
+}
+
+// ===== 局面の絞り込み（画面から使う） =====
+
+// 既定は「自分の手番」＝ 何切るを作る使い方（ツモ・鳴きの直後）。
+// 「他家の打牌」は鳴くか・押すかを問う局面（切られた牌が discardedTile に入る）
+export const STEP_FILTERS = [
+  { value: 'self',  label: '自分の手番' },
+  { value: 'other', label: '他家の打牌' },
+  { value: 'all',   label: 'すべて' },
+];
+
+// 絞り込みに合うステップだけを取り出す
+export function filterSteps(steps, filter, seat) {
+  if (filter === 'self')  return steps.filter(s => s.player === seat && s.kind !== 'discard');
+  if (filter === 'other') return steps.filter(s => s.player !== seat && s.kind === 'discard');
+  return steps;
+}
+
+// ステップ1つぶんの説明（「9巡目 ツモ」「南家 打」など）
+export function stepLabel(step, seat) {
+  if (!step) return '';
+  const who = step.player === seat ? '自分' : `${step.wind}家`;
+  if (step.kind === 'discard') return `${who} 打`;
+  return `${step.junme}巡目 ${step.kind === 'call' ? '鳴き' : 'ツモ'}`;
 }

@@ -76,6 +76,10 @@ export function makeBoardSnapshot(partial = {}) {
     kyotaku: partial.kyotaku ?? null,
     // 各家の持ち点 { 東, 南, 西, 北 }。未設定なら null
     scores:  partial.scores  ?? null,
+    // 直前に切られた牌 { wind, tile }。problem.discardedTile になり、
+    // 「この牌を鳴くか」を問う問題タイプ（naki-timing / naki-choice）で使う。
+    // 何切るの局面（自分のツモ番）では null
+    lastDiscard: partial.lastDiscard ?? null,
     seats: Object.fromEntries(
       WINDS.map(w => [w, { ...makeEmptySeat(), ...(partial.seats?.[w] ?? {}) }])
     ),
@@ -150,6 +154,8 @@ export function snapshotToProblem(snapshot) {
     junme:         s.junme,
     scores:        toProblemScores(s),
     otherDiscards: toOtherDiscards(s),
+    // 鳴き系の問題タイプが使う「鳴く対象の牌」。何切るの局面では null になる
+    discardedTile: s.lastDiscard?.tile ?? null,
   };
 }
 

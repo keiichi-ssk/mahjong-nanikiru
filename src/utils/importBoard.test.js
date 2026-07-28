@@ -204,15 +204,16 @@ describe('snapshotToProblem（BoardSnapshot → problem）', () => {
   // ゴールデンテスト。BoardSnapshot にフィールドを足したとき problem への反映を忘れると落ちる。
   // 意図的に変換しないフィールドを作る場合もこの表に理由とともに書くこと
   const SNAPSHOT_FIELD_TARGETS = {
-    bakaze:  'problem.bakaze',
-    kyoku:   'problem.kyoku',
-    honba:   'problem.honba',
-    junme:   'problem.junme',
-    jikaze:  'problem.jikaze',
-    dora:    'problem.dora',
-    kyotaku: 'problem.scores.kyotaku',
-    scores:  'problem.scores',
-    seats:   'problem.tiles / melds / otherDiscards',
+    bakaze:      'problem.bakaze',
+    kyoku:       'problem.kyoku',
+    honba:       'problem.honba',
+    junme:       'problem.junme',
+    jikaze:      'problem.jikaze',
+    dora:        'problem.dora',
+    kyotaku:     'problem.scores.kyotaku',
+    scores:      'problem.scores',
+    seats:       'problem.tiles / melds / otherDiscards',
+    lastDiscard: 'problem.discardedTile',
   };
   const SEAT_FIELD_TARGETS = {
     hand:        '自風の席 → problem.tiles',
@@ -254,6 +255,24 @@ describe('snapshotToProblem（BoardSnapshot → problem）', () => {
         { player: '東', tiles: ['1z'], riichiIndex: 0, melds: [] },
         { player: '南', tiles: ['9p'], riichiIndex: null, melds: [] },
       ],
+      discardedTile: null,
+    });
+  });
+
+  // 他家が牌を切った直後の局面（鳴くか・押すかを問う）では、その牌が
+  // problem.discardedTile になり naki-timing / naki-choice で使える
+  describe('lastDiscard', () => {
+    it('直前に切られた牌が discardedTile になる', () => {
+      const p = snapshotToProblem({
+        jikaze: '東',
+        lastDiscard: { wind: '南', tile: '3s' },
+        seats: { 東: { hand: ['1m'] } },
+      });
+      expect(p.discardedTile).toBe('3s');
+    });
+
+    it('自分のツモ番の局面（未設定）では null', () => {
+      expect(snapshotToProblem({ jikaze: '東' }).discardedTile).toBeNull();
     });
   });
 });

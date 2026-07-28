@@ -207,10 +207,15 @@ function ScoreInputRow({ label, isSelf, active, value, onChange, steps }) {
 //   headerLead   … ヘッダー先頭の「ID 123」を差し替える（uuid をそのまま出すと場所を食う）
 //   saveStatus   … 保存ボタンの隣に出す状態表示（ReactNode 可）。
 //                  サイドバーに出すと保存ボタンから遠く、保存できたか分かりにくいため
+//   lockBoard    … 盤面（手牌・状況設定・捨て牌）を編集できないようにする。
+//                  牌譜から作った問題は「実在の局面をそのまま出題する」のが基本なので既定でロックし、
+//                  ヘッダーのトグルで解除する。ロック中はパレットのタブが「正解設定」だけになり、
+//                  注釈はそのタブに出る（手牌タブが隠れて編集できなくなるのを防ぐため）
+//   concealedCounts … 他家の手牌の実際の枚数。BoardView へそのまま渡す（表示専用・保存されない）
 export default function ProblemEditor({
   problem, prevProblem, onSave, onSaveAndNext, onDelete, hasNext,
   hideImage = false, hideReviewed = false, hideDelete = false, headerLead = null,
-  saveStatus = null,
+  saveStatus = null, lockBoard = false, concealedCounts = null,
 }) {
   // 手牌が未設定（新規追加直後）の問題は、手牌・正解・状況設定（ドラ・場風・自風・巡目）を
   // ひとつ前の問題から引き継いでおく。手牌がすでにある問題は自分自身の値を優先する。
@@ -596,24 +601,28 @@ export default function ProblemEditor({
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [handleSaveAndNext])
 
-  const [paletteTab,  setPaletteTab]  = useState('hand')
-  const [paletteMode, setPaletteMode] = useState('hand')
+  // 盤面（手牌・状況設定・捨て牌）を編集できるか。
+  // 牌譜から作った問題は「実在の局面をそのまま出題する」のが基本なので既定でロックする
+  const [boardLocked, setBoardLocked] = useState(lockBoard)
+
+  const [paletteTab,  setPaletteTab]  = useState(lockBoard ? 'answer' : 'hand')
+  const [paletteMode, setPaletteMode] = useState(lockBoard ? 'explanation' : 'hand')
 
   // 共通パレットの送り先モード。タブや問題タイプに依存するモードは文脈があるときだけ出す。
-  // 副露追加中は「副露」に固定（setState不要にするため、実効モードは描画時に導出する）
+  // 副露追加中は「副露」に固定（setState不要にするため、実効モードは描画時に導出する）。
+  // ロック中は盤面を変えるモード（手牌・副露・ドラ・捨て牌）を外す
   const availableModes = [
-    'hand',
-    ...(addingMeld ? ['meld'] : []),
-    'dora',
+    ...(boardLocked ? [] : ['hand', ...(addingMeld ? ['meld'] : []), 'dora']),
     'note',
     'explanation',
-    ...(paletteTab === 'sutehai' ? ['sutehai'] : []),
+    ...(!boardLocked && paletteTab === 'sutehai' ? ['sutehai'] : []),
     ...(paletteTab === 'answer' && problemType === 'naki-timing' ? ['depai'] : []),
     ...(paletteTab === 'answer' && problemType === 'naki-choice' ? ['nakiChoice'] : []),
   ]
-  const effectiveMode = addingMeld
+  const fallbackMode = boardLocked ? 'explanation' : 'hand'
+  const effectiveMode = addingMeld && !boardLocked
     ? 'meld'
-    : (availableModes.includes(paletteMode) ? paletteMode : 'hand')
+    : (availableModes.includes(paletteMode) ? paletteMode : fallbackMode)
 
   function handlePaletteTile(tile) {
     switch (effectiveMode) {
@@ -635,16 +644,36 @@ export default function ProblemEditor({
       ? `${otherDiscards[addingMeld.target].player}家`
       : `${addingMeld.target + 1}人目`
 
+  // 注釈の入力欄。通常は手牌タブ、盤面ロック中は正解設定タブに出す
+  // （ロック中は手牌タブが無くなるため。二重に定義せず同じものを使い回す）
+  const noteEditor = (
+    <>
+      <div className="palette-tab-divider" />
+      <div className="editor-section-label">注釈</div>
+      <textarea
+        ref={noteRef}
+        className="explanation-textarea"
+        value={note}
+        onChange={e => setNote(e.target.value)}
+        onFocus={() => { noteTouchedRef.current = true; setPaletteMode('note') }}
+        placeholder="状況設定に関する注釈を入力してください（牌は下のパレットからカーソル位置に挿入できます）"
+        rows={2}
+      />
+    </>
+  )
+
   // 盤面クリックで対応する編集パネルを開く（盤面からデータは書き換えない）。
   // ハイライトは逆にタブ側から導出するので、タブを直接切り替えても盤面の選択表示が追従する
-  const activeArea =
-    paletteTab === 'sutehai' ? `sutehai:${activeSutehaiIdx}`
+  const activeArea = boardLocked ? null
+    : paletteTab === 'sutehai' ? `sutehai:${activeSutehaiIdx}`
     : paletteTab === 'jokyo' ? 'jokyo'
     : paletteTab === 'hand'  ? 'hand'
     : null
 
   // index は kind ごとに意味が違う（sutehai＝家ブロックの番号 / jokyo＝クリックした家の風）
   function handleSelectArea(kind, index) {
+    // ロック中は開く先のタブが無いので何もしない（盤面のクリックは無反応になる）
+    if (boardLocked) return
     if (kind === 'hand') {
       setPaletteTab('hand')
       setPaletteMode('hand')
@@ -693,14 +722,18 @@ export default function ProblemEditor({
           junme={junme}
           scores={scores}
           otherDiscards={otherDiscards}
+          concealedCounts={concealedCounts}
           activeArea={activeArea}
           onSelectArea={handleSelectArea}
-          onChangeBakaze={setBakaze}
-          onChangeKyoku={setKyoku}
-          onChangeHonba={setHonba}
-          onChangeJikaze={setJikaze}
-          onChangeJunme={setJunme}
-          onRemoveHandTile={removeTile}
+          {...(boardLocked ? {} : {
+            // ロック中は編集用のコールバックを渡さない＝盤面から局面を変えられない
+            onChangeBakaze:   setBakaze,
+            onChangeKyoku:    setKyoku,
+            onChangeHonba:    setHonba,
+            onChangeJikaze:   setJikaze,
+            onChangeJunme:    setJunme,
+            onRemoveHandTile: removeTile,
+          })}
         />
 
         {/* 共通牌パレット。盤面の下（左カラム内）に置き、幅を盤面に合わせる。
@@ -762,6 +795,24 @@ export default function ProblemEditor({
           />
           非表示
         </label>
+        {/* 牌譜から作った問題は実在の局面をそのまま出すのが基本なので、
+            盤面はロックしておき、変えたいときだけここで解除する */}
+        {lockBoard && (
+          <label className="reviewed-check" title="手牌・状況設定・捨て牌を変更できるようにする">
+            <input
+              type="checkbox"
+              checked={!boardLocked}
+              onChange={e => {
+                const unlock = e.target.checked
+                setBoardLocked(!unlock)
+                // 残るタブが変わるので、送り先も切り替える
+                setPaletteTab(unlock ? 'hand' : 'answer')
+                setPaletteMode(unlock ? 'hand' : 'explanation')
+              }}
+            />
+            盤面を編集
+          </label>
+        )}
         {/* 保存・保存して次へ・削除はひとまとまり（折り返しても3つが分かれないようにする） */}
         <div className="editor-header-actions">
           <button className="editor-save-btn" onClick={handleSave}>保存</button>
@@ -828,6 +879,8 @@ export default function ProblemEditor({
       {/* === パレット統合エリア === */}
       <section className="editor-section editor-section--palette">
         <div className="palette-tab-bar">
+          {/* ロック中は盤面を変えるタブを出さない（残るのは正解設定だけ） */}
+          {!boardLocked && <>
           <button
             className={`palette-tab-btn${paletteTab === 'hand' ? ' palette-tab-btn--active' : ''}`}
             onClick={() => { setPaletteTab('hand'); setPaletteMode('hand') }}
@@ -846,6 +899,7 @@ export default function ProblemEditor({
           >
             捨て牌
           </button>
+          </>}
           <button
             className={`palette-tab-btn${paletteTab === 'answer' ? ' palette-tab-btn--active' : ''}`}
             onClick={() => {
@@ -926,18 +980,9 @@ export default function ProblemEditor({
               </div>
             )}
 
-            {/* 注釈は手牌と一緒に書くことが多いのでこのタブに置く（点数タブには置かない） */}
-            <div className="palette-tab-divider" />
-            <div className="editor-section-label">注釈</div>
-            <textarea
-              ref={noteRef}
-              className="explanation-textarea"
-              value={note}
-              onChange={e => setNote(e.target.value)}
-              onFocus={() => { noteTouchedRef.current = true; setPaletteMode('note') }}
-              placeholder="状況設定に関する注釈を入力してください（牌は下のパレットからカーソル位置に挿入できます）"
-              rows={2}
-            />
+            {/* 注釈は手牌と一緒に書くことが多いのでこのタブに置く（点数タブには置かない）。
+                盤面ロック中はこのタブ自体が出ないので、正解設定タブに同じものを出す */}
+            {noteEditor}
           </div>
         )}
 
@@ -1344,6 +1389,9 @@ export default function ProblemEditor({
               placeholder="解説を入力してください（牌は下のパレットからカーソル位置に挿入できます）"
               rows={3}
             />
+
+            {/* 盤面ロック中は手牌タブが無いので、注釈をここに出す */}
+            {boardLocked && noteEditor}
           </div>
         )}
       </section>

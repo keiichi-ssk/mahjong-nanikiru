@@ -98,8 +98,10 @@ function meldsWidth(melds, size = TILE) {
   return melds.reduce((sum, m) => sum + meldWidth(m, size), 0) + (melds.length - 1) * size.meldGap
 }
 
-// 他家の手牌（裏向き）の枚数。副露1組につき手牌から3枚減る（カンも嶺上牌を引くので同じ）
-function concealedHandCount(melds) {
+// 他家の手牌（裏向き）の枚数。副露1組につき手牌から3枚減る（カンも嶺上牌を引くので同じ）。
+// 牌譜から局面を再現しているときは実際の枚数（ツモ直後なら14枚）が渡されるので、そちらを優先する
+function concealedHandCount(melds, actual) {
+  if (Number.isInteger(actual)) return Math.max(0, actual)
   return Math.max(0, 13 - 3 * (melds?.length ?? 0))
 }
 
@@ -263,6 +265,9 @@ function BoardSelect({ value, onChange, options, suffix = '', title }) {
 export default function BoardView({
   tiles = [], melds = [], dora, answerList = [],
   bakaze, kyoku, honba, jikaze, junme, scores, otherDiscards = [],
+  // 他家の手牌の実際の枚数 { 東: 14, 南: 13, … }。牌譜から局面を再現するときだけ渡す
+  // （渡さなければ 13 − 3×副露数 で表示する）。problem には保存されない表示専用の情報
+  concealedCounts = null,
   activeArea, onSelectArea,
   // 盤面上で直接編集するためのコールバック（渡さなければ表示のみになる）
   onChangeBakaze, onChangeKyoku, onChangeHonba, onChangeJikaze, onChangeJunme, onRemoveHandTile,
@@ -380,7 +385,7 @@ export default function BoardView({
   // 位置の計算に使う長さは CSS カスタムプロパティで渡す（判定は CSS の min() が行う）
   function seatHandArea(seat, className) {
     const melds = seat.od?.melds ?? []
-    const handCount = concealedHandCount(melds)
+    const handCount = concealedHandCount(melds, concealedCounts?.[seat.wind])
     return (
       <BoardArea
         className={`board-seat ${className}`}

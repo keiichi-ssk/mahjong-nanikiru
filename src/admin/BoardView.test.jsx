@@ -4,6 +4,9 @@
 import { describe, it, expect } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import BoardView from './BoardView';
+import { replayRound } from '../utils/tenhouPaifu';
+import { snapshotToProblem } from '../utils/importBoard';
+import paifu from '../utils/__fixtures__/tenhou-sample.json';
 
 const base = {
   tiles: ['1m', '2m', '3m', '4p', '5p', '6p', '7s', '8s', '9s', '1z', '1z', '5z', '5z'],
@@ -107,10 +110,53 @@ describe('BoardView', () => {
     expect(html).toContain('Man9.svg');
   });
 
+  // 通常は「13 − 3×副露数」で描くが、牌譜を再現しているときは実際の枚数を渡す
+  // （他家がツモった直後は14枚になる）
+  it('他家の手牌の枚数を明示できる', () => {
+    const count = html => (html.match(/board-seat-hand-tile/g) ?? []).length;
+    // base は自風=南・西家だけチー1組 → 東13 + 西10 + 北13
+    expect(count(renderToStaticMarkup(<BoardView {...base} />))).toBe(36);
+    // 東家がツモった直後（14枚）を明示する
+    expect(count(renderToStaticMarkup(
+      <BoardView {...base} concealedCounts={{ 東: 14, 西: 10, 北: 13 }} />
+    ))).toBe(37);
+  });
+
   it('データが空でも落ちない', () => {
     const html = renderToStaticMarkup(<BoardView onSelectArea={() => {}} />);
     expect(html).toContain('board-center');
     expect(html).toContain('手牌が未設定です');
+  });
+
+  // 牌譜から切り出した局面は ProblemEditor 経由でこの盤面に流し込まれる（my問題集）。
+  // 再生した結果をそのまま描画できることをここで固定する。
+  // なお onSelectArea は BoardView が直接呼ぶため、表示だけの用途でも必須
+  it('牌譜から再現した盤面を描画できる', () => {
+    const problem = snapshotToProblem(
+      replayRound(paifu, 0, { seat: 1, turn: 10 }).snapshot
+    );
+    const html = renderToStaticMarkup(
+      <BoardView
+        onSelectArea={() => {}}
+        tiles={problem.tiles}
+        melds={problem.melds}
+        dora={problem.dora}
+        bakaze={problem.bakaze}
+        kyoku={problem.kyoku}
+        honba={problem.honba}
+        jikaze={problem.jikaze}
+        junme={problem.junme}
+        scores={problem.scores}
+        otherDiscards={problem.otherDiscards ?? []}
+      />
+    );
+    expect(html).toContain('board-center');
+    // 自分の手牌（11枚）と副露（8m のポン）が出ている
+    expect(html).toContain('board-hand-tiles');
+    expect(html).toContain('Man8.svg');
+    expect(html).not.toContain('手牌が未設定です');
+    // 河は全員ぶんデータがあるので裏向きでの補完は起きない
+    expect(riverBacks(html)).toBe(0);
   });
 
   it('自風・巡目・点数・ドラが未設定でも落ちない', () => {

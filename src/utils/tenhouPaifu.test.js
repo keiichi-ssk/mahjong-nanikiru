@@ -8,6 +8,12 @@ import {
   listRounds,
   countTurns,
   replayRound,
+  listSteps,
+  snapshotAt,
+  filterSteps,
+  stepLabel,
+  validatePaifu,
+  defaultProblemTitle,
 } from './tenhouPaifu';
 import { snapshotToProblem } from './importBoard';
 
@@ -112,6 +118,151 @@ describe('局の情報', () => {
     expect(countTurns(paifu, 0, 0)).toBe(18);
     // 東3局2本場のプレイヤー1は加槓を1回しているが打牌としては数えない
     expect(countTurns(paifu, 4, 1)).toBe(8);
+  });
+});
+
+describe('listSteps / snapshotAt（局面を1手ずつ扱う）', () => {
+  it('打牌の直前と直後が交互に並ぶ', () => {
+    const steps = listSteps(paifu, 0);
+    // 最初は親（東1局なのでプレイヤー0）のツモ → その打牌
+    expect(steps[0]).toMatchObject({ index: 0, player: 0, wind: '東', kind: 'tsumo', turn: 1 });
+    expect(steps[1]).toMatchObject({ index: 1, player: 0, wind: '東', kind: 'discard' });
+    // 打牌の直前ステップは「この後何を切るか」を持つ
+    expect(steps[0].nextDiscard).toBe(steps[1].tile);
+  });
+
+  it('鳴いた直後は call になり、その家に手番が移る', () => {
+    const steps = listSteps(paifu, 0);
+    const call = steps.find(s => s.kind === 'call');
+    // 東1局はプレイヤー1が 8m をポンしている
+    expect(call).toMatchObject({ player: 1, kind: 'call', tile: '8m' });
+    // 鳴いた直後は打牌の直前でもある
+    expect(call.turn).toBeGreaterThan(0);
+    expect(call.nextDiscard).not.toBeNull();
+  });
+
+  it('リーチ宣言の打牌には印が付く', () => {
+    const declared = listSteps(paifu, 1).filter(s => s.kind === 'discard' && s.riichi);
+    // 東1局1本場は2人がリーチしている（北家が先、次に南家）。
+    // 南家は r60 ＝ リーチしてツモ切りなので、60 が直前のツモ牌に解決されている
+    expect(declared.map(s => [s.player, s.tile])).toEqual([[3, '7s'], [1, '4m']]);
+  });
+
+  it('状態そのもの（内部データ）は外に出さない', () => {
+    expect(listSteps(paifu, 0)[0]).not.toHaveProperty('state');
+  });
+
+  it('存在しない局は空', () => {
+    expect(listSteps(paifu, 99)).toEqual([]);
+    expect(listSteps(null, 0)).toEqual([]);
+  });
+
+  // ★ 視点（seat）はステップの player とは独立。
+  //   「他家が切った瞬間を自分の視点で見る」ために必要
+  it('同じ局面を別の席の視点で見られる', () => {
+    const steps = listSteps(paifu, 0);
+    const i = steps.findIndex(s => s.kind === 'discard' && s.player === 0);
+
+    const fromEast  = snapshotToProblem(snapshotAt(paifu, 0, i, { seat: 0 }).snapshot);
+    const fromSouth = snapshotToProblem(snapshotAt(paifu, 0, i, { seat: 1 }).snapshot);
+
+    expect(fromEast.jikaze).toBe('東');
+    expect(fromSouth.jikaze).toBe('南');
+    // 手牌は視点ごとに変わるが、河（盤面）は同じ
+    expect(fromEast.tiles).not.toEqual(fromSouth.tiles);
+    expect(fromEast.otherDiscards).toEqual(fromSouth.otherDiscards);
+  });
+
+  // 他家の打牌直後は「鳴くか」を問える局面。切られた牌が discardedTile に入る
+  it('打牌の直後の局面では切られた牌が discardedTile になる', () => {
+    const steps = listSteps(paifu, 0);
+    const i = steps.findIndex(s => s.kind === 'discard' && s.player === 0);
+    const p = snapshotToProblem(snapshotAt(paifu, 0, i, { seat: 1 }).snapshot);
+
+    expect(p.discardedTile).toBe(steps[i].tile);
+    // 切った直後なので、まだツモっていない自分の手牌は13枚
+    expect(p.tiles).toHaveLength(13);
+  });
+
+  it('自分のツモ番の局面では discardedTile は入らない', () => {
+    const p = snapshotToProblem(snapshotAt(paifu, 0, 0, { seat: 0 }).snapshot);
+    expect(p.discardedTile).toBeNull();
+    expect(p.tiles).toHaveLength(14);
+  });
+
+  it('存在しないステップは null', () => {
+    expect(snapshotAt(paifu, 0, 9999, { seat: 0 })).toBeNull();
+    expect(snapshotAt(paifu, 99, 0, { seat: 0 })).toBeNull();
+  });
+});
+
+describe('filterSteps / stepLabel（画面の絞り込みと説明）', () => {
+  const steps = () => listSteps(paifu, 0);
+
+  // 既定の「自分の手番」は何切るを作る使い方。ツモと鳴きの直後だけが残る
+  it('自分の手番はツモ・鳴きの直後だけ', () => {
+    const list = filterSteps(steps(), 'self', 1);
+    expect(list.every(s => s.player === 1 && s.kind !== 'discard')).toBe(true);
+    expect(list.some(s => s.kind === 'call')).toBe(true);   // ポンしている
+  });
+
+  it('他家の打牌は自分以外が切った直後だけ', () => {
+    const list = filterSteps(steps(), 'other', 1);
+    expect(list.every(s => s.player !== 1 && s.kind === 'discard')).toBe(true);
+    expect(list.length).toBeGreaterThan(0);
+  });
+
+  it('すべてはそのまま返す', () => {
+    expect(filterSteps(steps(), 'all', 0)).toHaveLength(steps().length);
+  });
+
+  it('局面の説明を作る', () => {
+    const list = steps();
+    const tsumo = list.find(s => s.kind === 'tsumo' && s.player === 0);
+    expect(stepLabel(tsumo, 0)).toBe(`${tsumo.junme}巡目 ツモ`);
+
+    const call = list.find(s => s.kind === 'call');
+    expect(stepLabel(call, call.player)).toContain('鳴き');
+
+    const discard = list.find(s => s.kind === 'discard' && s.player === 0);
+    expect(stepLabel(discard, 1)).toBe('東家 打');   // 他家から見た表記
+    expect(stepLabel(discard, 0)).toBe('自分 打');
+    expect(stepLabel(null, 0)).toBe('');
+  });
+});
+
+describe('validatePaifu（読み込めるかの判定）', () => {
+  it('取り込んだ牌譜は読める', () => {
+    expect(validatePaifu(paifu)).toEqual({ ok: true });
+  });
+
+  it('牌譜でない JSON を弾く', () => {
+    expect(validatePaifu(null).ok).toBe(false);
+    expect(validatePaifu([1, 2, 3]).ok).toBe(false);
+    expect(validatePaifu({ hello: 'world' }).ok).toBe(false);
+    expect(validatePaifu({ log: [] }).ok).toBe(false);
+  });
+
+  // 再生は4人麻雀前提。3人麻雀は1局の要素数も席と風の対応も違う
+  it('3人麻雀の牌譜を弾く', () => {
+    expect(validatePaifu({ ...paifu, name: ['A', 'B', 'C'] }).ok).toBe(false);
+    const threePlayerRound = paifu.log[0].slice(0, 14);
+    expect(validatePaifu({ ...paifu, log: [threePlayerRound] }).ok).toBe(false);
+  });
+
+  it('弾いたときは画面に出せる理由を返す', () => {
+    expect(validatePaifu({ ...paifu, name: ['A', 'B', 'C'] }).reason).toContain('4人麻雀');
+  });
+});
+
+describe('defaultProblemTitle', () => {
+  it('局と巡目からタイトルを作る', () => {
+    expect(defaultProblemTitle(paifu, 0, 9)).toBe('東1局 9巡目');
+    expect(defaultProblemTitle(paifu, 4, 3)).toBe('東3局 2本場 3巡目');
+  });
+
+  it('存在しない局なら空', () => {
+    expect(defaultProblemTitle(paifu, 99, 1)).toBe('');
   });
 });
 

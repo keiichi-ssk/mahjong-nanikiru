@@ -1,9 +1,14 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import ProblemEditor from '../admin/ProblemEditor'
 import { toUserDb, fromUserDb, makeNewUserProblem } from '../utils/userProblemMapper'
 import { PROBLEM_TYPE_LABELS } from '../utils/problemConstants'
 import { normalizeProblemType } from '../utils/judgeUtils'
+import PaifuImport from './PaifuImport'
+import { snapshotToProblem } from '../utils/importBoard'
+import {
+  validatePaifu, listRounds, listSteps, snapshotAt, filterSteps, defaultProblemTitle,
+} from '../utils/tenhouPaifu'
 
 // 自作問題集（my問題集）の作成画面。
 // 計画: docs/user-problems-plan.md
@@ -108,6 +113,18 @@ export default function MyProblemsApp() {
 
   const [selectedCatId, setSelectedCatId]   = useState(null)
   const [selectedProbId, setSelectedProbId] = useState(null)
+  // メイン領域の表示。'editor' = 保存済みの問題を編集 / 'paifu' = 牌譜から局面を切り出す（未保存）
+  const [view, setView]                     = useState('editor')
+  // 読み込んだ牌譜と、いま見ている局面。
+  // ★ 牌譜から作った問題は「保存」で初めて user_problems に入る（作りかけが溜まらないようにするため）
+  const [paifu, setPaifu]               = useState(null)
+  const [paifuFile, setPaifuFile]       = useState('')
+  const [paifuError, setPaifuError]     = useState('')
+  // stepIndex は listSteps のインデックス（局面）。filter は画面での絞り込み
+  const [draft, setDraft]               = useState({ roundIndex: 0, seat: 0, stepIndex: 0, filter: 'self' })
+  const [draftCategoryId, setDraftCategoryId] = useState(null)
+  // 保存済みの局面（同じ局面を続けて保存してしまわないよう画面で知らせる）
+  const [savedKeys, setSavedKeys]       = useState(() => new Set())
   const [newName, setNewName]               = useState('')
   const [editingId, setEditingId]           = useState(null)
   const [editingName, setEditingName]       = useState('')
@@ -120,6 +137,7 @@ export default function MyProblemsApp() {
   // 成功は数秒で自動的に消す（消えずに残っていると、次の保存で変化が無く保存されたか分からないため）
   const [editorStatus, setEditorStatus]     = useState(null)
   const editorStatusTimer                   = useRef(null)
+  const paifuFileRef                        = useRef(null)
 
   useEffect(() => () => clearTimeout(editorStatusTimer.current), [])
 
@@ -164,6 +182,53 @@ export default function MyProblemsApp() {
   // null = 判定中
   const isAdmin = (session && adminCheck?.email === session.user.email) ? adminCheck.isAdmin : null
   const userId  = session?.user?.id ?? null
+
+  // ===== 牌譜のドラフト（描画時に導出する） =====
+  // 選べる局面は「局 × 席 × 絞り込み」で変わるので、state はそのままにして
+  // 描画時に有効な局面へ寄せる（effect で setState すると cascading render になるため）
+  const paifuRounds = useMemo(() => (paifu ? listRounds(paifu) : []), [paifu])
+  const allSteps    = useMemo(
+    () => (paifu ? listSteps(paifu, draft.roundIndex) : []),
+    [paifu, draft.roundIndex],
+  )
+  const visibleSteps = useMemo(
+    () => filterSteps(allSteps, draft.filter, draft.seat),
+    [allSteps, draft.filter, draft.seat],
+  )
+  // 選択中の局面が絞り込みから外れていたら、その中の先頭に寄せる
+  const currentStep = visibleSteps.find(s => s.index === draft.stepIndex) ?? visibleSteps[0] ?? null
+  const stepIndex   = currentStep?.index ?? -1
+  // 局面が変わったらエディタを作り直すためのキー（保存済みの記録にも使う）
+  const draftKey = `${draft.roundIndex}-${draft.seat}-${stepIndex}`
+
+  const paifuResult = useMemo(
+    () => (paifu && stepIndex >= 0
+      ? snapshotAt(paifu, draft.roundIndex, stepIndex, { seat: draft.seat })
+      : null),
+    [paifu, draft.roundIndex, draft.seat, stepIndex],
+  )
+
+  // 他家の手牌の実際の枚数（ツモ直後なら14枚）。盤面の裏向きの枚数に使う。
+  // problem には保存されない表示専用の情報
+  const concealedCounts = useMemo(() => {
+    const seats = paifuResult?.snapshot?.seats
+    if (!seats) return null
+    return Object.fromEntries(
+      Object.entries(seats).map(([wind, s]) => [wind, s.hand.length])
+    )
+  }, [paifuResult])
+
+  // 盤面だけが埋まった未保存の問題。正解・解説はエディタで人が設定する
+  // （牌譜に入っているのは実際に切った牌であって正解ではない）
+  const draftProblem = useMemo(() => {
+    if (!paifuResult) return null
+    const board = snapshotToProblem(paifuResult.snapshot)
+    return {
+      ...makeNewUserProblem(),
+      ...board,
+      title: defaultProblemTitle(paifu, draft.roundIndex, board.junme),
+    }
+  }, [paifuResult, paifu, draft.roundIndex])
 
   useEffect(() => {
     if (!session || isAdmin !== true) return undefined
@@ -269,6 +334,12 @@ export default function MyProblemsApp() {
 
   // ===== 問題操作 =====
 
+  // 問題を選ぶと必ず編集画面に戻す（牌譜画面を開いたままだと選んだ問題が見えない）
+  function selectProblem(id) {
+    setSelectedProbId(id)
+    setView('editor')
+  }
+
   async function addProblem() {
     if (!userId || !selectedCatId) return
     const categoryId = selectedCatId === UNCATEGORIZED ? null : selectedCatId
@@ -278,8 +349,48 @@ export default function MyProblemsApp() {
     if (error) { setStatus(`問題の追加に失敗しました: ${error.message}`); return }
     if (!data || data.length === 0) { setStatus('追加できませんでした（権限の可能性）'); return }
     await reload()
-    setSelectedProbId(data[0].id)
+    selectProblem(data[0].id)
     setStatus('問題を追加しました ✓')
+  }
+
+  // ===== 牌譜から作る =====
+
+  async function readPaifuFile(file) {
+    if (!file) return
+    try {
+      const json = JSON.parse(await file.text())
+      const check = validatePaifu(json)
+      if (!check.ok) { setPaifu(null); setPaifuFile(file.name); setPaifuError(check.reason); return }
+      setPaifu(json)
+      setPaifuFile(file.name)
+      setPaifuError('')
+      // 牌譜が変わったら局面と保存済みの記録は最初に戻す
+      setDraft({ roundIndex: 0, seat: 0, stepIndex: 0, filter: 'self' })
+      setSavedKeys(new Set())
+      setDraftCategoryId(selectedCatId === UNCATEGORIZED ? null : selectedCatId)
+      setView('paifu')
+    } catch {
+      setPaifu(null)
+      setPaifuFile(file.name)
+      setPaifuError('JSONとして読み取れませんでした')
+    }
+  }
+
+  // 牌譜から切り出した局面を1問として保存する（insert）。
+  // 保存後もドラフトは残すので、続けて別の局面を切り出せる
+  async function saveDraft(updated) {
+    if (!userId) return false
+    const row = {
+      ...toUserDb(updated, { categoryId: draftCategoryId }),
+      user_id: userId,
+    }
+    const { data, error } = await supabase.from('user_problems').insert(row).select('id')
+    if (error) { showSaveError(`保存に失敗: ${error.message}`); return false }
+    if (!data || data.length === 0) { showSaveError('保存できませんでした（権限の可能性）'); return false }
+    showSaved('保存しました ✓')
+    setSavedKeys(prev => new Set(prev).add(draftKey))
+    await reload()
+    return true
   }
 
   async function saveProblem(updated) {
@@ -303,7 +414,7 @@ export default function MyProblemsApp() {
     const i = list.findIndex(p => p.id === updated.id)
     const ok = await saveProblem(updated)
     if (!ok) return
-    if (i >= 0 && i < list.length - 1) setSelectedProbId(list[i + 1].id)
+    if (i >= 0 && i < list.length - 1) selectProblem(list[i + 1].id)
   }
 
   function startEditingProb(p) {
@@ -491,9 +602,33 @@ export default function MyProblemsApp() {
         <div className="mp-prob-section">
           <div className="mp-prob-head">
             <span className="mp-prob-head-label">問題</span>
-            <button className="mp-add-btn mp-add-btn--sm" onClick={addProblem} disabled={!selectedCatId}>
-              ＋ 新しい問題
-            </button>
+            <div className="mp-prob-head-actions">
+              <input
+                ref={paifuFileRef}
+                type="file"
+                accept="application/json,.json"
+                className="paifu-file-input"
+                onChange={e => { readPaifuFile(e.target.files?.[0]); e.target.value = '' }}
+              />
+              <button
+                className={`mp-add-btn mp-add-btn--sm${view === 'paifu' ? ' mp-add-btn--active' : ''}`}
+                onClick={() => {
+                  // 読み込み済みならその牌譜の続きへ戻るだけ。未読込ならファイル選択を開く
+                  if (paifu) {
+                    setDraftCategoryId(selectedCatId === UNCATEGORIZED ? null : selectedCatId)
+                    setView('paifu')
+                  } else {
+                    paifuFileRef.current?.click()
+                  }
+                }}
+                title="牌譜のJSONファイルから局面を切り出して問題にする"
+              >
+                牌譜から
+              </button>
+              <button className="mp-add-btn mp-add-btn--sm" onClick={addProblem} disabled={!selectedCatId}>
+                ＋ 新しい問題
+              </button>
+            </div>
           </div>
           <div className="mp-prob-list">
             {!selectedCatId && <p className="mp-empty">カテゴリを選んでください。</p>}
@@ -535,7 +670,7 @@ export default function MyProblemsApp() {
                   ) : (
                     <button
                       className="mp-prob-name"
-                      onClick={() => setSelectedProbId(p.id)}
+                      onClick={() => selectProblem(p.id)}
                       onDoubleClick={() => startEditingProb(p)}
                       title="クリックで編集・ダブルクリックで番号とタイトルを変更"
                     >
@@ -580,7 +715,55 @@ export default function MyProblemsApp() {
       </aside>
 
       <main className="admin-main">
-        {selectedProb ? (
+        {view === 'paifu' ? (
+          // 牌譜から切り出した局面。まだ保存されていないので key で作り直す
+          // （局面が変われば手牌も変わるため、入力中の正解・解説は引き継がない）
+          <ProblemEditor
+            key={`draft-${draftKey}`}
+            problem={draftProblem ?? makeNewUserProblem()}
+            prevProblem={null}
+            hasNext={false}
+            hideImage
+            hideReviewed
+            hideDelete
+            // 実在の局面をそのまま出題するのが基本。変えたいときはヘッダーのトグルで解除する
+            lockBoard
+            concealedCounts={concealedCounts}
+            headerLead={
+              <PaifuImport
+                paifu={paifu}
+                fileName={paifuFile}
+                error={paifuError}
+                rounds={paifuRounds}
+                roundIndex={draft.roundIndex}
+                seat={draft.seat}
+                steps={visibleSteps}
+                stepIndex={stepIndex}
+                stepFilter={draft.filter}
+                step={currentStep}
+                saved={savedKeys.has(draftKey)}
+                categories={categories}
+                categoryId={draftCategoryId}
+                onPickFile={readPaifuFile}
+                // 局が変わるとステップ番号の意味も変わるので先頭に戻す
+                onChangeRound={i => setDraft(d => ({ ...d, roundIndex: i, stepIndex: 0 }))}
+                // 席と絞り込みは、外れた局面を描画時に寄せるので stepIndex はそのままでよい
+                onChangeSeat={i => setDraft(d => ({ ...d, seat: i }))}
+                onChangeStep={i => { if (i != null) setDraft(d => ({ ...d, stepIndex: i })) }}
+                onChangeFilter={f => setDraft(d => ({ ...d, filter: f }))}
+                onChangeCategory={setDraftCategoryId}
+              />
+            }
+            saveStatus={editorStatus && (
+              <span className={editorStatus.error ? 'mp-save-err' : 'mp-save-ok'}>
+                {editorStatus.text}
+              </span>
+            )}
+            onSave={saveDraft}
+            onSaveAndNext={saveDraft}
+            onDelete={() => {}}
+          />
+        ) : selectedProb ? (
           <ProblemPane
             key={selectedProb.id}
             problem={selectedProb}
