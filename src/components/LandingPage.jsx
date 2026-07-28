@@ -104,6 +104,7 @@ export default function LandingPage({ onLogin }) {
               牌譜（JSONファイル）を読み込めば、実戦の局面をそのまま問題にできます。
               <br />
               どなたでもご利用いただけます（20問まで）。
+              問題を作る画面はPC専用ですが、解くのはスマートフォンでもできます。
             </span>
           </li>
           <li>
