@@ -14,13 +14,13 @@
 // ★★ 文言を増やすときはフォントのサブセットを作り直すこと ★★
 //   public/fonts/NotoSansJP-{Bold,Regular}.otf はカードで使う文字だけに絞ってある
 //   （全字体は1書体17MBで、Vercel関数の同梱サイズ上限に触れる）。
-//   現在含まれているのは次の32字だけで、これ以外を書くと豆腐（□）になる:
-//     0123456789ちってのるをチドメリルン一何切待清特色訓？
-//   **局・巡目・点数を載せるには再サブセット化（fonttools）が要る**。
+//   現在含まれているのは次の45字だけで、これ以外を書くと豆腐（□）になる:
+//     （半角空白）0123456789ちってのるをチドメリルン一何切待清特色訓？東南西北局本場巡目供託点,
+//   作り直しは `bash scripts/subset-og-fonts.sh`（文字の追加もそのスクリプト内で行う）。
 
 import { ImageResponse } from '@vercel/og';
 import { decodeProblemParam } from '../src/utils/problemShare.js';
-import { getTileImageUrl } from '../src/utils/tileUtils.js';
+import { getTileImageUrl, getDoraIndicator } from '../src/utils/tileUtils.js';
 import { seatWinds } from '../src/utils/boardUtils.js';
 import { getMeldTileRole } from '../src/utils/problemConstants.js';
 
@@ -32,20 +32,31 @@ const FALLBACK_HAND = ['1m', '2m', '3m', '4p', '5p', '6p', '7s', '8s', '9s', '1z
 // 牌の寸法。
 // ★ 手牌は「手牌＋副露」を1行に収める必要がある。副露は鳴いた牌が横向きになるぶん
 //   1組あたり牌の高さ（41px）を食うので、14枚のときより副露があるときの方が長くなる。
-//   卓の内寸 540px に対する必要幅は次のとおりで、30×41 ならどれも収まる:
-//     副露なし（手牌14）… 30×14 + gap        = 446
-//     副露1組（手牌11）… 350 + 103 + gap10   = 463
-//     副露2組（手牌8） … 254 + 212 + gap10   = 476
-//     副露3組（手牌5） … 158 + 321 + gap10   = 489
-//     副露4組（手牌2） … 62 + 430 + gap10    = 502
-//   **サイズを変えるときはこの計算をやり直すこと**（satori は溢れても切ってくれない）
+//   30×41 での必要幅は次のとおりで、卓の内寸 560px にほぼ収まる:
+//     副露なし（手牌14）… 30×14 + gap          = 446
+//     ポン4組（手牌2） … 62 + 103×4 + gap28    = 502
+//     大明槓4組（手牌2）… 62 + 134×4 + gap28   = 626 ← ★収まらない
+//   最後のような極端な形もURLに入れて送れてしまうので、**実際の幅を計算して
+//   はみ出すぶんだけ牌を縮める**（handScale）。satori は溢れても切ってくれない
 const RIVER = { w: 22, h: 30 };
 const HAND  = { w: 30, h: 41 };
 const WALL  = { w: 22, h: 30 };
 
-const BOARD_SIZE  = 560;
+const BOARD_SIZE  = 580;   // 卓。カード高 630 − 上下の帯 20 ＝ 610 に収まる大きさ
+const BOARD_PAD   = 10;
+const INNER_SIZE  = BOARD_SIZE - BOARD_PAD * 2;   // 560
+const HAND_ROW_MAX = INNER_SIZE - 16;             // 手牌の行が卓の縁に張り付かないよう少し内側に収める
+const CENTER_SIZE = 300;   // 中央フィールド（局・巡目・各家の風と点数を載せる）
+const SEAT_SLOT   = 76;    // 中央の左右に置く「上家／下家」の枠。王牌を中央に保つため固定幅にする
 const RIVER_COLS  = 6;
 const RIVER_ROWS  = 3;   // カードに出す河は最大18枚（それ以上は切り詰める）
+
+// 卓の縦の内訳（内寸 560）:
+//   対面の河 94 ＋ 中央 300 ＋ 自分の河 94 ＋ 手牌 41 ＝ 529
+//   残り 31px を justifyContent:'space-between' が3つの隙間に配る。
+// ★ 河の枠は**実際の段数によらず常に3段ぶん（94px）を確保する**。
+//   河の中身は枠の「中央フィールド側」に寄るので、1段でも3段でも卓の各パーツは動かない
+//   （段数でレイアウトがずれると、問題ごとにカードの構図が変わってしまう）。
 
 // 牌画像は SVG（テキスト）なので、URLエンコードした data URI にして埋め込む
 // （Buffer を使わず Edge Runtime で完結させる）
@@ -56,7 +67,17 @@ async function tileDataUri(origin, tile) {
   return `data:image/svg+xml,${encodeURIComponent(await res.text())}`;
 }
 
+// 3桁区切り（点数）。Intl に頼らず自前で入れる
+const formatScore = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+
 // ---- 描画の部品（satori に渡す要素ツリー）----
+
+// ★ lineHeight を明示すること。既定のままだと中央フィールドの5行が 300px に収まらず
+//   一番下（自分の点数）が枠からはみ出す（実際に踏んだ）
+const textNode = (text, style) => ({
+  type: 'div',
+  props: { style: { display: 'flex', lineHeight: 1.1, ...style }, children: text },
+});
 
 const tileNode = (src, size) => ({
   type: 'div',
@@ -99,30 +120,47 @@ const riverNode = srcs => ({
   },
 });
 
+// 家の風と点数。自分だけ金色にして「どこが自分か」が一目で分かるようにする
+const seatInfoNode = (wind, score, isSelf) => ({
+  type: 'div',
+  props: {
+    style: {
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      color: isSelf ? '#f5c842' : '#dbe3ee',
+    },
+    children: [
+      textNode(wind, { fontSize: 28, fontWeight: 700 }),
+      ...(score == null
+        ? []
+        : [textNode(formatScore(score), { fontSize: 19, color: isSelf ? '#f0d489' : '#a9b8cc' })]),
+    ],
+  },
+});
+
 // 自分の副露。鳴いた牌は横向き、暗槓の両端は裏向きにする
 // （どの位置を横にするかは getMeldTileRole が唯一の実装。出題画面・管理画面と共通）。
 // 副露が無いと手牌が11枚などになった理由が伝わらないので、カードにも出す
-const meldNode = (meld, uriOf) => ({
+const meldNode = (meld, uriOf, size) => ({
   type: 'div',
   props: {
     style: { display: 'flex', alignItems: 'flex-end', gap: 1 },
     children: meld.tiles.map((tile, i) => {
       const role = getMeldTileRole(meld.type, i, meld.from);
-      if (role === 'back') return backNode(HAND);
-      if (role !== 'rotated') return tileNode(uriOf[tile], HAND);
+      if (role === 'back') return backNode(size);
+      if (role !== 'rotated') return tileNode(uriOf[tile], size);
       // 横向きの牌。回転しても占有サイズは変わらないので、外枠で縦横を入れ替える
       return {
         type: 'div',
         props: {
           style: {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            width: HAND.h, height: HAND.w,
+            width: size.h, height: size.w,
           },
           children: {
             type: 'div',
             props: {
               style: { display: 'flex', transform: 'rotate(90deg)' },
-              children: tileNode(uriOf[tile], HAND),
+              children: tileNode(uriOf[tile], size),
             },
           },
         },
@@ -131,8 +169,22 @@ const meldNode = (meld, uriOf) => ({
   },
 });
 
+// 「手牌＋副露」を1行に並べたときの幅。牌の間隔は縮めないので安全側（やや大きめ）に出る
+const meldWidth = (meld, size) =>
+  meld.tiles.reduce(
+    (w, _, i) => w + (getMeldTileRole(meld.type, i, meld.from) === 'rotated' ? size.h : size.w),
+    0,
+  ) + (meld.tiles.length - 1);
+
+const handRowWidth = (hand, melds, size) =>
+  hand.length * size.w + Math.max(0, hand.length - 1) * 2
+  + melds.reduce((w, m) => w + meldWidth(m, size), 0)
+  + Math.max(0, melds.length - 1) * 6
+  + (melds.length > 0 ? 10 : 0);
+
 // 回転しても要素の占有サイズは変わらないので、外側に縦横を入れ替えたサイズを持たせて
-// 内側を回す（BoardView の RotatedBlock と同じ考え方）
+// 内側を回す（BoardView の RotatedBlock と同じ考え方）。
+// 内側の河は枠の先頭（＝回転後は中央フィールド側）に寄るので、段数が減っても中央から離れない
 const rotatedNode = (angle, w, h, child) => ({
   type: 'div',
   props: {
@@ -176,9 +228,17 @@ export default async function handler(req) {
   // 自分の副露。手牌が14枚に満たない理由がこれなので、省くと局面が読めなくなる
   const melds = problem?.melds ?? [];
 
+  // 大明槓を4組並べるような極端な形は 30×41 のままだと卓からはみ出すので、その場合だけ縮める
+  // （左右に少し余白が残るよう、内寸そのものではなく HAND_ROW_MAX に収める）
+  const handScale = Math.min(1, HAND_ROW_MAX / handRowWidth(hand, melds, HAND));
+  const handTile = { w: Math.floor(HAND.w * handScale), h: Math.floor(HAND.h * handScale) };
+
+  // ★ problem.dora は「ドラそのもの」。卓に置くのは**ドラ表示牌**（1つ前の牌）なので必ず変換する
+  const doraIndicator = getDoraIndicator(problem?.dora);
+
   // 画像の取得はまとめて1回で（牌の重複ぶんは Map で1本化する）
   const meldTiles = melds.flatMap(m => m.tiles);
-  const needed = [...new Set([...hand, ...meldTiles, ...Object.values(rivers).flat(), problem?.dora].filter(Boolean))];
+  const needed = [...new Set([...hand, ...meldTiles, ...Object.values(rivers).flat(), doraIndicator].filter(Boolean))];
   const [uriList, fontRegular, fontBold] = await Promise.all([
     Promise.all(needed.map(t => tileDataUri(origin, t))),
     fetch(new URL('/fonts/NotoSansJP-Regular.otf', origin)).then(r => r.arrayBuffer()),
@@ -190,35 +250,91 @@ export default async function handler(req) {
   const riverH = RIVER_ROWS * RIVER.h + (RIVER_ROWS - 1) * 2;
   const river  = tiles => riverNode(tiles.map(t => uriOf[t]));
 
-  // 中央：王牌（左端がドラ表示牌、残りは裏向き）
+  // ---- 中央フィールド：各家の風と点数・王牌・局と巡目 ----
+  const scores = problem?.scores ?? null;
+  // 風が引けない（自風が未設定）ときは家の情報を出さない。枠だけは残して王牌を中央に保つ
+  const seatSlot = (wind, isSelf = false) => ({
+    type: 'div',
+    props: {
+      style: { display: 'flex', width: SEAT_SLOT, justifyContent: 'center' },
+      children: wind ? seatInfoNode(wind, scores?.[wind] ?? null, isSelf) : null,
+    },
+  });
+
+  // 局・本場は同じ行にまとめる（盤面ビューと同じ扱い。本場は1以上のときだけ）
+  const kyokuText = problem?.bakaze
+    ? (problem.kyoku ? `${problem.bakaze}${problem.kyoku}局` : `${problem.bakaze}場`)
+    : null;
+  const honbaText = problem?.honba > 0 ? `${problem.honba}本場` : null;
+  const kyokuLine = [kyokuText, honbaText].filter(Boolean).join(' ');
+  const junmeText = problem?.junme ? `${problem.junme}巡目` : null;
+  const kyotakuText = scores?.kyotaku > 0 ? `供託 ${formatScore(scores.kyotaku)}点` : null;
+
+  // 未設定のものは行ごと出さない（「—」が並ぶと卓が読みにくくなるため）
+  const situationLines = [
+    kyokuLine ? textNode(kyokuLine, { fontSize: 28, fontWeight: 700, color: '#eceff4' }) : null,
+    junmeText ? textNode(junmeText, { fontSize: 22, color: '#b9c6d8' }) : null,
+    kyotakuText ? textNode(kyotakuText, { fontSize: 18, color: '#88c0d0' }) : null,
+  ].filter(Boolean);
+
   const center = {
     type: 'div',
     props: {
       style: {
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        width: 190, height: 190,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between',
+        width: CENTER_SIZE, height: CENTER_SIZE, padding: 10,
         background: 'rgba(0, 0, 0, 0.28)',
-        border: '1px solid rgba(255, 255, 255, 0.12)', borderRadius: 12,
+        border: '1px solid rgba(255, 255, 255, 0.12)', borderRadius: 14,
       },
-      children: {
-        type: 'div',
-        props: {
-          style: { display: 'flex', gap: 3 },
-          children: [
-            tileNode(problem?.dora ? uriOf[problem.dora] : null, WALL),
-            ...Array.from({ length: 4 }, () => backNode(WALL)),
-          ],
+      children: [
+        // 上辺＝対面
+        seatSlot(seats[1].wind),
+        // 中段＝上家 / 王牌（左端がドラ表示牌・残り4枚は裏向き） / 下家
+        {
+          type: 'div',
+          props: {
+            style: { display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between' },
+            children: [
+              seatSlot(seats[0].wind),
+              {
+                type: 'div',
+                props: {
+                  style: { display: 'flex', gap: 3 },
+                  children: [
+                    // ドラが未設定なら表向きの牌を出さない（白い牌が1枚だけ浮いて見えるため）
+                    ...(doraIndicator ? [tileNode(uriOf[doraIndicator], WALL)] : [backNode(WALL)]),
+                    ...Array.from({ length: 4 }, () => backNode(WALL)),
+                  ],
+                },
+              },
+              seatSlot(seats[2].wind),
+            ],
+          },
         },
-      },
+        // 局・巡目・供託
+        ...(situationLines.length > 0
+          ? [{
+              type: 'div',
+              props: {
+                style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 },
+                children: situationLines,
+              },
+            }]
+          : []),
+        // 下辺＝自分
+        seatSlot(jikaze, true),
+      ],
     },
   };
 
+  // ---- 卓 ----
+  // justifyContent:'space-between' で「対面の河＝上端 / 中央 / 自分の河 / 手牌＝下端」に張り付ける
   const board = {
     type: 'div',
     props: {
       style: {
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        gap: 4, width: BOARD_SIZE, height: BOARD_SIZE, borderRadius: 18, padding: 10,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between',
+        width: BOARD_SIZE, height: BOARD_SIZE, borderRadius: 18, padding: BOARD_PAD,
         background: 'radial-gradient(120% 90% at 50% 42%, #1b4a78 0%, #0e2f52 55%, #061a2e 100%)',
         border: '1px solid rgba(255, 255, 255, 0.09)',
       },
@@ -241,18 +357,18 @@ export default async function handler(req) {
         {
           type: 'div',
           props: {
-            style: { display: 'flex', alignItems: 'flex-end', gap: 10, marginTop: 6 },
+            style: { display: 'flex', alignItems: 'flex-end', gap: 10 },
             children: [
               {
                 type: 'div',
-                props: { style: { display: 'flex', gap: 2 }, children: hand.map(t => tileNode(uriOf[t], HAND)) },
+                props: { style: { display: 'flex', gap: 2 }, children: hand.map(t => tileNode(uriOf[t], handTile)) },
               },
               ...(melds.length > 0
                 ? [{
                     type: 'div',
                     props: {
                       style: { display: 'flex', flexDirection: 'row-reverse', gap: 6 },
-                      children: melds.map(m => meldNode(m, uriOf)),
+                      children: melds.map(m => meldNode(m, uriOf, handTile)),
                     },
                   }]
                 : []),
@@ -281,8 +397,8 @@ export default async function handler(req) {
             props: {
               style: { display: 'flex', flexDirection: 'column', gap: 18 },
               children: [
-                { type: 'div', props: { style: { fontSize: 78, fontWeight: 700, color: '#eceff4', display: 'flex' }, children: '何切る' } },
-                { type: 'div', props: { style: { fontSize: 34, color: '#88c0d0', display: 'flex' }, children: '何を切る？' } },
+                textNode('何切る', { fontSize: 78, fontWeight: 700, color: '#eceff4' }),
+                textNode('何を切る？', { fontSize: 34, color: '#88c0d0' }),
               ],
             },
           },
