@@ -58,24 +58,13 @@ const RIVER_ROWS  = 3;   // カードに出す河は最大18枚（それ以上�
 //   河の中身は枠の「中央フィールド側」に寄るので、1段でも3段でも卓の各パーツは動かない
 //   （段数でレイアウトがずれると、問題ごとにカードの構図が変わってしまう）。
 
-// ===== 一時的な計測用（2026-07-29） =====
-// カード生成が本番で4秒かかる原因を切り分けるためのもの。?debug=1 のときだけ内訳を JSON で返す。
-// **切り分けが済んだら丸ごと消すこと**（通常のリクエストには影響しない作りにしてある）。
-//
-// モジュールスコープに置いてあるので、値が2以上になれば「同じインスタンスが使い回されている」
-// ＝ フォントや牌画像をモジュールに載せるキャッシュが効く、と分かる。
-let invocationCount = 0;
-
 // 牌画像は SVG（テキスト）なので、URLエンコードした data URI にして埋め込む
 // （Buffer を使わず Edge Runtime で完結させる）
-async function tileDataUri(origin, tile, timings) {
+async function tileDataUri(origin, tile) {
   const url = getTileImageUrl(tile);
   if (!url) return null;
-  const started = Date.now();
   const res = await fetch(new URL(url, origin));
-  const text = await res.text();
-  timings?.push(Date.now() - started);
-  return `data:image/svg+xml,${encodeURIComponent(text)}`;
+  return `data:image/svg+xml,${encodeURIComponent(await res.text())}`;
 }
 
 // 3桁区切り（点数）。Intl に頼らず自前で入れる
@@ -217,15 +206,7 @@ const rotatedNode = (angle, w, h, child) => ({
 export default async function handler(req) {
   const { origin, searchParams } = new URL(req.url);
 
-  // 計測用（一時的・上のコメント参照）
-  const debug = searchParams.get('debug') === '1';
-  const instance = ++invocationCount;
-  const t0 = Date.now();
-  const laps = {};
-  const lap = name => { laps[name] = Date.now() - t0; };
-
   const problem = await decodeProblemParam(searchParams.get('p'));
-  lap('decode');
   const hand = problem?.tiles?.length ? problem.tiles : FALLBACK_HAND;
 
   // 席（上家・対面・下家）に河を割り当てる。自風が未設定なら風で引けないので河は出さない
@@ -258,17 +239,11 @@ export default async function handler(req) {
   // 画像の取得はまとめて1回で（牌の重複ぶんは Map で1本化する）
   const meldTiles = melds.flatMap(m => m.tiles);
   const needed = [...new Set([...hand, ...meldTiles, ...Object.values(rivers).flat(), doraIndicator].filter(Boolean))];
-  const tileTimings = [];        // 計測用（一時的）: 牌1枚ごとの取得時間
-  const fontStarted = Date.now();
-  let fontElapsed = 0;
   const [uriList, fontRegular, fontBold] = await Promise.all([
-    Promise.all(needed.map(t => tileDataUri(origin, t, tileTimings))),
-    Promise.all([
-      fetch(new URL('/fonts/NotoSansJP-Regular.otf', origin)).then(r => r.arrayBuffer()),
-      fetch(new URL('/fonts/NotoSansJP-Bold.otf', origin)).then(r => r.arrayBuffer()),
-    ]).then(fonts => { fontElapsed = Date.now() - fontStarted; return fonts; }),
-  ]).then(([uris, fonts]) => [uris, fonts[0], fonts[1]]);
-  lap('assets');
+    Promise.all(needed.map(t => tileDataUri(origin, t))),
+    fetch(new URL('/fonts/NotoSansJP-Regular.otf', origin)).then(r => r.arrayBuffer()),
+    fetch(new URL('/fonts/NotoSansJP-Bold.otf', origin)).then(r => r.arrayBuffer()),
+  ]);
   const uriOf = Object.fromEntries(needed.map((t, i) => [t, uriList[i]]));
 
   const riverW = RIVER_COLS * RIVER.w + (RIVER_COLS - 1) * 2;
@@ -404,7 +379,8 @@ export default async function handler(req) {
     },
   };
 
-  const tree = {
+  const image = new ImageResponse(
+    {
       type: 'div',
       props: {
         style: {
@@ -433,55 +409,16 @@ export default async function handler(req) {
           },
         ],
       },
-  };
-
-  const options = {
-    width: 1200,
-    height: 630,
-    fonts: [
-      { name: 'Noto Sans JP', data: fontRegular, weight: 400, style: 'normal' },
-      { name: 'Noto Sans JP', data: fontBold, weight: 700, style: 'normal' },
-    ],
-  };
-  lap('build');
-
-  // ===== 計測用（一時的・2026-07-29）。切り分けが済んだら消すこと =====
-  // 2回続けて描画し、1回目と2回目の差から「wasm 初期化などの一度きりのコスト」を推し量る。
-  // ImageResponse は本体をストリームで返すので、arrayBuffer() まで待たないと描画時間が測れない
-  if (debug) {
-    const r1 = Date.now();
-    const bytes1 = (await new ImageResponse(tree, options).arrayBuffer()).byteLength;
-    const render1 = Date.now() - r1;
-    const r2 = Date.now();
-    const bytes2 = (await new ImageResponse(tree, options).arrayBuffer()).byteLength;
-    const render2 = Date.now() - r2;
-    const sum = tileTimings.reduce((a, b) => a + b, 0);
-    return Response.json({
-      // このインスタンスで処理したリクエスト数。2以上ならインスタンスが使い回されている
-      // ＝ フォント・牌画像をモジュールに載せるキャッシュが効く
-      instance,
-      uniqueTiles: needed.length,
-      ms: {
-        decode:  laps.decode,
-        assets:  laps.assets - laps.decode,   // 牌＋フォントの取得（壁時計）
-        build:   laps.build  - laps.assets,
-        render1, render2,
-        total:   laps.build + render1,
-      },
-      // 壁時計が max に近ければ並列に取れている。sum に近ければ直列化されている
-      tileFetch: {
-        count: tileTimings.length,
-        sum,
-        max: tileTimings.length ? Math.max(...tileTimings) : 0,
-        avg: tileTimings.length ? Math.round(sum / tileTimings.length) : 0,
-      },
-      fontFetchMs: fontElapsed,
-      bytes: bytes1,
-      bytesMatch: bytes1 === bytes2,
-    }, { headers: { 'Cache-Control': 'no-store' } });
-  }
-
-  const image = new ImageResponse(tree, options);
+    },
+    {
+      width: 1200,
+      height: 630,
+      fonts: [
+        { name: 'Noto Sans JP', data: fontRegular, weight: 400, style: 'normal' },
+        { name: 'Noto Sans JP', data: fontBold, weight: 700, style: 'normal' },
+      ],
+    },
+  );
   // 同じ p なら常に同じ画像になるため長期キャッシュしてよい
   image.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
   return image;
