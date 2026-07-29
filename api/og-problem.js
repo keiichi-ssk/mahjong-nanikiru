@@ -392,13 +392,18 @@ export default async function handler(req) {
           { type: 'div', props: { style: { position: 'absolute', top: 0, left: 0, right: 0, height: 10, background: '#88c0d0', display: 'flex' } } },
           { type: 'div', props: { style: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 10, background: '#88c0d0', display: 'flex' } } },
           board,
+          // 右側はサイトの看板（Xアカウントのヘッダー左側と揃えてある）。
+          // ★ 何切る専用の文言にしないこと —— このカードは自作問題の共有全般に使うため
           {
             type: 'div',
             props: {
-              style: { display: 'flex', flexDirection: 'column', gap: 18 },
+              style: { display: 'flex', flexDirection: 'column' },
               children: [
-                textNode('何切る', { fontSize: 78, fontWeight: 700, color: '#eceff4' }),
-                textNode('何を切る？', { fontSize: 34, color: '#88c0d0' }),
+                textNode('座学する麻雀', { fontSize: 62, fontWeight: 700, color: '#f0f4f8' }),
+                // 金色の下線（ヘッダーと同じアクセント）
+                { type: 'div', props: { style: { display: 'flex', width: 104, height: 5, marginTop: 16, borderRadius: 3, background: '#d9a520' } } },
+                textNode('何切る問題集 | メンチン何切るドリル', { fontSize: 22, color: '#9fb2c9', marginTop: 26 }),
+                textNode('自分で作る my問題集(β)', { fontSize: 22, color: '#9fb2c9', marginTop: 8 }),
               ],
             },
           },
