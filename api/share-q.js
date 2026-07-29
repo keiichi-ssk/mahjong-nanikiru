@@ -36,9 +36,12 @@ export default async function handler(req, res) {
 <meta charset="utf-8" />
 <meta http-equiv="refresh" content="0; url=${targetUrl}" />
 <meta name="robots" content="noindex, follow" />
-<title>共有された何切る | 座学する麻雀</title>
-<meta property="og:title" content="共有された何切る問題" />
-<meta property="og:description" content="麻雀の何切る問題。何を切る？ 登録不要・スマホ対応。" />
+<title>共有された問題 | 座学する麻雀</title>
+<!-- ★ og:title は短く保つこと（2026-07-30）。X の summary_large_image は
+     タイトルを**画像の左下に重ねて**描くので、長いと帯が手牌を隠す。
+     カード画像の見出しとも揃えてある -->
+<meta property="og:title" content="座学する麻雀" />
+<meta property="og:description" content="麻雀の問題。登録不要・スマホ対応。" />
 <meta property="og:url" content="${targetUrl}" />
 <meta property="og:image" content="${imageUrl}" />
 <meta property="og:type" content="website" />

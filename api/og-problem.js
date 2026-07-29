@@ -32,7 +32,7 @@ const FALLBACK_HAND = ['1m', '2m', '3m', '4p', '5p', '6p', '7s', '8s', '9s', '1z
 // 牌の寸法。
 // ★ 手牌は「手牌＋副露」を1行に収める必要がある。副露は鳴いた牌が横向きになるぶん
 //   1組あたり牌の高さ（41px）を食うので、14枚のときより副露があるときの方が長くなる。
-//   30×41 での必要幅は次のとおりで、卓の内寸 560px にほぼ収まる:
+//   30×41 での必要幅は次のとおりで、卓の内寸 530px にほぼ収まる:
 //     副露なし（手牌14）… 30×14 + gap          = 446
 //     ポン4組（手牌2） … 62 + 103×4 + gap28    = 502
 //     大明槓4組（手牌2）… 62 + 134×4 + gap28   = 626 ← ★収まらない
@@ -42,18 +42,25 @@ const RIVER = { w: 22, h: 30 };
 const HAND  = { w: 30, h: 41 };
 const WALL  = { w: 22, h: 30 };
 
-const BOARD_SIZE  = 580;   // 卓。カード高 630 − 上下の帯 20 ＝ 610 に収まる大きさ
+// ★ 卓の大きさは「X のタイトル帯を避ける」制約で決まっている（2026-07-30）。
+//   X の summary_large_image は画像の**左下にタイトルを重ねて**描くため、
+//   カード下端のおよそ70pxは隠れる前提で組む必要がある（実測はできないので余裕を見た値）。
+//   下の CARD_BOTTOM_SPACE と合わせて、手牌の下端が y≈560（画像の高さ630）に来るようにしてある。
+//   **卓を大きくするときは手牌が下70pxに入らないか必ず確認すること**
+const BOARD_SIZE  = 550;
 const BOARD_PAD   = 10;
-const INNER_SIZE  = BOARD_SIZE - BOARD_PAD * 2;   // 560
+const INNER_SIZE  = BOARD_SIZE - BOARD_PAD * 2;   // 530
+// X のタイトル帯に手牌がかからないよう、カードの下に空ける余白
+const CARD_BOTTOM_SPACE = 40;
 const HAND_ROW_MAX = INNER_SIZE - 16;             // 手牌の行が卓の縁に張り付かないよう少し内側に収める
-const CENTER_SIZE = 300;   // 中央フィールド（局・巡目・各家の風と点数を載せる）
+const CENTER_SIZE = 285;   // 中央フィールド（局・巡目・各家の風と点数を載せる）
 const SEAT_SLOT   = 76;    // 中央の左右に置く「上家／下家」の枠。王牌を中央に保つため固定幅にする
 const RIVER_COLS  = 6;
 const RIVER_ROWS  = 3;   // カードに出す河は最大18枚（それ以上は切り詰める）
 
-// 卓の縦の内訳（内寸 560）:
-//   対面の河 94 ＋ 中央 300 ＋ 自分の河 94 ＋ 手牌 41 ＝ 529
-//   残り 31px を justifyContent:'space-between' が3つの隙間に配る。
+// 卓の縦の内訳（内寸 530）:
+//   対面の河 94 ＋ 中央 285 ＋ 自分の河 94 ＋ 手牌 41 ＝ 514
+//   残り 16px を justifyContent:'space-between' が3つの隙間に配る。
 // ★ 河の枠は**実際の段数によらず常に3段ぶん（94px）を確保する**。
 //   河の中身は枠の「中央フィールド側」に寄るので、1段でも3段でも卓の各パーツは動かない
 //   （段数でレイアウトがずれると、問題ごとにカードの構図が変わってしまう）。
@@ -461,6 +468,8 @@ export default async function handler(req) {
         style: {
           width: 1200, height: 630, position: 'relative',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 44,
+          // 中身を上へ寄せて、X のタイトル帯が重なる下端を空ける
+          paddingBottom: CARD_BOTTOM_SPACE,
           background: 'linear-gradient(160deg, #2e3440 0%, #3b4252 70%, #434c5e 100%)',
         },
         children: [

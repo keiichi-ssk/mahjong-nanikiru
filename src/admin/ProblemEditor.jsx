@@ -15,6 +15,10 @@ function defaultMeldFrom(type) {
 }
 import { questionImagePath, QUESTION_IMAGE_BUCKET } from '../utils/questionImage'
 import { useDragReorder } from '../utils/useDragReorder'
+import {
+  emptyDiscardBlock, toDiscardBlock, addDiscardTile, removeDiscardTile,
+  moveDiscardTile, clearDiscardTiles, toggleDiscardRiichi,
+} from '../utils/discardEdit'
 import QuestionImage from '../components/QuestionImage'
 import ShareButton from '../components/ShareButton'
 import { supabase } from '../lib/supabase'
@@ -280,14 +284,11 @@ export default function ProblemEditor({
   // 他家捨て牌は最大3人分の配列。各要素は {player, tiles, riichiIndex, melds}（編集中は不完全な要素も許容し、保存時に除外する）
   const otherDiscardsBase = problem.otherDiscards ?? (inheritFromPrev ? prevProblem.otherDiscards ?? null : null)
   const [otherDiscards, setOtherDiscards] = useState(() => {
-    const base = (otherDiscardsBase ?? []).map(od => ({
-      player:      od?.player ?? null,
-      tiles:       od?.tiles ?? [],
-      riichiIndex: od?.riichiIndex ?? null,
-      melds:       normalizeMelds(od?.melds), // 旧データには無いフィールドなのでここで補う（鳴いた元も補完）
-    }))
+    // ★ ブロックの正規化は toDiscardBlock が唯一の実装。ここで項目を書き下すと拾い漏らす
+    //   （実際に tsumogiri を落として、牌譜から作った問題を保存するとツモ切りが消えていた）
+    const base = (otherDiscardsBase ?? []).map(toDiscardBlock)
     // データが無くても1人目の空ブロックを出しておく（未設定のままなら保存時に除外されて null になる）
-    return base.length > 0 ? base : [{ player: null, tiles: [], riichiIndex: null, melds: [] }]
+    return base.length > 0 ? base : [emptyDiscardBlock()]
   })
   // 盤面の点数チップからどの家をクリックしたか（点数タブでその家の行をハイライトする）
   const [activeScoreWind, setActiveScoreWind] = useState(null)
@@ -452,7 +453,7 @@ export default function ProblemEditor({
 
   function addOtherDiscardBlock() {
     if (otherDiscards.length >= 4) return // 自分を含めて4人ぶん
-    setOtherDiscards(prev => [...prev, { player: null, tiles: [], riichiIndex: null, melds: [] }])
+    setOtherDiscards(prev => [...prev, emptyDiscardBlock()])
     setSutehaiActiveIdx(otherDiscards.length) // 追加したブロックを牌の追加先にする
   }
 
@@ -469,39 +470,15 @@ export default function ProblemEditor({
 
   function addOtherDiscardTile(tile) {
     if (activeSutehaiIdx < 0) return
-    updateOtherDiscard(activeSutehaiIdx, od => ({ ...od, tiles: [...od.tiles, tile] }))
+    updateOtherDiscard(activeSutehaiIdx, od => addDiscardTile(od, tile))
   }
 
   function removeOtherDiscardTile(blockIdx, index) {
-    updateOtherDiscard(blockIdx, od => ({
-      ...od,
-      tiles: od.tiles.filter((_, i) => i !== index),
-      riichiIndex: od.riichiIndex === null || od.riichiIndex === index
-        ? null
-        : od.riichiIndex > index ? od.riichiIndex - 1 : od.riichiIndex,
-    }))
+    updateOtherDiscard(blockIdx, od => removeDiscardTile(od, index))
   }
 
   function moveOtherDiscardTile(blockIdx, from, insertAt) {
-    // insertAt は移動前の配列基準の挿入位置（0〜length）。from を取り除いた後の位置に補正する
-    const to = insertAt > from ? insertAt - 1 : insertAt
-    if (from === to) return
-    updateOtherDiscard(blockIdx, od => {
-      const next = [...od.tiles]
-      const [moved] = next.splice(from, 1)
-      next.splice(to, 0, moved)
-      // リーチ宣言牌の位置を並べ替えに追従させる
-      let riichi = od.riichiIndex
-      if (riichi !== null) {
-        if (riichi === from) {
-          riichi = to
-        } else {
-          const idx = riichi > from ? riichi - 1 : riichi
-          riichi = idx >= to ? idx + 1 : idx
-        }
-      }
-      return { ...od, tiles: next, riichiIndex: riichi }
-    })
+    updateOtherDiscard(blockIdx, od => moveDiscardTile(od, from, insertAt))
   }
 
   // ドラッグ中の挿入位置を更新する。移動しても並びが変わらない位置（自分の前後）はインジケーターを出さない
@@ -510,7 +487,7 @@ export default function ProblemEditor({
   }
 
   function toggleOtherDiscardRiichi(blockIdx, index) {
-    updateOtherDiscard(blockIdx, od => ({ ...od, riichiIndex: od.riichiIndex === index ? null : index }))
+    updateOtherDiscard(blockIdx, od => toggleDiscardRiichi(od, index))
   }
 
   function addNakiChoice(tile) {
@@ -1130,7 +1107,7 @@ export default function ProblemEditor({
                   {od.tiles.length > 0 && (
                     <button
                       className="dora-clear"
-                      onClick={() => updateOtherDiscard(bi, o => ({ ...o, tiles: [], riichiIndex: null }))}
+                      onClick={() => updateOtherDiscard(bi, clearDiscardTiles)}
                     >
                       全削除
                     </button>
