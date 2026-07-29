@@ -151,8 +151,12 @@ function BoardRiver({ cells, riichiIndex }) {
               tile={cell.tile}
               rotated={cell.index === riichiIndex}
               // board-river-cell は「河の牌」であることの目印。
-              // 手牌や王牌にも裏向きがあるため、テストが河だけを数えるのに使う
-              className={`board-river-cell${cell.called ? ' board-tile--called' : ''}`}
+              // 手牌や王牌にも裏向きがあるため、テストが河だけを数えるのに使う。
+              // ★ 鳴かれた牌（強く暗転）とツモ切り（わずかに沈む）は両方とも「暗くする」表現なので、
+              //   重なったときは鳴かれた側だけを付ける（暗さが二重に掛かると見分けが付かない）
+              className={`board-river-cell${
+                cell.called ? ' board-tile--called' : cell.tsumogiri ? ' board-tile--tsumogiri' : ''
+              }`}
             />
           ))}
         </div>
@@ -303,6 +307,7 @@ export default function BoardView({
         junme,
         meldCount: od?.melds?.length ?? 0,
         calledTiles: called[wind ?? od?.player] ?? [],
+        tsumogiri: od?.tsumogiri ?? null,
         revealCalled: false, // 他家の鳴かれた牌は裏向きのまま（網掛けだけ付く）
       }),
     }
@@ -317,6 +322,7 @@ export default function BoardView({
     junme,
     meldCount: melds.length,
     calledTiles: called[jikaze] ?? [],
+    tsumogiri: selfOd?.tsumogiri ?? null,
   })
 
   const doraIndicator = dora ? getDoraIndicator(dora) : null

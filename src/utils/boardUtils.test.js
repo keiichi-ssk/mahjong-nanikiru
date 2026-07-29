@@ -141,3 +141,32 @@ describe('buildRiver（河の組み立て）', () => {
     expect(render(river)).toBe('1p* 2p*');
   });
 });
+
+describe('buildRiver（ツモ切り）', () => {
+  const flags = river => river.map(c => (c.tsumogiri ? 'T' : '-')).join('');
+
+  it('フラグは牌と1対1で対応する', () => {
+    const river = buildRiver({
+      tiles: ['1m', '2m', '3m', '4m'],
+      tsumogiri: [false, true, true, false],
+    });
+    expect(flags(river)).toBe('-TT-');
+    expect(river.map(c => c.tile).join(' ')).toBe('1m 2m 3m 4m');
+  });
+
+  // 牌譜以外から作った盤面はフラグを持たない。「全部ツモ切り」に化けないこと
+  it('フラグが無ければ全部 false', () => {
+    expect(flags(buildRiver({ tiles: ['1m', '2m'] }))).toBe('--');
+    expect(flags(buildRiver({ tiles: ['1m', '2m'], tsumogiri: null }))).toBe('--');
+  });
+
+  // 長さがずれても牌の側に合わせる（ずれたぶんは手出し扱い）
+  it('フラグが足りなくても牌の枚数に合わせる', () => {
+    expect(flags(buildRiver({ tiles: ['1m', '2m', '3m'], tsumogiri: [true] }))).toBe('T--');
+  });
+
+  // 裏向きで埋める家（データが無い家）はツモ切りを判定できない
+  it('裏向きで埋める河は全部 false', () => {
+    expect(flags(buildRiver({ tiles: [], junme: 3 }))).toBe('---');
+  });
+});

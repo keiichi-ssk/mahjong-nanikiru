@@ -231,6 +231,10 @@ function replayAll(paifu, roundIndex) {
     discardCount: 0,     // 通常の打牌の回数（暗槓・加槓は数えない）
     melds:       [],
     river:       [],
+    // river と同じ長さの boolean 配列。true＝ツモ切り。
+    // ★ 打牌列の 60 は「直前に引いた牌をそのまま切った」という印で、実際の牌に解決すると
+    //   この情報が消える。手出しかツモ切りかは押し引きの読みの根拠そのものなので別に残す
+    riverTsumogiri: [],
     riichiIndex: null,
     lastDraw:    null,
   }));
@@ -252,6 +256,7 @@ function replayAll(paifu, roundIndex) {
         hand:        [...s.hand],
         melds:       [...s.melds],       // 要素は作ったあと書き換えないので浅くてよい
         river:       [...s.river],
+        riverTsumogiri: [...s.riverTsumogiri],
         riichiIndex: s.riichiIndex,
         drawCount:   s.drawCount,
       })),
@@ -351,7 +356,9 @@ function replayAll(paifu, roundIndex) {
 
       const isRiichi = typeof raw === 'string';
       const tileNo   = isRiichi ? Number(raw.slice(1)) : Number(raw);
-      const actual   = tileNo === TSUMOGIRI ? s.lastDraw : tileNo;
+      // リーチ宣言のツモ切りは "r60" なので、slice したあとに同じ判定で拾える
+      const isTsumogiri = tileNo === TSUMOGIRI;
+      const actual   = isTsumogiri ? s.lastDraw : tileNo;
       const actualCode = parseTenhouTile(actual);
 
       // ここが「打牌の直前」＝手牌14枚の状態。
@@ -366,6 +373,7 @@ function replayAll(paifu, roundIndex) {
       s.discardCount++;
       if (isRiichi) s.riichiIndex = s.river.length;
       s.river.push(actual);
+      s.riverTsumogiri.push(isTsumogiri);
       removeTile(s.hand, actual);
 
       // 打牌の直後。他家から見れば「鳴くか・押すか」を問える瞬間
@@ -400,6 +408,8 @@ function buildSnapshot(step, seat, meta) {
       hand:        parseTenhouTiles(step.state[p].hand),
       melds:       step.state[p].melds,
       discards:    parseTenhouTiles(step.state[p].river),
+      // discards と同じ長さ。true＝ツモ切り（手出しかどうかは押し引きの読みの根拠になる）
+      tsumogiri:   [...step.state[p].riverTsumogiri],
       riichiIndex: step.state[p].riichiIndex,
     }])),
     // 直前に切られた牌。problem.discardedTile になり、鳴き系の問題タイプで使う

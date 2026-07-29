@@ -68,7 +68,11 @@ export default function ShareApp() {
 
       {status === 'ready' && (
         <>
-          {problem.title && <p className="share-title">{problem.title}</p>}
+          {/* ★ タイトルはここに出さないこと（2026-07-30）。
+              牌譜から作った問題のタイトルは defaultProblemTitle() が
+              「東4局 3本場 9巡目」を自動で入れるので、盤面中央と同じ内容が
+              盤面の上にもう一度並ぶ。タイトル自体は my問題集の一覧で
+              問題を見分けるのに要るため、生成はやめずに表示だけ落としてある */}
           {/* ラウンドの文脈が無いので standalone。正誤は記録しない（DBに問題行が無い） */}
           <ProblemView standalone problem={problem} index={0} total={1} />
           <footer className="share-footer">

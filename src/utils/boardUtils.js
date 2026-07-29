@@ -54,6 +54,7 @@ export function collectCalledTiles({ jikaze = null, melds = [], otherDiscards = 
  */
 export function buildRiver({
   tiles = [], junme = null, meldCount = 0, calledTiles = [], revealCalled = true,
+  tsumogiri = null,
 } = {}) {
   if (tiles.length > 0) {
     // 同じ牌が複数あるときは前（先に捨てた方）を鳴かれたものとして扱う
@@ -62,7 +63,13 @@ export function buildRiver({
       const i = tiles.findIndex((tile, idx) => tile === called && !marked.has(idx));
       if (i >= 0) marked.add(i);
     }
-    return tiles.map((tile, i) => ({ tile, hidden: false, called: marked.has(i) }));
+    // ツモ切りは牌と1対1で対応する。データが無い（＝分からない）家は全部 false になる
+    return tiles.map((tile, i) => ({
+      tile,
+      hidden: false,
+      called: marked.has(i),
+      tsumogiri: Array.isArray(tsumogiri) ? tsumogiri[i] === true : false,
+    }));
   }
 
   // データが無い家は裏向きで埋める。鳴かれた牌は河の末尾に置く
@@ -72,7 +79,9 @@ export function buildRiver({
     : calledTiles.length;
   const hiddenCount = Math.max(0, total - calledTiles.length);
   return [
-    ...Array.from({ length: hiddenCount }, () => ({ tile: null, hidden: true, called: false })),
-    ...calledTiles.map(tile => ({ tile: revealCalled ? tile : null, hidden: !revealCalled, called: true })),
+    ...Array.from({ length: hiddenCount }, () => ({ tile: null, hidden: true, called: false, tsumogiri: false })),
+    ...calledTiles.map(tile => ({
+      tile: revealCalled ? tile : null, hidden: !revealCalled, called: true, tsumogiri: false,
+    })),
   ];
 }

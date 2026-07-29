@@ -114,19 +114,24 @@ function decMelds(a) {
 }
 
 // ===== 各家の河 =====
-// "家|捨て牌|リーチ宣言牌の位置|副露をカンマ区切り" の1行にする
+// "家|捨て牌|リーチ宣言牌の位置|副露をカンマ区切り|ツモ切りフラグ" の1行にする。
+// ツモ切りは1牌1文字（'1'＝ツモ切り / '0'＝手出し）。分からないときは空文字。
+//
+// ★ 5番目は後から足した。**4個しか無い旧URLも受理すること**
+//   （すでに配ったリンクを壊さないため。無ければ tsumogiri は null ＝ 分からない）
 function encOtherDiscard(od) {
   return [
     od.player ?? '',
     encTiles(od.tiles),
     od.riichiIndex == null ? '' : String(od.riichiIndex),
     encMelds(od.melds).join(','),
+    Array.isArray(od.tsumogiri) ? od.tsumogiri.map(v => (v ? '1' : '0')).join('') : '',
   ].join('|');
 }
 
 function decOtherDiscard(s) {
   if (typeof s !== 'string') return null;
-  const [player, tilesStr, riichiStr, meldsStr] = s.split('|');
+  const [player, tilesStr, riichiStr, meldsStr, tsumogiriStr] = s.split('|');
   if (!WINDS.includes(player)) return null;
   const tiles = decTiles(tilesStr ?? '');
   if (!tiles || tiles.length > MAX_RIVER_TILES) return null;
@@ -134,7 +139,12 @@ function decOtherDiscard(s) {
   if (riichiIndex != null && (!Number.isInteger(riichiIndex) || riichiIndex < 0)) return null;
   const melds = decMelds(meldsStr ? meldsStr.split(',') : []);
   if (!melds) return null;
-  return { player, tiles, riichiIndex, melds };
+  // 他人が書き換えられる文字列なので、0/1 以外が混ざっていれば URL ごと無効にする
+  if (tsumogiriStr != null && tsumogiriStr !== '' && !/^[01]+$/.test(tsumogiriStr)) return null;
+  const tsumogiri = tsumogiriStr
+    ? Array.from({ length: tiles.length }, (_, i) => tsumogiriStr[i] === '1')
+    : null;
+  return { player, tiles, riichiIndex, melds, tsumogiri };
 }
 
 // ===== 点数 =====

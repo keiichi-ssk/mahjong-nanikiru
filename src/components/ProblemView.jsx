@@ -160,8 +160,14 @@ function OtherDiscardDisplay({ otherDiscards, jikaze = null }) {
                 <div key={ri} className="other-discard-tiles-row">
                   {row.map((tile, ci) => {
                     const i = ri * 6 + ci; // リーチ宣言牌は分割前の通し index で判定
+                    // ツモ切りはわずかに沈ませる（盤面の .board-tile--tsumogiri と同じ考え方）。
+                    // 手出しとの差が押し引きの読みの根拠になるので消さないこと
+                    const isTsumogiri = Array.isArray(od.tsumogiri) && od.tsumogiri[i] === true;
                     return (
-                      <div key={i} className={`other-discard-tile${od.riichiIndex === i ? ' other-discard-tile--rotated tile-rotated' : ''}`}>
+                      <div
+                        key={i}
+                        className={`other-discard-tile${od.riichiIndex === i ? ' other-discard-tile--rotated tile-rotated' : ''}${isTsumogiri ? ' other-discard-tile--tsumogiri' : ''}`}
+                      >
                         <img src={getTileImageUrl(tile)} alt={getTileLabel(tile)} />
                       </div>
                     );

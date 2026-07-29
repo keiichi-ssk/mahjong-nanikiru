@@ -57,7 +57,10 @@ export function parseTileNotation(text) {
 //   discards    … その家の河（捨てた順）
 //   riichiIndex … リーチ宣言牌の位置（discards のインデックス。無ければ null）
 export function makeEmptySeat() {
-  return { hand: [], melds: [], discards: [], riichiIndex: null };
+  // tsumogiri は discards と同じ長さの boolean 配列（true＝ツモ切り）。
+  // ★ 既定は null ＝「分からない」。空配列にすると「全部手出し」と読めてしまい、
+  //   牌譜以外から作った盤面に誤った情報が付く
+  return { hand: [], melds: [], discards: [], tsumogiri: null, riichiIndex: null };
 }
 
 /**
@@ -118,6 +121,13 @@ function toProblemScores(snapshot) {
 // 自分（家＝自風）のブロックは河だけを持たせ、副露は入れない。
 // 自分の副露を持つのは problem.melds だけで、盤面もそちらしか見ない（BoardView）。
 // 両方に入れると collectCalledTiles が鳴かれた牌を二重に数えてしまう。
+// ツモ切りフラグを河の枚数にそろえる。**唯一の実装**（読み込み・保存・共有すべてここを通す）。
+// null（分からない）はそのまま null で返し、「全部手出し」に化けさせない
+export function normalizeTsumogiri(flags, length) {
+  if (!Array.isArray(flags)) return null;
+  return Array.from({ length }, (_, i) => flags[i] === true);
+}
+
 function toOtherDiscards(snapshot) {
   const blocks = WINDS
     .filter(wind => (snapshot.seats[wind].discards ?? []).length > 0)
@@ -126,6 +136,9 @@ function toOtherDiscards(snapshot) {
       return {
         player:      wind,
         tiles:       [...seat.discards],
+        // 分からない（牌譜以外から作った盤面）なら null のまま。
+        // 長さがずれると牌とフラグの対応が壊れるので、河に合わせて切り詰め／不足は false で埋める
+        tsumogiri:   normalizeTsumogiri(seat.tsumogiri, seat.discards.length),
         riichiIndex: seat.riichiIndex ?? null,
         melds:       wind === snapshot.jikaze ? [] : toProblemMelds(seat.melds, wind),
       };

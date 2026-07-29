@@ -25,8 +25,9 @@ const full = {
   jikaze: '西',
   junme: 11,
   otherDiscards: [
-    { player: '東', tiles: ['1p', '9m', '5z'], riichiIndex: 1, melds: [{ type: 'chi', tiles: ['3m', '4m', '5m'], from: '上家' }] },
-    { player: '北', tiles: ['2s'], riichiIndex: null, melds: [] },
+    // tsumogiri は牌譜から作った問題だけが持つ。null は「分からない」で、全部手出しとは違う
+    { player: '東', tiles: ['1p', '9m', '5z'], riichiIndex: 1, melds: [{ type: 'chi', tiles: ['3m', '4m', '5m'], from: '上家' }], tsumogiri: [false, true, false] },
+    { player: '北', tiles: ['2s'], riichiIndex: null, melds: [], tsumogiri: null },
   ],
   scores: { 東: 25000, 南: 31200, 西: 18800, 北: 24000, kyotaku: 1000 },
   explanation: 'ここは[9m]切り。字牌は残す。',
@@ -220,5 +221,92 @@ describe('1文字マップの網羅', () => {
     // 順序を変えると過去に配ったURLが別の牌に化けるので、先頭と末尾を固定する
     expect(SHARE_INTERNALS.TILE_CODES[0]).toBe('0m');
     expect(SHARE_INTERNALS.TILE_CODES[36]).toBe('7z');
+  });
+});
+
+// ===== ツモ切りフラグ =====
+// 圧縮の中身（JSON → deflate-raw → base64url）はテスト側でも組み立てる。
+// 「昔のバージョンが作ったURL」を再現するには、エンコーダを通さずに作る必要があるため
+async function deflateRaw(str) {
+  const cs = new CompressionStream('deflate-raw');
+  const w = cs.writable.getWriter();
+  w.write(new TextEncoder().encode(str)).then(() => w.close()).catch(() => {});
+  return new Uint8Array(await new Response(cs.readable).arrayBuffer());
+}
+
+async function inflateRaw(bytes) {
+  const ds = new DecompressionStream('deflate-raw');
+  const w = ds.writable.getWriter();
+  w.write(bytes).then(() => w.close()).catch(() => {});
+  return new TextDecoder().decode(await new Response(ds.readable).arrayBuffer());
+}
+
+const toBase64Url = bytes => {
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+};
+
+const fromBase64Url = str => {
+  const pad = str.length % 4 === 0 ? '' : '='.repeat(4 - (str.length % 4));
+  const bin = atob(str.replace(/-/g, '+').replace(/_/g, '/') + pad);
+  return Uint8Array.from(bin, c => c.charCodeAt(0));
+};
+
+const readCompact  = async param => JSON.parse(await inflateRaw(fromBase64Url(param)));
+const writeCompact = async obj   => toBase64Url(await deflateRaw(JSON.stringify(obj)));
+
+describe('ツモ切りフラグ', () => {
+  const base = {
+    tiles: ['1m', '2m', '3m', '4p', '5p', '6p', '7s', '8s', '9s', '1z', '1z', '5z', '5z', '9m'],
+    melds: [], dora: '1z', answer: '9m', problemType: 'default', explanation: '', note: '', title: '',
+    bakaze: '東', kyoku: 1, honba: 0, jikaze: '南', junme: 9, scores: null,
+  };
+
+  it('往復しても牌との対応が保たれる', async () => {
+    const p = {
+      ...base,
+      otherDiscards: [{
+        player: '東', tiles: ['1m', '2m', '3m'], riichiIndex: null, melds: [],
+        tsumogiri: [false, true, true],
+      }],
+    };
+    const back = await decodeProblemParam(await encodeProblemParam(p));
+    expect(back.otherDiscards[0].tiles).toEqual(['1m', '2m', '3m']);
+    expect(back.otherDiscards[0].tsumogiri).toEqual([false, true, true]);
+  });
+
+  // 牌譜以外から作った問題はフラグを持たない。「全部手出し」に決めつけないこと
+  it('フラグが無ければ null のまま', async () => {
+    const p = { ...base, otherDiscards: [{ player: '東', tiles: ['1m'], riichiIndex: null, melds: [] }] };
+    const back = await decodeProblemParam(await encodeProblemParam(p));
+    expect(back.otherDiscards[0].tsumogiri).toBeNull();
+  });
+
+  // ★ すでに配ったURLは5番目のフィールドを持たない。読めなくなると過去のリンクが全部壊れる
+  it('5番目が無い旧形式のURLも読める', async () => {
+    const p = {
+      ...base,
+      otherDiscards: [{
+        player: '東', tiles: ['1m', '2m'], riichiIndex: 1, melds: [], tsumogiri: [true, false],
+      }],
+    };
+    const compact = await readCompact(await encodeProblemParam(p));
+    compact.o = compact.o.map(line => line.split('|').slice(0, 4).join('|'));
+    const back = await decodeProblemParam(await writeCompact(compact));
+    expect(back.otherDiscards[0].tiles).toEqual(['1m', '2m']);
+    expect(back.otherDiscards[0].riichiIndex).toBe(1);
+    expect(back.otherDiscards[0].tsumogiri).toBeNull();
+  });
+
+  // ?p= は他人が書き換えられる。0/1 以外が来たら URL ごと無効にする
+  it('0/1 以外が混ざったURLは無効', async () => {
+    const p = {
+      ...base,
+      otherDiscards: [{ player: '東', tiles: ['1m'], riichiIndex: null, melds: [], tsumogiri: [true] }],
+    };
+    const compact = await readCompact(await encodeProblemParam(p));
+    compact.o = compact.o.map(line => `${line.split('|').slice(0, 4).join('|')}|x`);
+    expect(await decodeProblemParam(await writeCompact(compact))).toBeNull();
   });
 });

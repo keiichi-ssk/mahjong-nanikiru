@@ -23,7 +23,8 @@ const sample = {
   jikaze: '南',
   junme: 9,
   note: '注釈[1m]',
-  otherDiscards: [{ player: '上家', tiles: ['1z'], riichiIndex: null, melds: [] }],
+  // tsumogiri は牌譜から作った問題だけが持つ（null は「分からない」）
+  otherDiscards: [{ player: '上家', tiles: ['1z'], riichiIndex: null, melds: [], tsumogiri: [true] }],
   scores: { 東: 25000, 南: 25000, 西: 25000, 北: 25000, kyotaku: 1000 },
 };
 

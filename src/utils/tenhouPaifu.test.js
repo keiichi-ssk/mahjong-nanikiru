@@ -400,3 +400,43 @@ describe('replayRound（局を再生して盤面を作る）', () => {
     }
   });
 });
+
+describe('ツモ切り／手出しの区別', () => {
+  const WINDS = ['東', '南', '西', '北'];
+  // 打牌列の 60（リーチ宣言なら "r60"）が「直前に引いた牌をそのまま切った」印
+  const countTsumogiriMarks = round =>
+    [0, 1, 2, 3].reduce((n, p) => n + (round[6 + p * 3] ?? []).filter(
+      d => d === 60 || (typeof d === 'string' && d.slice(1) === '60')
+    ).length, 0);
+
+  // ★ 牌とフラグがずれると河の見た目が丸ごと嘘になる。全局・全ステップで突き合わせる
+  it('河の枚数とフラグの枚数が常に一致する', () => {
+    for (let r = 0; r < paifu.log.length; r++) {
+      const steps = listSteps(paifu, r);
+      for (let i = 0; i < steps.length; i++) {
+        const snap = snapshotAt(paifu, r, i, { seat: 0 }).snapshot;
+        for (const wind of WINDS) {
+          expect(snap.seats[wind].tsumogiri).toHaveLength(snap.seats[wind].discards.length);
+        }
+      }
+    }
+  });
+
+  it('サンプル牌譜にはツモ切りと手出しの両方がある', () => {
+    const steps = listSteps(paifu, 0);
+    const snap = snapshotAt(paifu, 0, steps.length - 1, { seat: 0 }).snapshot;
+    const all = WINDS.flatMap(w => snap.seats[w].tsumogiri);
+    expect(all).toContain(true);
+    expect(all).toContain(false);
+  });
+
+  // 再生の結果が牌譜の印の数と合うこと（多すぎ・少なすぎをどちらも検出する）
+  it('局の最後で 60 の個数とツモ切りの個数が一致する', () => {
+    for (let r = 0; r < paifu.log.length; r++) {
+      const steps = listSteps(paifu, r);
+      const snap = snapshotAt(paifu, r, steps.length - 1, { seat: 0 }).snapshot;
+      const flags = WINDS.reduce((n, w) => n + snap.seats[w].tsumogiri.filter(Boolean).length, 0);
+      expect(flags).toBe(countTsumogiriMarks(paifu.log[r]));
+    }
+  });
+});

@@ -6,6 +6,7 @@ import {
   makeBoardSnapshot,
   snapshotToProblem,
   snapshotFromHandText,
+  normalizeTsumogiri,
 } from './importBoard';
 
 describe('parseTileNotation（牌姿テキストの解析）', () => {
@@ -60,7 +61,7 @@ describe('makeBoardSnapshot', () => {
 
   it('渡した席は既定値とマージされる（渡さなかった項目は空のまま）', () => {
     const s = makeBoardSnapshot({ seats: { 南: { hand: ['1m'] } } });
-    expect(s.seats.南).toEqual({ hand: ['1m'], melds: [], discards: [], riichiIndex: null });
+    expect(s.seats.南).toEqual({ hand: ['1m'], melds: [], discards: [], tsumogiri: null, riichiIndex: null });
     expect(s.seats.北).toEqual(makeEmptySeat());
   });
 });
@@ -147,7 +148,7 @@ describe('snapshotToProblem（BoardSnapshot → problem）', () => {
       });
       expect(p.melds).toHaveLength(1);
       expect(p.otherDiscards).toEqual([
-        { player: '南', tiles: ['5s'], riichiIndex: null, melds: [] },
+        { player: '南', tiles: ['5s'], tsumogiri: null, riichiIndex: null, melds: [] },
       ]);
     });
 
@@ -165,6 +166,7 @@ describe('snapshotToProblem（BoardSnapshot → problem）', () => {
       expect(p.otherDiscards).toEqual([{
         player: '西',
         tiles: ['1z', '2z', '3m'],
+        tsumogiri: null,
         riichiIndex: 2,
         melds: [{ type: 'pon', tiles: ['7z', '7z', '7z'], from: '下家' }],
       }]);
@@ -219,6 +221,7 @@ describe('snapshotToProblem（BoardSnapshot → problem）', () => {
     hand:        '自風の席 → problem.tiles',
     melds:       '自風の席 → problem.melds / ほかの家 → otherDiscards[].melds',
     discards:    'problem.otherDiscards[].tiles',
+    tsumogiri:   'problem.otherDiscards[].tsumogiri（河と同じ長さ。null は「分からない」）',
     riichiIndex: 'problem.otherDiscards[].riichiIndex',
   };
 
@@ -252,8 +255,8 @@ describe('snapshotToProblem（BoardSnapshot → problem）', () => {
       junme: 8,
       scores: { 東: 25000, 南: 26000, 西: 24000, 北: 25000, kyotaku: 1000 },
       otherDiscards: [
-        { player: '東', tiles: ['1z'], riichiIndex: 0, melds: [] },
-        { player: '南', tiles: ['9p'], riichiIndex: null, melds: [] },
+        { player: '東', tiles: ['1z'], tsumogiri: null, riichiIndex: 0, melds: [] },
+        { player: '南', tiles: ['9p'], tsumogiri: null, riichiIndex: null, melds: [] },
       ],
       discardedTile: null,
     });
@@ -293,5 +296,37 @@ describe('snapshotFromHandText（牌姿テキストのアダプタ）', () => {
     expect(p.tiles).toHaveLength(14);
     expect(p.junme).toBe(9);
     expect(p.dora).toBe('4z');
+  });
+});
+
+describe('ツモ切りフラグの受け渡し', () => {
+  it('BoardSnapshot の tsumogiri が problem.otherDiscards に運ばれる', () => {
+    const p = snapshotToProblem(makeBoardSnapshot({
+      jikaze: '南',
+      seats: {
+        東: { discards: ['1m', '2m', '3m'], tsumogiri: [false, true, true] },
+        南: { hand: ['1p'], discards: ['9m'], tsumogiri: [true] },
+      },
+    }));
+    const east = p.otherDiscards.find(od => od.player === '東');
+    const self = p.otherDiscards.find(od => od.player === '南');
+    expect(east.tsumogiri).toEqual([false, true, true]);
+    expect(self.tsumogiri).toEqual([true]);
+  });
+
+  // 牌姿テキストなど牌譜以外から作った盤面は「分からない」。全部手出しに決めつけない
+  it('フラグが無ければ null のまま', () => {
+    const p = snapshotToProblem(makeBoardSnapshot({
+      jikaze: '南',
+      seats: { 東: { discards: ['1m', '2m'] } },
+    }));
+    expect(p.otherDiscards[0].tsumogiri).toBeNull();
+  });
+
+  it('長さがずれても河の枚数にそろえる', () => {
+    expect(normalizeTsumogiri([true], 3)).toEqual([true, false, false]);
+    expect(normalizeTsumogiri([true, false, true, true], 2)).toEqual([true, false]);
+    expect(normalizeTsumogiri(null, 3)).toBeNull();
+    expect(normalizeTsumogiri(undefined, 3)).toBeNull();
   });
 });

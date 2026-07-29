@@ -1051,6 +1051,11 @@
   overflow-x: auto;
   padding-top: 6px;
   padding-bottom: 4px;
+  /* 手牌は画面の中央に置く（盤面も中央寄せなので見た目が揃う）。
+     ★ safe を外さないこと。副露が多くて行が画面より広くなったとき、
+       素の center だと左端がはみ出してスクロールでも戻れなくなる。
+       safe center は溢れた時点で flex-start に戻るので、その場合だけ左寄せになる */
+  justify-content: safe center;
 }
 
 .tile-selector {
@@ -1587,6 +1592,12 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+}
+
+/* ツモ切りは沈ませる。盤面の .board-tile--tsumogiri（styles/board.css）と同じ値にすること
+   ——同じ意味の表現が画面によって違うと混乱する */
+.other-discard-tile--tsumogiri img {
+  filter: brightness(0.75);
 }
 
 .other-discard-tile img {
@@ -3245,12 +3256,8 @@
   line-height: 1.7;
 }
 
-/* 共有元が付けたタイトル。問題の上に控えめに出す（無題なら描画しない） */
-.share-title {
-  margin: 4px 0 0;
-  color: var(--color-text-muted);
-  font-size: 0.85rem;
-}
+/* .share-title は削除（2026-07-30）。共有ページにタイトルを出さなくなったため。
+   理由は ShareApp.jsx のコメント参照（盤面中央と同じ「東4局 3本場 9巡目」が二重に出ていた） */
 
 .share-footer {
   margin-top: 32px;

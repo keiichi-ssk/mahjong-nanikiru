@@ -40,12 +40,13 @@ describe('fromDb（DB行 → アプリ内オブジェクト）', () => {
     expect(p.discardedTile).toBeNull();
     expect(p.nakiChoices).toEqual([]);
     expect(p.questionImageUrl).toBeNull();
-    expect(p.otherDiscards).toEqual(fullRow.other_discard);
+    // 読み込み時にツモ切りフラグ（後から足した項目）が null ＝「分からない」で補われる
+    expect(p.otherDiscards).toEqual(fullRow.other_discard.map(od => ({ ...od, tsumogiri: null })));
   });
 
   it('other_discard の旧形式（単一オブジェクト）は1要素の配列に正規化される', () => {
     const legacy = { ...fullRow, other_discard: { player: '西', tiles: ['1z'], riichiIndex: null } };
-    expect(fromDb(legacy).otherDiscards).toEqual([{ player: '西', tiles: ['1z'], riichiIndex: null, melds: [] }]);
+    expect(fromDb(legacy).otherDiscards).toEqual([{ player: '西', tiles: ['1z'], riichiIndex: null, melds: [], tsumogiri: null }]);
   });
 
   it('other_discard の空配列は null に正規化される', () => {

@@ -3,6 +3,7 @@
 // フィールドを追加するときはここだけを変更すれば両画面に反映される。
 
 import { normalizeMelds } from './problemConstants'
+import { normalizeTsumogiri } from './importBoard'
 
 // other_discard は旧形式（単一オブジェクト）と新形式（配列・最大3人分）が混在するため、
 // 読み込み時に必ず配列へ正規化する（書き込みは常に配列）
@@ -12,10 +13,32 @@ function normalizeOtherDiscards(v) {
   return arr.length > 0 ? arr : null
 }
 
-// 読み込み時は他家の副露にも「鳴いた元」を補完する（melds が無い旧データは [] になる）
+// 読み込み時は他家の副露にも「鳴いた元」を補完する（melds が無い旧データは [] になる）。
+// ツモ切りフラグ（tsumogiri）は後から足した項目なので、無い旧データは null ＝「分からない」のまま。
+// ★ ここで [] や false 埋めにしないこと。既存の問題に「全部手出し」という誤った情報が付く
 function readOtherDiscards(v) {
   const arr = normalizeOtherDiscards(v)
-  return arr ? arr.map(od => ({ ...od, melds: normalizeMelds(od?.melds) })) : null
+  return arr
+    ? arr.map(od => ({
+        ...od,
+        melds: normalizeMelds(od?.melds),
+        tsumogiri: normalizeTsumogiri(od?.tsumogiri, (od?.tiles ?? []).length),
+      }))
+    : null
+}
+
+// 書き込み時は tsumogiri が null（＝分からない）なら**キーごと落とす**。
+// 読み込み側が null を補うので情報は失われず、
+// ツモ切りを持たない大多数の問題の jsonb に意味のない null が増えない
+// （toDb(fromDb(row)) が元の行と一致する、という対称性も保たれる）
+function writeOtherDiscards(v) {
+  const arr = normalizeOtherDiscards(v)
+  if (!arr) return null
+  return arr.map(od => {
+    if (od?.tsumogiri != null) return od
+    const { tsumogiri, ...rest } = od ?? {}   // eslint-disable-line no-unused-vars
+    return rest
+  })
 }
 
 export function fromDb(p) {
@@ -90,7 +113,7 @@ export function toDb(p) {
     jikaze:             p.jikaze ?? null,
     junme:              p.junme  ?? null,
     note:               p.note ?? '',
-    other_discard:      normalizeOtherDiscards(p.otherDiscards),
+    other_discard:      writeOtherDiscards(p.otherDiscards),
     scores:             p.scores ?? null,
     board_view:         p.boardView ?? false,
   }

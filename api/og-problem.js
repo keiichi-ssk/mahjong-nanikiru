@@ -21,7 +21,7 @@
 import { ImageResponse } from '@vercel/og';
 import { decodeProblemParam } from '../src/utils/problemShare.js';
 import { getTileImageUrl, getDoraIndicator } from '../src/utils/tileUtils.js';
-import { seatWinds } from '../src/utils/boardUtils.js';
+import { seatWinds, collectCalledTiles, buildRiver } from '../src/utils/boardUtils.js';
 import { getMeldTileRole } from '../src/utils/problemConstants.js';
 
 export const config = { runtime: 'edge' };
@@ -97,17 +97,50 @@ const textNode = (text, style) => ({
   props: { style: { display: 'flex', lineHeight: 1.1, ...style }, children: text },
 });
 
-const tileNode = (src, size) => ({
+// 河の牌の「暗さ」は2段階あり、度合いで意味を分けている（アプリ側と同じルール）。
+//   'tsumogiri' … ツモ切り（沈む）        アプリ: brightness(0.75)
+//   'called'    … 鳴かれた牌（はっきり暗い） アプリ: brightness(0.45) saturate(0.7)
+//
+// ★ satori は CSS の filter に対応していないので、暗くする手段が2つある。
+//   使い分けは意図的なので、**まとめて片方に寄せないこと**:
+//
+//   ツモ切り … 牌の上に黒い膜を重ねる（DIM_OVERLAY）。
+//              **卓の色が透けないので「牌のまま暗い」**。河に並んでいることは
+//              一目で分かるべきなので、こちらを使う（2026-07-30 変更）。
+//              濃さは白い牌 255 に対し 255(1-a) = 255*b を解いて求める
+//   鳴かれた牌 … 牌そのものを透かす（DIM_OPACITY）。卓に沈んで「もう無い」ように見えるのが狙い
+//
+// ★ アプリ側の brightness と片方だけ変えないこと
+const DIM_OVERLAY = { tsumogiri: 'rgba(0, 0, 0, 0.25)' };   // brightness(0.75) 相当
+const DIM_OPACITY = { called: 0.33 };                        // brightness(0.45) 相当
+
+const tileNode = (src, size, dim = null) => ({
   type: 'div',
   props: {
     style: {
+      position: 'relative',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       width: size.w, height: size.h,
       background: '#fbfaf8', border: '2px solid #b8c0cc', borderRadius: 4,
+      ...(DIM_OPACITY[dim] ? { opacity: DIM_OPACITY[dim] } : {}),
     },
-    children: src
-      ? { type: 'img', props: { src, width: size.w - 6, height: size.h - 6 } }
-      : null,
+    children: [
+      src ? { type: 'img', props: { src, width: size.w - 6, height: size.h - 6 } } : null,
+      // 膜は牌の面いっぱい（枠線の内側）に敷く。border ぶん 2px×2 を引く
+      DIM_OVERLAY[dim]
+        ? {
+            type: 'div',
+            props: {
+              style: {
+                position: 'absolute', top: 0, left: 0,
+                width: size.w - 4, height: size.h - 4,
+                display: 'flex', borderRadius: 2,
+                background: DIM_OVERLAY[dim],
+              },
+            },
+          }
+        : null,
+    ].filter(Boolean),
   },
 });
 
@@ -122,18 +155,21 @@ const backNode = size => ({
   },
 });
 
-// 1家ぶんの河。6枚ずつ折り返す
-const riverNode = srcs => ({
+// 1家ぶんの河。6枚ずつ折り返す。cells は { src, dim } の配列（dim は DIM_OPACITY のキー）
+const riverNode = cells => ({
   type: 'div',
   props: {
     style: { display: 'flex', flexDirection: 'column', gap: 2 },
     children: Array.from({ length: RIVER_ROWS }, (_, row) =>
-      srcs.slice(row * RIVER_COLS, row * RIVER_COLS + RIVER_COLS)
+      cells.slice(row * RIVER_COLS, row * RIVER_COLS + RIVER_COLS)
     )
       .filter(row => row.length > 0)
       .map(row => ({
         type: 'div',
-        props: { style: { display: 'flex', gap: 2 }, children: row.map(s => tileNode(s, RIVER)) },
+        props: {
+          style: { display: 'flex', gap: 2 },
+          children: row.map(c => tileNode(c.src, RIVER, c.dim)),
+        },
       })),
   },
 });
@@ -230,10 +266,30 @@ export default async function handler(req) {
   // 席（上家・対面・下家）に河を割り当てる。自風が未設定なら風で引けないので河は出さない
   const jikaze = problem?.jikaze ?? null;
   const discards = problem?.otherDiscards ?? [];
+  // 河は「牌＋暗さの種類」で持つ。
+  // ★ 鳴かれた牌の判定は buildRiver / collectCalledTiles に任せる（盤面と同じ唯一の実装）。
+  //   ここで独自に数え直すと、同じ牌が複数あるときの扱いが盤面とずれる
+  const called = collectCalledTiles({
+    jikaze,
+    melds: problem?.melds ?? [],
+    otherDiscards: discards,
+  });
   const riverOf = wind => {
     if (!wind) return [];
     const od = discards.find(d => d.player === wind);
-    return (od?.tiles ?? []).slice(0, RIVER_COLS * RIVER_ROWS);
+    // 河のデータが無い家は何も描かない。
+    // ★ buildRiver は「データが無ければ巡目ぶんの裏向きで埋める」動きをするが、
+    //   カードは裏向きの河を描かない方針なので、その分岐には入れない
+    if (!od?.tiles?.length) return [];
+    return buildRiver({
+      tiles: (od?.tiles ?? []).slice(0, RIVER_COLS * RIVER_ROWS),
+      tsumogiri: od?.tsumogiri ?? null,
+      calledTiles: called[wind] ?? [],
+    }).map(cell => ({
+      tile: cell.tile,
+      // 鳴かれた牌とツモ切りが重なったら鳴かれた側を優先する（盤面と同じ）
+      dim: cell.called ? 'called' : cell.tsumogiri ? 'tsumogiri' : null,
+    }));
   };
   const seats = seatWinds(jikaze);
   const rivers = {
@@ -256,7 +312,8 @@ export default async function handler(req) {
 
   // 画像の取得はまとめて1回で（牌の重複ぶんは Map で1本化する）
   const meldTiles = melds.flatMap(m => m.tiles);
-  const needed = [...new Set([...hand, ...meldTiles, ...Object.values(rivers).flat(), doraIndicator].filter(Boolean))];
+  const riverTiles = Object.values(rivers).flat().map(c => c.tile);
+  const needed = [...new Set([...hand, ...meldTiles, ...riverTiles, doraIndicator].filter(Boolean))];
   const [uriList, fontRegular, fontBold] = await Promise.all([
     Promise.all(needed.map(t => tileDataUri(origin, t))),
     fetch(new URL('/fonts/NotoSansJP-Regular.otf', origin)).then(r => r.arrayBuffer()),
@@ -266,7 +323,7 @@ export default async function handler(req) {
 
   const riverW = RIVER_COLS * RIVER.w + (RIVER_COLS - 1) * 2;
   const riverH = RIVER_ROWS * RIVER.h + (RIVER_ROWS - 1) * 2;
-  const river  = tiles => riverNode(tiles.map(t => uriOf[t]));
+  const river  = cells => riverNode(cells.map(c => ({ src: uriOf[c.tile], dim: c.dim })));
 
   // ---- 中央フィールド：各家の風と点数・王牌・局と巡目 ----
   const scores = problem?.scores ?? null;
