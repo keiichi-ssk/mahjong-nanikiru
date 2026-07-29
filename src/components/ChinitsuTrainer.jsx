@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import TileButton from './TileButton';
 import ChinitsuAnswerInput from './ChinitsuAnswerInput';
 import ChinitsuAnswerResult from './ChinitsuAnswerResult';
+import ShareButton from './ShareButton';
 import { generateChinitsuHand, evaluateAnswer } from '../utils/chinitsuUtils';
 import { saveChinitsuRound, loadChinitsuRound } from '../utils/chinitsuStorage';
 import { decodeHandParam, buildShareUrl } from '../utils/chinitsuShare';
@@ -148,17 +149,7 @@ export default function ChinitsuTrainer({ onBack, onTimeAttack, reviewHands = nu
 
   // 解答パネル（正解・不正解ボックス）4種すべての末尾に共通で入れるシェアボタン
   const shareButton = (
-    <a
-      className="chinitsu-share-btn"
-      href={buildShareUrl(hand)}
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      <svg className="chinitsu-share-icon" viewBox="0 0 24 24" aria-hidden="true">
-        <path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231 5.451-6.231Zm-1.161 17.52h1.833L7.084 4.126H5.117l11.966 15.644Z" />
-      </svg>
-      この問題をシェア
-    </a>
+    <ShareButton href={buildShareUrl(hand)}>この問題をシェア</ShareButton>
   );
 
   const HISTORY_MAX = 50;

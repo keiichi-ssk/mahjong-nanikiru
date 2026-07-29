@@ -1,13 +1,20 @@
-import { Fragment, useState, useEffect, useMemo, useRef } from 'react';
+import { Fragment, useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import TileButton from './TileButton';
-import QuestionImage from './QuestionImage';
 import { getTileLabel, getTileImageUrl, compareTiles, randomSuitMap, remapProblem, getDoraIndicator } from '../utils/tileUtils';
 import { getSituationText } from '../utils/categoryUtils';
 import { normalizeProblemType, isRiichiJudgmentProblem, judgeAnswer, judgeNakiTiming, judgeNakiChoice, judgeBetaori, parseAnswers } from '../utils/judgeUtils';
 import { usesBoardView } from '../utils/problemDisplay';
+import { buildProblemShareUrl } from '../utils/problemShare';
 import ResponsiveBoard from './ResponsiveBoard';
+import ShareButton from './ShareButton';
 import { useDragReorder } from '../utils/useDragReorder';
 import { NAKI_TIMING_OPTIONS, MELD_TYPE_LABELS, getMeldTileRole } from '../utils/problemConstants';
+
+// 問題画像は Supabase Storage の署名付きURLを使うため、読み込むと supabase-js（約216kBの
+// チャンク）まで芋づるで付いてくる。画像を持つのは公式問題の一部だけで、
+// **認証不要の共有ページ（share.html）には一切必要ない**ため遅延読み込みにする。
+// 画像付きの問題を開いたときだけチャンクを取りに行く
+const QuestionImage = lazy(() => import('./QuestionImage'));
 
 function ExplanationText({ text, className = 'answer-explanation' }) {
   if (!text) return null;
@@ -504,7 +511,10 @@ function BetaoriView({ problem, onAnswer, savedAnswer, onPersist }) {
 }
 
 // ===== メイン =====
-export default function ProblemView({ problem, index, total, onBack, onPrev, onNext, onFinish, onAnswer, savedAnswer, onPersistAnswer }) {
+// standalone … 共有ページ（share.html）のように「1問だけを単独で見せる」用途。
+//   ラウンドの文脈（カテゴリへ戻る・問題 n/m・前後のナビ）が存在しないので、それらを出さない。
+//   既定は false ＝ 出題フローの従来動作なので、App.jsx 側は無変更で動く
+export default function ProblemView({ problem, index, total, onBack, onPrev, onNext, onFinish, onAnswer, savedAnswer, onPersistAnswer, standalone = false }) {
   // savedAnswer があれば回答済み状態（選択牌・リーチ・スーツ置換）を復元する。
   // 問題の切替は key（playingKey-currentIndex）による再マウントで行われるため、
   // ここでの useState 初期化だけで問題ごとの初期化が完結する
@@ -551,6 +561,19 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
 
   const isCorrect = judgeAnswer(p, { selected, selectedRiichi });
 
+  // シェアできるのは自作問題だけ（公式問題は書籍の内容なので共有導線を作らない）。
+  // 共有ページ（standalone）では既に共有された問題を見ているので出さない。
+  // 共有するのはスーツ置換後の p ＝ 画面に見えている牌姿そのもの
+  const canShare = !!problem.isUserProblem && !standalone;
+  const [shareUrl, setShareUrl] = useState(null);
+  useEffect(() => {
+    if (!canShare) return undefined;
+    let cancelled = false;
+    // 圧縮が非同期なので、URL ができるまで ShareButton は何も描かない
+    buildProblemShareUrl(p).then(url => { if (!cancelled) setShareUrl(url); });
+    return () => { cancelled = true; };
+  }, [canShare, p]);
+
   useEffect(() => {
     if (!answered || restoredRef.current) return;
     // これらのタイプは各 View 内で onAnswer / persist を行う
@@ -593,21 +616,25 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
 
   return (
     <div className="problem-view">
-      <div className="problem-header">
-        <button className="btn-back" onClick={onBack}>← カテゴリへ</button>
-        <div className="problem-header-right">
-          <span className="problem-counter">問題 {index + 1} / {total}</span>
-          {/* 自作問題の id は uuid で読めないため、表示用の連番があればそちらを出す */}
-          <span className="problem-id-label">#{problem.displayNo ?? problem.id}</span>
-        </div>
-      </div>
+      {!standalone && (
+        <>
+          <div className="problem-header">
+            <button className="btn-back" onClick={onBack}>← カテゴリへ</button>
+            <div className="problem-header-right">
+              <span className="problem-counter">問題 {index + 1} / {total}</span>
+              {/* 自作問題の id は uuid で読めないため、表示用の連番があればそちらを出す */}
+              <span className="problem-id-label">#{problem.displayNo ?? problem.id}</span>
+            </div>
+          </div>
 
-      <div className="problem-progress" aria-hidden="true">
-        <div
-          className="problem-progress-fill"
-          style={{ width: `${((index + 1) / total) * 100}%` }}
-        />
-      </div>
+          <div className="problem-progress" aria-hidden="true">
+            <div
+              className="problem-progress-fill"
+              style={{ width: `${((index + 1) / total) * 100}%` }}
+            />
+          </div>
+        </>
+      )}
 
       {/* 麻雀卓。局・巡目・ドラ・点数・各家の河をまとめて描くので、
           下の problem-info-row / ScoreDisplay / 他家の捨て牌は出さない。
@@ -686,8 +713,13 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
         />
       )}
 
-      {/* ===== 問題画像（全タイプ共通・署名付きURLで表示） ===== */}
-      <QuestionImage value={p.questionImageUrl} wrapClassName="question-image-wrap" imgClassName="question-image" />
+      {/* ===== 問題画像（全タイプ共通・署名付きURLで表示） =====
+          画像がある問題だけ QuestionImage を読み込む（無条件に置くと supabase まで付いてくる） */}
+      {p.questionImageUrl && (
+        <Suspense fallback={null}>
+          <QuestionImage value={p.questionImageUrl} wrapClassName="question-image-wrap" imgClassName="question-image" />
+        </Suspense>
+      )}
 
       {/* ===== リーチ判断 ===== */}
       {isRiichiJudgment && (
@@ -800,20 +832,28 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
         </>
       )}
 
-      <div className="problem-nav">
-        <button className="btn-nav" onClick={onPrev} disabled={index === 0}>
-          ← 前の問題
-        </button>
-        {index === total - 1 ? (
-          <button className="btn-nav btn-nav--finish" onClick={onFinish}>
-            結果を見る →
+      {canShare && (
+        <div className="problem-share-row">
+          <ShareButton href={shareUrl} />
+        </div>
+      )}
+
+      {!standalone && (
+        <div className="problem-nav">
+          <button className="btn-nav" onClick={onPrev} disabled={index === 0}>
+            ← 前の問題
           </button>
-        ) : (
-          <button className="btn-nav" onClick={onNext}>
-            次の問題 →
-          </button>
-        )}
-      </div>
+          {index === total - 1 ? (
+            <button className="btn-nav btn-nav--finish" onClick={onFinish}>
+              結果を見る →
+            </button>
+          ) : (
+            <button className="btn-nav" onClick={onNext}>
+              次の問題 →
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

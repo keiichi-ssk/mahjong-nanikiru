@@ -8,6 +8,7 @@ import PaifuImport from './PaifuImport'
 import EditorGuide from './EditorGuide'
 import { MAX_PROBLEMS, MAX_CATEGORIES, MAX_EXPLANATION, MAX_NOTE, insertErrorText } from './limits'
 import { snapshotToProblem } from '../utils/importBoard'
+import { buildProblemShareUrl } from '../utils/problemShare'
 import {
   validatePaifu, listRounds, listSteps, snapshotAt, filterSteps, defaultProblemTitle,
 } from '../utils/tenhouPaifu'
@@ -439,6 +440,30 @@ export default function MyProblemsApp() {
     await reload()
   }
 
+  // 一覧から直接 X へ共有する。問題の中身は URL に埋め込まれる（DBは公開しない）。
+  //
+  // ★ 圧縮が非同期なので、先に空のタブを開いてから URL を入れる。
+  //   await のあとに window.open するとユーザー操作との連続性が切れ、
+  //   ポップアップブロックに掛かる
+  async function shareProblem(p) {
+    const win = window.open('about:blank', '_blank')
+    let url
+    try {
+      url = await buildProblemShareUrl(p)
+    } catch {
+      win?.close()
+      setStatus('共有リンクを作成できませんでした')
+      return
+    }
+    if (win) {
+      win.opener = null
+      win.location.href = url
+    } else {
+      // ブロックされたときは同じタブで開く（何も起きないよりよい）
+      window.location.href = url
+    }
+  }
+
   async function deleteProblem(p) {
     if (!window.confirm(`問題「${p.title || '（無題）'}」を削除しますか？\nこの操作は取り消せません。`)) return
     const { data, error } = await supabase
@@ -718,6 +743,7 @@ export default function MyProblemsApp() {
                           onClick={() => deleteProblem(p)}
                           title="削除"
                         >×</button>
+                        <button className="mp-icon-btn" onClick={() => shareProblem(p)} title="Xで共有">↗</button>
                       </>
                     )}
                   </div>

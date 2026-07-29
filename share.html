@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- 共有された1問を表示するページ。問題の中身は URL の ?p= に入っており、
+         URLの数だけ中身の違うページが無限に生えるので検索対象にはしない
+         （api/share-q.js の中継ページと同じ理由。robots.txt では塞がない——
+         Twitterbot は robots.txt を尊重するため OGP カードが出なくなる）。 -->
+    <meta name="robots" content="noindex, follow" />
+    <title>共有された何切る | 座学する麻雀</title>
+    <meta property="og:title" content="共有された何切る問題" />
+    <meta property="og:description" content="麻雀の何切る問題。登録不要・スマホ対応。" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <!-- #root は空だと高さ0になり、読み込み中に下の要素が画面最上部へ回り込む。
+         高さは .boot-loading 自身の min-height で確保する（#root には付けないこと。
+         マウント後も効き続けて余白が残る）。スタイルをここにインラインで書いているのは、
+         開発サーバーでは CSS が JS 経由で注入され、App.css だと一瞬崩れるため。
+         React の createRoot().render() がマウント時に中身を消すので、JSから消す処理は不要 -->
+    <style>
+      .boot-loading {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        color: #8fa5bd;
+        font-size: 0.9rem;
+      }
+      .boot-spinner {
+        width: 28px;
+        height: 28px;
+        border: 3px solid rgba(143, 165, 189, 0.25);
+        border-top-color: #8fa5bd;
+        border-radius: 50%;
+        animation: boot-spin 0.8s linear infinite;
+      }
+      @keyframes boot-spin { to { transform: rotate(360deg); } }
+    </style>
+    <div id="root">
+      <div class="boot-loading">
+        <div class="boot-spinner"></div>
+        <div>読み込んでいます…</div>
+      </div>
+    </div>
+    <script type="module" src="/src/share.jsx"></script>
+  </body>
+</html>

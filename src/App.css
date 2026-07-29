@@ -3233,3 +3233,97 @@
   color: var(--color-text-secondary);
   font-size: 0.85rem;
 }
+
+/* ===== 共有された1問のページ（share.html / ShareApp.jsx）=====
+   出題本体（.problem-view）は本体アプリと共通で、ここは前後の枠だけを持つ。
+   ラウンドの文脈が無いので ProblemView は standalone で描く（ヘッダー・ナビが出ない） */
+.share-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  /* ヘッダーぶんを引く。share.html の .boot-loading（100vh）をそのまま使うと縦に溢れる */
+  min-height: 60vh;
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+}
+
+.share-invalid {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 48px 16px;
+  text-align: center;
+}
+
+.share-invalid-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: bold;
+}
+
+.share-invalid-desc {
+  margin: 0;
+  max-width: 30em;
+  color: var(--color-text-muted);
+  font-size: 0.88rem;
+  line-height: 1.7;
+}
+
+/* 共有元が付けたタイトル。問題の上に控えめに出す（無題なら描画しない） */
+.share-title {
+  margin: 4px 0 0;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+.share-footer {
+  margin-top: 32px;
+  padding-top: 22px;
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.share-footer-lead {
+  margin: 0;
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+}
+
+/* 見た目はランディングの主CTAに合わせる（同じ強さの導線なので揃える） */
+.share-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 28px;
+  border-radius: 10px;
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-size: 0.95rem;
+  font-weight: bold;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.share-cta:active { filter: brightness(0.92); }
+
+@media (hover: hover) {
+  .share-cta:hover { background: #9ed0de; }
+}
+
+/* 出題画面のシェアボタンの行（自作問題のときだけ出る）。
+   .problem-view は縦フレックスなので、中央寄せは margin: auto ではなく align-self で行う
+   （auto マージンだと stretch が打ち消されて内容幅に縮む） */
+.problem-share-row {
+  display: flex;
+  justify-content: center;
+  align-self: center;
+  margin-top: 18px;
+}
