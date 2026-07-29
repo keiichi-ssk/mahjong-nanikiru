@@ -253,11 +253,10 @@ export default function AdminApp() {
     : []
 
   // 中身の初期値は自作問題と共通（problemMapper の newProblemBase）。
-  // ここで足しているのは公式問題にしかない列だけ
-  function makeNewProblem(section, id) {
+  // ここで足しているのは公式問題にしかない列だけ（id は DB のシーケンスが採番する）
+  function makeNewProblem(section) {
     return {
       ...newProblemBase(),
-      id,
       section,
       image:    '',
       reviewed: false,
@@ -266,14 +265,14 @@ export default function AdminApp() {
 
   // 問題を1問追加する。追加はサイドバーの操作なので結果もサイドバーに出す。
   //
-  // id はクライアント側で max+1 を計算して指定している（DB採番ではない）。
-  // 管理者が複数いて同時に追加すると同じ id を計算して主キー衝突で失敗するため、
-  // 無言で終わらせずに理由を表示する。
+  // ★ id は DB のシーケンスが採番する（2026-07-29〜。docs/problems-schema.sql）。
+  //   payload に id を含めると DB の default が使われないので、必ず外して送ること。
+  //   採番された id は insert の返り値から受け取る（クライアントで max+1 を計算しない）。
   // あわせて RLS の「0行の正常応答」も検証する（エラーが無くても入っていないことがある）
   async function insertProblem(section) {
-    const maxId = problems.reduce((m, p) => Math.max(m, p.id), 0)
-    const newProblem = makeNewProblem(String(section), maxId + 1)
-    const { data, error } = await supabase.from('problems').insert(toDb(newProblem)).select('id')
+    // eslint-disable-next-line no-unused-vars
+    const { id, ...row } = toDb(makeNewProblem(String(section)))
+    const { data, error } = await supabase.from('problems').insert(row).select('*')
     if (error) {
       setSidebarStatus(`問題の追加に失敗しました: ${error.message}`)
       return null
@@ -282,9 +281,10 @@ export default function AdminApp() {
       setSidebarStatus('問題を追加できませんでした ✗（権限を確認してください）')
       return null
     }
-    setProblems(prev => [...prev, newProblem])
+    const added = fromDb(data[0])
+    setProblems(prev => [...prev, added])
     setSidebarStatus('')
-    return newProblem
+    return added
   }
 
   async function handleAddFromForm() {

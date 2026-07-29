@@ -29,6 +29,7 @@ const fullRow = {
     { player: '北', tiles: ['5p'], riichiIndex: 0, melds: [] },
   ],
   scores: { 東: 25000, 南: 31200, 西: 18800, 北: 24000, kyotaku: 1000 },
+  board_view: true,
 };
 
 describe('fromDb（DB行 → アプリ内オブジェクト）', () => {
@@ -151,6 +152,7 @@ describe('toDb（アプリ内オブジェクト → DB行）', () => {
       note: '',
       other_discard: null,
       scores: null,
+      board_view: false,
     });
   });
 });
@@ -207,6 +209,7 @@ describe('newProblemBase（新規作成の初期値）', () => {
       note: '',
       other_discard: null,
       scores: null,
+      board_view: false,
     });
   });
 

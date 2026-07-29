@@ -230,7 +230,7 @@ export default function ProblemEditor({
   problem, prevProblem, onSave, onSaveAndNext, onDelete, hasNext,
   hideImage = false, hideReviewed = false, hideDelete = false, headerLead = null,
   saveStatus = null, lockBoard = false, concealedCounts = null,
-  hideDisabled = false, paletteAside = null, textLimits = null,
+  hideDisabled = false, paletteAside = null, textLimits = null, hideBoardView = false,
 }) {
   // 手牌が未設定（新規追加直後）の問題は、手牌・正解・状況設定（ドラ・場風・自風・巡目）を
   // ひとつ前の問題から引き継いでおく。手牌がすでにある問題は自分自身の値を優先する。
@@ -254,6 +254,8 @@ export default function ProblemEditor({
   const [explanation,   setExplanation]   = useState(problem.explanation ?? '')
   const [reviewed,      setReviewed]      = useState(problem.reviewed ?? false)
   const [disabled,      setDisabled]      = useState(problem.disabled ?? false)
+  // 出題画面を麻雀卓の形にするか（公式問題のみ。自作問題は常に盤面なので設定を出さない）
+  const [boardView,     setBoardView]     = useState(problem.boardView ?? false)
   const [addingMeld,    setAddingMeld]    = useState(null)
   // 旧タイプ image-quiz は default に正規化する（画像は全タイプ共通の付加情報になった）
   const [problemType,   setProblemType]   = useState(normalizeProblemType(problem.problemType))
@@ -541,6 +543,7 @@ export default function ProblemEditor({
     explanation,
     reviewed,
     disabled,
+    boardView,
     problemType,
     discardedTile:    discardedTile || null,
     nakiChoices,
@@ -565,7 +568,7 @@ export default function ProblemEditor({
       })
       return valid.length > 0 ? valid : null
     })(),
-  }), [problem, tiles, answer, dora, riichi, melds, explanation, reviewed, disabled, problemType, discardedTile, nakiChoices, questionImageUrl, bakaze, kyoku, honba, jikaze, junme, scores, note, otherDiscards])
+  }), [problem, tiles, answer, dora, riichi, melds, explanation, reviewed, disabled, boardView, problemType, discardedTile, nakiChoices, questionImageUrl, bakaze, kyoku, honba, jikaze, junme, scores, note, otherDiscards])
 
   // 副露だけ設定しても「家＋捨て牌」が揃わない限り保存されない（保存条件は捨て牌ベースのまま）
   // 正解の配列表現（表示・選択状態の判定用。answer 本体はカンマ区切り文字列のまま）
@@ -824,6 +827,22 @@ export default function ProblemEditor({
               onChange={e => setDisabled(e.target.checked)}
             />
             非表示
+          </label>
+        )}
+        {/* 出題画面をこの盤面と同じ「麻雀卓」の形にする。
+            外すと従来表示（手牌＋他家の捨て牌を縦に並べる）になる。
+            自作問題は常に盤面なので、あちらではこの設定を出さない（hideBoardView） */}
+        {!hideBoardView && (
+          <label
+            className="reviewed-check"
+            title="出題画面を麻雀卓の形で表示する（局・点数・各家の河が卓に入る）"
+          >
+            <input
+              type="checkbox"
+              checked={boardView}
+              onChange={e => setBoardView(e.target.checked)}
+            />
+            盤面で出題
           </label>
         )}
         {/* 牌譜から作った問題は実在の局面をそのまま出すのが基本なので、

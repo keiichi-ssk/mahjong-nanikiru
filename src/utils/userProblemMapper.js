@@ -13,11 +13,13 @@
 import { fromDb, toDb, newProblemBase } from './problemMapper'
 
 // toDb が返すが user_problems には無い列。
-//   section  … category_id と二重管理になるため持たない（出題時に u:<category_id> として導出する）
-//   image    … レガシー列（旧 /samplequestions/... 形式）。現行は question_image_url
-//   reviewed … 公式問題の校正管理用フラグ。自作問題では用途がない（2026-07-28 判断）
+//   section    … category_id と二重管理になるため持たない（出題時に u:<category_id> として導出する）
+//   image      … レガシー列（旧 /samplequestions/... 形式）。現行は question_image_url
+//   reviewed   … 公式問題の校正管理用フラグ。自作問題では用途がない（2026-07-28 判断）
+//   board_view … 自作問題は常に盤面（麻雀卓）で出題するので切り替える意味がない。
+//                判定は problemDisplay.js の usesBoardView() が isUserProblem で行う（2026-07-29）
 // id は DB が採番するので payload に含めない（更新は eq('id', ...) で対象を指定する）
-export const OMITTED_COLUMNS = ['id', 'section', 'image', 'reviewed']
+export const OMITTED_COLUMNS = ['id', 'section', 'image', 'reviewed', 'board_view']
 
 // user_id は含めない。
 // RLS の with check が守ってくれるとはいえ、更新のたびに送る必要がない値なので、

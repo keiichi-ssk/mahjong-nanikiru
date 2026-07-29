@@ -78,7 +78,9 @@ function ProblemPane({ problem, prevProblem, hasNext, onSave, onSaveAndNext, sav
       hasNext={hasNext}
       hideImage
       hideReviewed
-      hideDelete      headerLead={<h3 className="editor-title">#{problem.displayNo ?? '—'}</h3>}
+      hideDelete
+      hideBoardView
+      headerLead={<h3 className="editor-title">#{problem.displayNo ?? '—'}</h3>}
       paletteAside={<EditorGuide mode="manual" />}
       textLimits={TEXT_LIMITS}
       saveStatus={saveStatus}
@@ -746,8 +748,10 @@ export default function MyProblemsApp() {
             hideImage
             hideReviewed
             hideDelete
+            hideBoardView
             // 実在の局面をそのまま出題するのが基本。変えたいときはヘッダーのトグルで解除する
-            lockBoard            concealedCounts={concealedCounts}
+            lockBoard
+            concealedCounts={concealedCounts}
             paletteAside={<EditorGuide mode="paifu" />}
             textLimits={TEXT_LIMITS}
             headerLead={

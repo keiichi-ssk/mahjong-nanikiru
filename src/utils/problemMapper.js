@@ -35,6 +35,8 @@ export function fromDb(p) {
     melds:            normalizeMelds(p.melds),
     otherDiscards:    readOtherDiscards(p.other_discard),
     scores:           p.scores ?? null,
+    // 麻雀卓の形で出題するか。後から追加した列なので古い行では false に正規化する
+    boardView:        p.board_view ?? false,
   }
 }
 
@@ -61,6 +63,7 @@ export function newProblemBase() {
     questionImageUrl: null,
     note:             '',
     otherDiscards:    null,
+    boardView:        false,
   }
 }
 
@@ -89,5 +92,6 @@ export function toDb(p) {
     note:               p.note ?? '',
     other_discard:      normalizeOtherDiscards(p.otherDiscards),
     scores:             p.scores ?? null,
+    board_view:         p.boardView ?? false,
   }
 }
