@@ -7,7 +7,9 @@
 //   - 巡目が未設定 … 裏向きは並べない
 //   - 鳴かれた牌は河から減らさず、網掛けにして「鳴かれた」と分かるようにする
 
-import { windAt } from './problemConstants';
+// api/ 配下（Vercel Functions）からも読み込まれるため拡張子を明示する
+// （api/og-problem.js が seatWinds を使う。他の src/utils は慣例で省略のまま）
+import { windAt } from './problemConstants.js';
 
 // 自分から見た他家の席順（盤面の左・上・右に対応）
 export const SEATS = ['上家', '対面', '下家'];
