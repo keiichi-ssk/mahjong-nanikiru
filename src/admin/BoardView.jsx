@@ -217,19 +217,19 @@ function SeatMeldBlock({ melds, angle }) {
 
 // クリックできる領域の共通枠。
 // 中身が何も無い領域は、そのままだと大きさが 0 になってクリックできなくなるため、
-// empty のときだけ破線のプレースホルダーを出す（見た目を素の卓に近づけるため通常時は枠なし）
-function BoardArea({ className = '', active, empty, style, onClick, children }) {
+// empty のときだけ破線のプレースホルダーを出す（見た目を素の卓に近づけるため通常時は枠なし）。
+// readOnly（出題画面など表示だけの用途）では button にせず div にする
+// ——押せない領域を button にすると、キーボードのフォーカスが盤面じゅうを巡ってしまう
+function BoardArea({ className = '', active, empty, style, onClick, readOnly, children }) {
+  const cls =
+    `board-area ${className}` +
+    (active ? ' board-area--active' : '') +
+    (empty ? ' board-area--empty' : '')
+  if (readOnly) {
+    return <div className={cls} style={style}>{children}</div>
+  }
   return (
-    <button
-      type="button"
-      className={
-        `board-area ${className}` +
-        (active ? ' board-area--active' : '') +
-        (empty ? ' board-area--empty' : '')
-      }
-      style={style}
-      onClick={onClick}
-    >
+    <button type="button" className={cls} style={style} onClick={onClick}>
       {children}
     </button>
   )
@@ -273,9 +273,16 @@ export default function BoardView({
   // 他家の手牌の実際の枚数 { 東: 14, 南: 13, … }。牌譜から局面を再現するときだけ渡す
   // （渡さなければ 13 − 3×副露数 で表示する）。problem には保存されない表示専用の情報
   concealedCounts = null,
-  activeArea, onSelectArea,
+  activeArea, onSelectArea = () => {},
   // 盤面上で直接編集するためのコールバック（渡さなければ表示のみになる）
   onChangeBakaze, onChangeKyoku, onChangeHonba, onChangeJikaze, onChangeJunme, onRemoveHandTile,
+  // 表示専用モード（出題画面で卓を見せるときに使う）。
+  // クリックできる要素（領域・点数・牌・王牌）をすべて素の要素にし、
+  // 局・巡目のセレクタは静的なテキストにする。既定は false ＝ 管理画面の従来動作
+  readOnly = false,
+  // 自分の手牌を盤面に出さない。出題画面では回答用の手牌を卓の直下に置くため、
+  // 盤面側にも手牌を描くと同じ牌が二重に並んでしまう
+  hideSelfHand = false,
 }) {
   const called = collectCalledTiles({ jikaze, melds, otherDiscards })
 
@@ -328,13 +335,19 @@ export default function BoardView({
   // 自分の風バッジだけは例外で、クリックすると自風が切り替わる。
   // button の入れ子は不正なので、チップ自体は div にして中の風・点数を button にする
   function seatScore(wind, relative, side, editableWind = false) {
+    const className =
+      `board-score board-score--${side}` +
+      (wind && wind === jikaze ? ' board-score--self' : '')
+    if (readOnly) {
+      return (
+        <div className={className}>
+          <span className="board-score-wind">{wind ?? relative}</span>
+          <span className="board-score-value">{score(wind) ?? '—'}</span>
+        </div>
+      )
+    }
     return (
-      <div
-        className={
-          `board-score board-score--${side}` +
-          (wind && wind === jikaze ? ' board-score--self' : '')
-        }
-      >
+      <div className={className}>
         {editableWind ? (
           <button
             type="button"
@@ -373,7 +386,9 @@ export default function BoardView({
       <BoardArea
         className={`board-seat ${className}`}
         active={activeArea === `sutehai:${seat.index}`}
-        empty={seat.cells.length === 0}
+        // 表示専用のときは破線のプレースホルダーを出さない（押せない領域を示す意味がないため）
+        empty={!readOnly && seat.cells.length === 0}
+        readOnly={readOnly}
         onClick={() => onSelectArea('sutehai', seat.index)}
       >
         <SeatRiverBlock
@@ -396,6 +411,7 @@ export default function BoardView({
         className={`board-seat ${className}`}
         active={activeArea === `sutehai:${seat.index}`}
         style={seatVars(handLength(handCount, TILE), meldsWidth(melds), TILE.h)}
+        readOnly={readOnly}
         onClick={() => onSelectArea('sutehai', seat.index)}
       >
         <span className="board-seat-hand-slot">
@@ -411,7 +427,7 @@ export default function BoardView({
   }
 
   return (
-    <div className="board">
+    <div className={`board${readOnly ? ' board--readonly' : ''}`}>
       {/* 外側は各家の手牌（盤面の端）、内側は河と局設定。
           手牌は幅が広いので内側グリッドに入れると中央の列を押し広げてしまう */}
       <div className="board-outer">
@@ -431,42 +447,69 @@ export default function BoardView({
             {seatScore(seats[2].wind, '下家', 'right')}
             {seatScore(jikaze, '自分', 'bottom', !!onChangeJikaze)}
             <div className="board-center-info">
-                <button
-                  type="button"
-                  className="board-dead-wall-btn"
-                  onClick={() => onSelectArea('dora')}
-                  title="ドラを設定（下のパレットから牌を選ぶ）"
-                >
-                  <BoardDeadWall indicator={doraIndicator} />
-                </button>
-                <div className="board-setting-row">
-                  {/* 場風＋局はひとつのセレクタ。どちらか片方だけの旧データは未選択（—）扱いになる */}
-                  <BoardSelect
-                    value={bakaze && kyoku != null ? `${bakaze}${kyoku}` : null}
-                    onChange={v => {
-                      onChangeBakaze(v == null ? null : v.slice(0, 1))
-                      onChangeKyoku(v == null ? null : Number(v.slice(1)))
-                    }}
-                    options={KYOKU_OPTIONS}
-                    title="場風・局"
-                  />
-                  <BoardSelect
-                    value={honba == null ? null : String(honba)}
-                    onChange={v => onChangeHonba(v == null ? null : Number(v))}
-                    options={Array.from({ length: 11 }, (_, i) => String(i))}
-                    suffix="本場"
-                    title="本場"
-                  />
-                </div>
-                <div className="board-setting-row">
-                  <BoardSelect
-                    value={junme == null ? null : String(junme)}
-                    onChange={v => onChangeJunme(v == null ? null : Number(v))}
-                    options={Array.from({ length: 20 }, (_, i) => String(i + 1))}
-                    suffix="巡目"
-                    title="巡目"
-                  />
-                </div>
+                {readOnly ? (
+                  <div className="board-dead-wall-btn">
+                    <BoardDeadWall indicator={doraIndicator} />
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    className="board-dead-wall-btn"
+                    onClick={() => onSelectArea('dora')}
+                    title="ドラを設定（下のパレットから牌を選ぶ）"
+                  >
+                    <BoardDeadWall indicator={doraIndicator} />
+                  </button>
+                )}
+                {/* 表示専用のときはセレクタではなく文字で出す。
+                    未設定の項目は行ごと出さない（「—」が並ぶと卓が読みにくくなるため） */}
+                {readOnly ? (
+                  <>
+                    {(bakaze && kyoku != null) && (
+                      <div className="board-setting-row">
+                        <span className="board-kyoku">
+                          {bakaze}{kyoku}局{honba ? ` ${honba}本場` : ''}
+                        </span>
+                      </div>
+                    )}
+                    {junme != null && (
+                      <div className="board-setting-row">
+                        <span className="board-junme">{junme}巡目</span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <div className="board-setting-row">
+                      {/* 場風＋局はひとつのセレクタ。どちらか片方だけの旧データは未選択（—）扱いになる */}
+                      <BoardSelect
+                        value={bakaze && kyoku != null ? `${bakaze}${kyoku}` : null}
+                        onChange={v => {
+                          onChangeBakaze(v == null ? null : v.slice(0, 1))
+                          onChangeKyoku(v == null ? null : Number(v.slice(1)))
+                        }}
+                        options={KYOKU_OPTIONS}
+                        title="場風・局"
+                      />
+                      <BoardSelect
+                        value={honba == null ? null : String(honba)}
+                        onChange={v => onChangeHonba(v == null ? null : Number(v))}
+                        options={Array.from({ length: 11 }, (_, i) => String(i))}
+                        suffix="本場"
+                        title="本場"
+                      />
+                    </div>
+                    <div className="board-setting-row">
+                      <BoardSelect
+                        value={junme == null ? null : String(junme)}
+                        onChange={v => onChangeJunme(v == null ? null : Number(v))}
+                        options={Array.from({ length: 20 }, (_, i) => String(i + 1))}
+                        suffix="巡目"
+                        title="巡目"
+                      />
+                    </div>
+                  </>
+                )}
                 {scores?.kyotaku > 0 && (
                   <div className="board-kyotaku">供託 {scores.kyotaku}</div>
                 )}
@@ -480,7 +523,8 @@ export default function BoardView({
           <BoardArea
             className="board-seat board-seat--self"
             active={activeArea === `sutehai:${selfIndex}`}
-            empty={selfCells.length === 0}
+            empty={!readOnly && selfCells.length === 0}
+            readOnly={readOnly}
             onClick={() => onSelectArea('sutehai', selfIndex)}
           >
             <SeatRiverBlock
@@ -497,12 +541,13 @@ export default function BoardView({
         {/* 自分の手牌も盤面の端（最下段）。
             手牌タブを開いている間だけ、牌のクリックがその牌の削除になる。
             牌ごとに button を置くので、この領域自体は button にしない（入れ子は不正） */}
+        {!hideSelfHand && (
         <div className="board-outer-cell board-outer--bottom">
           <div
             className={
               'board-area board-hand' +
               (handEditable ? ' board-area--active' : '') +
-              (tiles.length === 0 ? ' board-area--empty' : '')
+              (!readOnly && tiles.length === 0 ? ' board-area--empty' : '')
             }
             style={seatVars(
               tiles.length > 0 ? handLength(tiles.length, HAND_TILE) : EMPTY_HAND_LEN,
@@ -512,40 +557,54 @@ export default function BoardView({
           >
             <div className="board-hand-row">
               <div className="board-hand-tiles board-seat-hand-slot">
-                {tiles.map((tile, i) => (
-                  <button
-                    key={i}
-                    type="button"
-                    className="board-tile-btn"
-                    onClick={() => handEditable ? onRemoveHandTile?.(i) : onSelectArea('hand')}
-                    title={handEditable ? 'クリックで削除' : '手牌を編集'}
-                  >
+                {tiles.map((tile, i) => {
+                  const tileEl = (
                     <BoardTile
                       tile={tile}
                       size={HAND_TILE}
                       className={answerList.includes(tile) ? 'board-tile--answer' : ''}
                     />
-                  </button>
-                ))}
-                {tiles.length === 0 && (
+                  )
+                  return readOnly ? (
+                    <span key={i} className="board-tile-btn">{tileEl}</span>
+                  ) : (
+                    <button
+                      key={i}
+                      type="button"
+                      className="board-tile-btn"
+                      onClick={() => handEditable ? onRemoveHandTile?.(i) : onSelectArea('hand')}
+                      title={handEditable ? 'クリックで削除' : '手牌を編集'}
+                    >
+                      {tileEl}
+                    </button>
+                  )
+                })}
+                {tiles.length === 0 && !readOnly && (
                   <button type="button" className="board-empty-text" onClick={() => onSelectArea('hand')}>
                     手牌が未設定です
                   </button>
                 )}
               </div>
               {melds.length > 0 && (
-                <button
-                  type="button"
-                  className="board-melds-btn board-seat-melds"
-                  onClick={() => onSelectArea('hand')}
-                  title="手牌を編集"
-                >
-                  <BoardMelds melds={melds} size={HAND_TILE} />
-                </button>
+                readOnly ? (
+                  <span className="board-melds-btn board-seat-melds">
+                    <BoardMelds melds={melds} size={HAND_TILE} />
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    className="board-melds-btn board-seat-melds"
+                    onClick={() => onSelectArea('hand')}
+                    title="手牌を編集"
+                  >
+                    <BoardMelds melds={melds} size={HAND_TILE} />
+                  </button>
+                )
               )}
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   )

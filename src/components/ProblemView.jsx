@@ -4,6 +4,8 @@ import QuestionImage from './QuestionImage';
 import { getTileLabel, getTileImageUrl, compareTiles, randomSuitMap, remapProblem, getDoraIndicator } from '../utils/tileUtils';
 import { getSituationText } from '../utils/categoryUtils';
 import { normalizeProblemType, isRiichiJudgmentProblem, judgeAnswer, judgeNakiTiming, judgeNakiChoice, judgeBetaori, parseAnswers } from '../utils/judgeUtils';
+import { usesBoardView } from '../utils/problemDisplay';
+import ResponsiveBoard from './ResponsiveBoard';
 import { useDragReorder } from '../utils/useDragReorder';
 import { NAKI_TIMING_OPTIONS, MELD_TYPE_LABELS, getMeldTileRole } from '../utils/problemConstants';
 
@@ -523,6 +525,13 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
     return remapProblem(problem, suitMap);
   }, [problem, suitMap]);
 
+  // 麻雀卓の形で出すか（自作問題と、管理画面で「盤面で出題」にした公式問題）。
+  // 卓には局・巡目・ドラ・点数・各家の河が全部入っているので、
+  // 従来のヘッダー表示と他家の捨て牌は出さず、卓に一本化する
+  const showBoard = usesBoardView(problem);
+  // 子のビューに渡す問題。盤面が他家の捨て牌を描くので、そちらからは外して二重表示を防ぐ
+  const pv = showBoard ? { ...p, otherDiscards: null } : p;
+
   const problemType   = normalizeProblemType(p.problemType);
   const isRiichiJudgment = isRiichiJudgmentProblem(p);
   const needsRiichi = !isRiichiJudgment && p.riichi !== null && p.riichi !== undefined;
@@ -600,7 +609,26 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
         />
       </div>
 
-      {(() => {
+      {/* 麻雀卓。局・巡目・ドラ・点数・各家の河をまとめて描くので、
+          下の problem-info-row / ScoreDisplay / 他家の捨て牌は出さない。
+          自分の手牌も卓には出さず（hideSelfHand）、回答用の手牌を卓の直下に置く */}
+      {showBoard && (
+        <ResponsiveBoard
+          hideSelfHand
+          tiles={p.tiles ?? []}
+          melds={p.melds ?? []}
+          dora={p.dora}
+          bakaze={p.bakaze}
+          kyoku={p.kyoku}
+          honba={p.honba}
+          jikaze={p.jikaze}
+          junme={p.junme}
+          scores={p.scores}
+          otherDiscards={p.otherDiscards ?? []}
+        />
+      )}
+
+      {!showBoard && (() => {
         const hasSituationFields = p.bakaze || p.jikaze || p.junme != null;
         const situationText = hasSituationFields
           ? [
@@ -624,14 +652,14 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
         );
       })()}
 
-      <ScoreDisplay scores={p.scores} jikaze={p.jikaze} />
+      {!showBoard && <ScoreDisplay scores={p.scores} jikaze={p.jikaze} />}
 
       <ExplanationText text={p.note} className="problem-note" />
 
       {/* ===== 鳴きタイミング ===== */}
       {problemType === 'naki-timing' && (
         <NakiTimingView
-          problem={p}
+          problem={pv}
           onAnswer={isCorrect => onAnswer?.(problem.id, isCorrect)}
           savedAnswer={savedAnswer}
           onPersist={persistAnswer}
@@ -641,7 +669,7 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
       {/* ===== 鳴き選択 ===== */}
       {problemType === 'naki-choice' && (
         <NakiChoiceView
-          problem={p}
+          problem={pv}
           onAnswer={isCorrect => onAnswer?.(problem.id, isCorrect)}
           savedAnswer={savedAnswer}
           onPersist={persistAnswer}
@@ -651,7 +679,7 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
       {/* ===== ベタオリ（安全な順に並べる） ===== */}
       {problemType === 'betaori' && (
         <BetaoriView
-          problem={p}
+          problem={pv}
           onAnswer={isCorrect => onAnswer?.(problem.id, isCorrect)}
           savedAnswer={savedAnswer}
           onPersist={persistAnswer}
@@ -664,7 +692,7 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
       {/* ===== リーチ判断 ===== */}
       {isRiichiJudgment && (
         <>
-          <HandDisplay tiles={p.tiles} melds={p.melds} otherDiscards={p.otherDiscards} jikaze={p.jikaze} />
+          <HandDisplay tiles={pv.tiles} melds={pv.melds} otherDiscards={pv.otherDiscards} jikaze={pv.jikaze} />
 
           {!answered ? (
             <div className="riichi-choice-btns">
@@ -720,7 +748,7 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
               )}
             </div>
           )}
-          <OtherDiscardDisplay otherDiscards={p.otherDiscards} jikaze={p.jikaze} />
+          <OtherDiscardDisplay otherDiscards={pv.otherDiscards} jikaze={pv.jikaze} />
           {quadTiles.length > 0 && (
               <div className="ankan-options">
                 {quadTiles.map(kanTile => {

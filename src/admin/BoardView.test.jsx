@@ -167,6 +167,55 @@ describe('BoardView', () => {
     expect(riverBacks(html)).toBe(0); // 巡目が無ければ裏向きは並べない
   });
 
+  // 出題画面は同じ盤面を表示専用で使う。押せる要素が残っていると
+  // タップやキーボードのフォーカスが盤面じゅうに反応してしまうので、そこを固定する
+  describe('readOnly（表示専用モード）', () => {
+    it('押せる要素が1つも残らない', () => {
+      const html = renderToStaticMarkup(<BoardView {...base} readOnly />);
+      expect(html).not.toContain('<button');
+      expect(html).not.toContain('<select');
+      expect(html).toContain('board--readonly');
+    });
+
+    it('局・本場・巡目がセレクタではなく文字で出る', () => {
+      const html = renderToStaticMarkup(<BoardView {...base} honba={2} readOnly />);
+      expect(html).toContain('東1局 2本場');
+      expect(html).toContain('7巡目');
+    });
+
+    it('未設定の局・巡目は行ごと出さない（「—」を並べない）', () => {
+      const html = renderToStaticMarkup(
+        <BoardView {...base} bakaze={null} kyoku={null} junme={null} readOnly />
+      );
+      expect(html).not.toContain('board-kyoku');
+      expect(html).not.toContain('board-junme');
+      expect(html).toContain('board-center');
+    });
+
+    it('空の領域に破線のプレースホルダーを出さない', () => {
+      const html = renderToStaticMarkup(
+        <BoardView {...base} tiles={[]} otherDiscards={[]} junme={null} readOnly />
+      );
+      expect(html).not.toContain('board-area--empty');
+      expect(html).not.toContain('手牌が未設定です');
+    });
+
+    // 出題画面では回答用の手牌を卓の直下に置くため、盤面側の手牌は消す
+    it('hideSelfHand で自分の手牌と副露を出さない', () => {
+      const html = renderToStaticMarkup(<BoardView {...base} readOnly hideSelfHand />);
+      expect(html).not.toContain('board-hand-tiles');
+      expect(html).not.toContain('board-outer--bottom');
+      // 自分の河と他家の手牌は残る
+      expect(html).toContain('board-seat--self');
+      expect(html).toContain('board-seat-hand-tile');
+    });
+
+    it('onSelectArea を渡さなくても描画できる', () => {
+      const html = renderToStaticMarkup(<BoardView {...base} readOnly onSelectArea={undefined} />);
+      expect(html).toContain('board-center');
+    });
+  });
+
   it('手牌タブを開いている間だけ、手牌のクリックが削除になる', () => {
     const editing = renderToStaticMarkup(
       <BoardView {...base} activeArea="hand" onRemoveHandTile={() => {}} />
