@@ -340,26 +340,25 @@ export async function decodeProblemParam(param) {
 // クローラーにはカード付きHTMLを返し、人間だけ share.html へ自動遷移させる
 const SHARE_REDIRECT_URL = `${SITE_URL}/api/share-q`;
 
+// 投稿文に入れるのはハッシュタグだけ（2026-07-29〜）。
+//
+// ★ 「【何切る】」「何を切る？」のような**問題タイプを決めつける文言を入れないこと**。
+//   共有できるのは何切るとは限らず（リーチ判断・鳴き・ベタオリもある）、
+//   文言と中身が食い違う。タイトルも入れない——投稿画面で自分で書いたほうが早いため。
+// ★ ネタバレ（正解・解説）も書かないこと。URL の中には入っているが、
+//   タイムラインに答えが並ぶと問題として成立しなくなる。
+// #何切る は実際には何切るが大半で検索流入が見込めるので残してある
+// （違う問題のときは投稿画面で消せばよい・2026-07-29 ユーザー判断）
+const SHARE_HASHTAGS = '#麻雀 #何切る #座学する麻雀';
+
 /**
  * X（旧Twitter）の投稿画面を開くURL。
  *
- * ★ 投稿文にネタバレ（正解・解説）を書かないこと。URL の中には入っているが、
- *   タイムラインに答えが並ぶと問題として成立しなくなる。
- * ★ タイトルは共有元がつけた自由入力なので、投稿文に入れるのは可（Xのフォントで出る）。
- *   ただしOGPカードには載せない——カードのフォントはサブセット化されており、
- *   任意の文字を描くと豆腐になるため（api/og-problem.js のコメント参照）
+ * 本文はハッシュタグだけで、局面は OGPカード（api/og-problem.js）が伝える。
  */
 export async function buildProblemShareUrl(problem) {
-  const text = [
-    '【何切る】',
-    problem?.title ? problem.title : null,
-    '',
-    '何を切る？',
-    '',
-    '#麻雀 #何切る #座学する麻雀',
-  ].filter(line => line !== null).join('\n');
   const shareUrl = `${SHARE_REDIRECT_URL}?p=${await encodeProblemParam(problem)}`;
-  return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
+  return `https://twitter.com/intent/tweet?text=${encodeURIComponent(SHARE_HASHTAGS)}&url=${encodeURIComponent(shareUrl)}`;
 }
 
 // 副露の種類が増えたら1文字マップにも足すこと（problemShare.test.js が検出する）
