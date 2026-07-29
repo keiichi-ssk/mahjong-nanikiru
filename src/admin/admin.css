@@ -6,6 +6,8 @@
 
 /* 盤面ビューのスタイル。出題画面（App.css）と共用しているため別ファイルにしてある */
 @import '../styles/board.css';
+/* Xへのシェアボタン。こちらも App.css と共用している */
+@import '../styles/share-button.css';
 
 html {
   overflow-y: auto;

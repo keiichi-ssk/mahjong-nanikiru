@@ -5,6 +5,7 @@ import { BOOKS, ALL_MAJOR_CATEGORIES, majorCategoryKey, sectionNumber, sectionLa
 import { fromDb, toDb, newProblemBase } from '../utils/problemMapper'
 import { questionImagePath, QUESTION_IMAGE_BUCKET } from '../utils/questionImage'
 import categoriesData from '../data/categories.json'
+import { openProblemShare } from '../utils/shareWindow'
 
 // allowed_major_categories の値を複合キー（"書籍::大カテゴリ"）に正規化する。
 // レガシー裸ラベルは該当する全書籍の複合キーに展開（現行の実効挙動を保存）、
@@ -57,6 +58,14 @@ export default function AdminApp() {
   function showSaveError(text) {
     clearTimeout(editorStatusTimer.current)
     setEditorStatus({ text, error: true })
+  }
+
+  // X への共有。共有されるのは編集中の内容（保存の有無に関わらず画面に見えているもの）で、
+  // 問題は DB ではなく URL に丸ごと埋め込まれる。
+  // ★ X の宣伝に使うことを前提に、問題の一部を改変してから共有する使い方を想定している
+  //   （2026-07-29 決定）。書籍の問題をそのまま流さないこと
+  async function handleShare(data) {
+    if (!(await openProblemShare(data))) showSaveError('共有リンクを作成できませんでした')
   }
 
   useEffect(() => {
@@ -545,6 +554,7 @@ export default function AdminApp() {
             onSave={handleSave}
             onSaveAndNext={handleSaveAndNext}
             onDelete={handleDelete}
+            onShare={handleShare}
             hasNext={catIdx < catProblems.length - 1}
             // 保存の結果は保存ボタンの隣に出す（サイドバーだと遠くて気づけない）
             saveStatus={editorStatus && (

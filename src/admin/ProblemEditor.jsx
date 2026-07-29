@@ -16,6 +16,7 @@ function defaultMeldFrom(type) {
 import { questionImagePath, QUESTION_IMAGE_BUCKET } from '../utils/questionImage'
 import { useDragReorder } from '../utils/useDragReorder'
 import QuestionImage from '../components/QuestionImage'
+import ShareButton from '../components/ShareButton'
 import { supabase } from '../lib/supabase'
 
 const TILE_GROUPS = [
@@ -231,6 +232,7 @@ export default function ProblemEditor({
   hideImage = false, hideReviewed = false, hideDelete = false, headerLead = null,
   saveStatus = null, lockBoard = false, concealedCounts = null,
   hideDisabled = false, paletteAside = null, textLimits = null, hideBoardView = false,
+  onShare = null,
 }) {
   // 手牌が未設定（新規追加直後）の問題は、手牌・正解・状況設定（ドラ・場風・自風・巡目）を
   // ひとつ前の問題から引き継いでおく。手牌がすでにある問題は自分自身の値を優先する。
@@ -870,6 +872,21 @@ export default function ProblemEditor({
             保存して次へ <kbd>Ctrl+S</kbd>
           </button>
           {saveStatus && <span className="editor-save-status">{saveStatus}</span>}
+          {/* Xへの共有（管理画面だけ。my問題集は一覧側に入口があるので渡していない）。
+              共有するのは「いま画面に見えている内容」＝未保存の編集も含む buildSaveData()。
+              ★ 問題画像はURLに載せられないので、画像付きの問題は共有できない
+                （盤面だけが飛んで問題が成立しないため） */}
+          {onShare && (
+            <ShareButton
+              onClick={() => onShare(buildSaveData())}
+              disabled={!!questionImageUrl}
+              title={questionImageUrl
+                ? '問題画像は共有リンクに含められないため、画像付きの問題は共有できません'
+                : 'いま編集している内容をXで共有します'}
+            >
+              Xで共有
+            </ShareButton>
+          )}
           {!hideDelete && (
             <button
               className="editor-delete-btn"

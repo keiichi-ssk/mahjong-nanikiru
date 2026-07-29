@@ -1,0 +1,53 @@
+/* Xへのシェアボタン（components/ShareButton.jsx）のスタイル。X公式シェアボタン風の黒地×白ロゴ。
+   App.css の 1964〜1994 行から切り出したもので、**App.css と admin.css の両方が @import する**
+   （board.css と同じ扱い。admin.css は App.css を読み込まないため、
+   ここに置かないと管理画面・my問題集でボタンが素のまま出る）。
+   クラス名の chinitsu- は出自の名残で、いまはメンチンドリル専用ではない。
+
+   使っているCSS変数（--color-border-strong / --color-primary）は index.css の :root にあり、
+   全エントリが index.css を読むのでどの画面でも解決できる */
+.chinitsu-share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 12px 0 0;
+  padding: 12px;
+  background: #000;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 10px;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: bold;
+  text-decoration: none;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+@media (hover: hover) {
+  .chinitsu-share-btn:not(:disabled):hover {
+    background: #16181c;
+    border-color: var(--color-primary);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+  }
+}
+
+.chinitsu-share-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.chinitsu-share-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* 管理画面のヘッダー行では他の操作ボタンと並ぶので、上マージンを消して小さくする
+   （解答パネルの中では縦積みの1要素なので既定のままでよい） */
+.editor-header-actions .chinitsu-share-btn {
+  margin: 0;
+  padding: 7px 12px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
