@@ -14,8 +14,8 @@
 // ★★ 文言を増やすときはフォントのサブセットを作り直すこと ★★
 //   public/fonts/NotoSansJP-{Bold,Regular}.otf はカードで使う文字だけに絞ってある
 //   （全字体は1書体17MBで、Vercel関数の同梱サイズ上限に触れる）。
-//   現在含まれているのは次の45字だけで、これ以外を書くと豆腐（□）になる:
-//     （半角空白）0123456789ちってのるをチドメリルン一何切待清特色訓？東南西北局本場巡目供託点,
+//   現在含まれているのは次の62字だけで、これ以外を書くと豆腐（□）になる:
+//     （半角空白）0123456789ちってのるをチドメリルン一何切待清特色訓？東南西北局本場巡目供託点,座学す麻雀問集自分で作|()myβ
 //   作り直しは `bash scripts/subset-og-fonts.sh`（文字の追加もそのスクリプト内で行う）。
 
 import { ImageResponse } from '@vercel/og';
@@ -58,13 +58,31 @@ const RIVER_ROWS  = 3;   // カードに出す河は最大18枚（それ以上�
 //   河の中身は枠の「中央フィールド側」に寄るので、1段でも3段でも卓の各パーツは動かない
 //   （段数でレイアウトがずれると、問題ごとにカードの構図が変わってしまう）。
 
-// 牌画像は SVG（テキスト）なので、URLエンコードした data URI にして埋め込む
-// （Buffer を使わず Edge Runtime で完結させる）
+// 牌画像はカード専用の小さなPNG（public/tiles/card/*.png）を使う。
+//
+// ★ アプリ本体が使う public/tiles/*.svg を直接渡してはいけない。
+//   あちらは1枚が最大60KBある詳細な図で、satori/resvg が**牌の種類ごとに**解析・ラスタライズする。
+//   本番の実測で 1種類あたり約95ms かかり、23種類のカードで描画3.7秒のうち大半を占めていた
+//   （取得は並列に効いていて0.05〜0.7秒しかかかっていない）。
+//   カード上では最大 24×35px にしか描かれないので、あらかじめラスタライズした
+//   48×70 のPNG（1枚2KB程度）に置き換えてある。
+//   **生成は `node scripts/generate-card-tiles.mjs`。牌のSVGを描き替えたら作り直すこと。**
+function cardTileUrl(tile) {
+  const url = getTileImageUrl(tile);          // 例 /tiles/Man1.svg
+  return url ? url.replace(/\/([^/]+)\.svg$/, '/card/$1.png') : null;
+}
+
 async function tileDataUri(origin, tile) {
-  const url = getTileImageUrl(tile);
+  const url = cardTileUrl(tile);
   if (!url) return null;
   const res = await fetch(new URL(url, origin));
-  return `data:image/svg+xml,${encodeURIComponent(await res.text())}`;
+  // PNG を作り忘れている牌があってもカード全体を落とさない（その牌だけ白く描かれる）
+  if (!res.ok) return null;
+  // Buffer は使えない（Edge Runtime）ので btoa で base64 にする。1枚2KB程度なので問題ない
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return `data:image/png;base64,${btoa(bin)}`;
 }
 
 // 3桁区切り（点数）。Intl に頼らず自前で入れる
