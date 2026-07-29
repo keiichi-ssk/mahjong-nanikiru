@@ -10,7 +10,7 @@
 // 列を足したときは toUserDb にも足すこと。
 // 足し忘れは userProblemMapper.test.js の「toDb の列を取りこぼさない」テストが検出する。
 
-import { fromDb, toDb } from './problemMapper'
+import { fromDb, toDb, newProblemBase } from './problemMapper'
 
 // toDb が返すが user_problems には無い列。
 //   section  … category_id と二重管理になるため持たない（出題時に u:<category_id> として導出する）
@@ -63,22 +63,13 @@ export function fromUserDb(row) {
 
 // 新規作成時の空の問題。
 // 状況設定（ドラ・場風・巡目など）の既定値と前問からの引き継ぎは ProblemEditor 側が持っているので、
-// ここでは空にしておき、prevProblem を渡すことで引き継がせる
+// ここでは空にしておき、prevProblem を渡すことで引き継がせる。
+//
+// 中身は公式問題と共通（newProblemBase）。自作問題に固有なのは title だけ
+// （id は DB 採番・section は category_id から導出・image / reviewed は列自体が無い）
 export function makeNewUserProblem() {
   return {
-    title:            '',
-    tiles:            [],
-    answer:           '',
-    dora:             null,
-    riichi:           null,
-    melds:            [],
-    explanation:      '',
-    disabled:         false,
-    problemType:      'default',
-    discardedTile:    null,
-    nakiChoices:      [],
-    questionImageUrl: null,
-    note:             '',
-    otherDiscards:    null,
+    ...newProblemBase(),
+    title: '',
   }
 }

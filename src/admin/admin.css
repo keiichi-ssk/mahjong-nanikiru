@@ -2089,7 +2089,7 @@ kbd {
   transform: rotate(90deg);
 }
 
-/* 保存ボタンの隣に出す状態表示（自作問題の作成画面で使用）。
+/* 保存ボタンの隣に出す状態表示（管理画面・自作問題の作成画面の両方で使う）。
    サイドバーに出すと保存ボタンから遠く、保存できたか分かりにくいため隣に置く */
 .editor-save-status {
   font-size: 0.8rem;
@@ -2097,6 +2097,12 @@ kbd {
   align-self: center;
   animation: editor-save-status-in 0.18s ease-out;
 }
+
+/* 保存結果の色分け（要素は .editor-save-status の中に入る）。
+   admin.css に置いてあるのは、管理画面と作成画面の両方が読み込むファイルだから
+   （myproblems.css は作成画面しか読まない） */
+.editor-save-ok  { color: #4caf50; }
+.editor-save-err { color: #e74c3c; }
 
 @keyframes editor-save-status-in {
   from { opacity: 0; transform: translateX(-4px); }

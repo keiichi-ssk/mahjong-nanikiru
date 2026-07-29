@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fromDb, toDb } from './problemMapper';
+import { fromDb, toDb, newProblemBase } from './problemMapper';
 
 // DBの全カラムが揃った行（toDbの出力形式と同じ）
 const fullRow = {
@@ -174,5 +174,49 @@ describe('fromDb / toDb の対称性（管理画面の保存→再読込で値�
     const once = toDb(fromDb(fullRow));
     const twice = toDb(fromDb(once));
     expect(twice).toEqual(once);
+  });
+});
+
+// 新規作成の初期値。公式問題（AdminApp）と自作問題（makeNewUserProblem）が共通で使う。
+// ★ problems に列を足したらここが落ちる。newProblemBase にも初期値を足してから、
+//   このゴールデンを更新すること（片方だけだと新規作成した問題の初期表示がズレる）
+describe('newProblemBase（新規作成の初期値）', () => {
+  it('toDb を通すと全列が既定値になる', () => {
+    expect(toDb(newProblemBase())).toEqual({
+      // 公式問題にしかない列は呼び出し側（AdminApp）が足すので undefined のまま
+      id: undefined,
+      section: undefined,
+      image: '',
+      reviewed: false,
+      tiles: [],
+      answer: '',
+      dora: '',
+      riichi: null,
+      explanation: '',
+      disabled: false,
+      melds: [],
+      problem_type: 'default',
+      discarded_tile: null,
+      naki_choices: [],
+      question_image_url: null,
+      bakaze: null,
+      kyoku: null,
+      honba: null,
+      jikaze: null,
+      junme: null,
+      note: '',
+      other_discard: null,
+      scores: null,
+    });
+  });
+
+  it('呼び出し側が足すのは公式問題に固有の列だけ', () => {
+    const official = { ...newProblemBase(), id: 1, section: '25', image: '', reviewed: false };
+    const row = toDb(official);
+    expect(row.id).toBe(1);
+    expect(row.section).toBe('25');
+    // 中身は初期値のまま（土台を共有していることの確認）
+    expect(row.tiles).toEqual([]);
+    expect(row.problem_type).toBe('default');
   });
 });

@@ -43,7 +43,7 @@ export default function PaifuImport({
           {paifu ? '別の牌譜' : '牌譜を読み込む'}
         </button>
         {fileName && <span className="paifu-file-name" title={fileName}>{fileName}</span>}
-        {error && <span className="mp-save-err">{error}</span>}
+        {error && <span className="editor-save-err">{error}</span>}
       </div>
 
       {paifu && (

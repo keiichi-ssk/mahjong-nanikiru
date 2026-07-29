@@ -420,9 +420,8 @@
   font-size: 0.9rem;
 }
 
-/* 保存結果の色分け（要素は ProblemEditor の .editor-save-status の中に入る） */
-.mp-save-ok  { color: #4caf50; }
-.mp-save-err { color: #e74c3c; }
+/* 保存結果の色分け（.editor-save-ok / .editor-save-err）は admin.css にある。
+   管理画面と共通の見た目にするため、両方が読み込むファイルへ移した */
 
 /* 選択中であることを示すボタン（牌譜画面を開いている間の「牌譜から」） */
 .mp-add-btn--active {

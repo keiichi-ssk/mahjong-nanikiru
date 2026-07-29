@@ -78,9 +78,7 @@ function ProblemPane({ problem, prevProblem, hasNext, onSave, onSaveAndNext, sav
       hasNext={hasNext}
       hideImage
       hideReviewed
-      hideDelete
-      hideDisabled
-      headerLead={<h3 className="editor-title">#{problem.displayNo ?? '—'}</h3>}
+      hideDelete      headerLead={<h3 className="editor-title">#{problem.displayNo ?? '—'}</h3>}
       paletteAside={<EditorGuide mode="manual" />}
       textLimits={TEXT_LIMITS}
       saveStatus={saveStatus}
@@ -695,7 +693,12 @@ export default function MyProblemsApp() {
                         <span className="mp-prob-no">#{p.displayNo ?? '—'}</span>
                         <span className="mp-prob-label">{p.title || '（無題）'}</span>
                       </span>
-                      <span className="mp-prob-sub">{problemSummary(p)}</span>
+                      <span className="mp-prob-sub">
+                        {/* 「非表示」にした問題は出題に混ざらない。
+                            一覧で分からないと、なぜ出てこないのか追えなくなる */}
+                        {p.disabled && <span className="admin-disabled-badge">非表示</span>}
+                        {problemSummary(p)}
+                      </span>
                     </button>
                   )}
 
@@ -744,9 +747,7 @@ export default function MyProblemsApp() {
             hideReviewed
             hideDelete
             // 実在の局面をそのまま出題するのが基本。変えたいときはヘッダーのトグルで解除する
-            lockBoard
-            hideDisabled
-            concealedCounts={concealedCounts}
+            lockBoard            concealedCounts={concealedCounts}
             paletteAside={<EditorGuide mode="paifu" />}
             textLimits={TEXT_LIMITS}
             headerLead={
@@ -775,7 +776,7 @@ export default function MyProblemsApp() {
               />
             }
             saveStatus={editorStatus && (
-              <span className={editorStatus.error ? 'mp-save-err' : 'mp-save-ok'}>
+              <span className={editorStatus.error ? 'editor-save-err' : 'editor-save-ok'}>
                 {editorStatus.text}
               </span>
             )}
@@ -792,7 +793,7 @@ export default function MyProblemsApp() {
             onSave={saveProblem}
             onSaveAndNext={saveProblemAndNext}
             saveStatus={editorStatus && (
-              <span className={editorStatus.error ? 'mp-save-err' : 'mp-save-ok'}>
+              <span className={editorStatus.error ? 'editor-save-err' : 'editor-save-ok'}>
                 {editorStatus.text}
               </span>
             )}

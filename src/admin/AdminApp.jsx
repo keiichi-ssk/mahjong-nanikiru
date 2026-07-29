@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '../lib/supabase'
 import ProblemEditor from './ProblemEditor'
 import { BOOKS, ALL_MAJOR_CATEGORIES, majorCategoryKey, sectionNumber, sectionLabel, getBookLabel, groupByBook } from '../utils/categoryUtils'
-import { fromDb, toDb } from '../utils/problemMapper'
+import { fromDb, toDb, newProblemBase } from '../utils/problemMapper'
 import { questionImagePath, QUESTION_IMAGE_BUCKET } from '../utils/questionImage'
 import categoriesData from '../data/categories.json'
 
@@ -31,13 +31,33 @@ export default function AdminApp() {
   // この state が効くのは「書籍だけ選んでカテゴリ未選択」のときだけ
   const [browseBook, setBrowseBook]   = useState('')
   const [idJumpInput, setIdJumpInput] = useState('')
-  const [saveStatus, setSaveStatus]   = useState('')
+  // サイドバーで起きた操作（問題の追加）の結果。エディタ内の保存・削除は
+  // 遠くて気づけないので、保存ボタンの隣（editorStatus）に出す（作問画面と同じ扱い）
+  const [sidebarStatus, setSidebarStatus] = useState('')
+  // 保存ボタンの隣に出す状態表示。{ text, error } | null
+  // 成功は数秒で自動的に消し、失敗は消さない（消えると読み逃すため）
+  const [editorStatus, setEditorStatus]   = useState(null)
+  const editorStatusTimer                 = useRef(null)
   const [activeTab, setActiveTab]     = useState('problems')
   const [addForm, setAddForm]         = useState({ book: '', major: '', section: '' })
   const [allowedUsers, setAllowedUsers] = useState([])
   const [selectedUserEmail, setSelectedUserEmail] = useState(null)
   const [userSaveStatus, setUserSaveStatus] = useState('')
   const [newUserEmail, setNewUserEmail] = useState('')
+
+  useEffect(() => () => clearTimeout(editorStatusTimer.current), [])
+
+  function showSaved(text) {
+    clearTimeout(editorStatusTimer.current)
+    setEditorStatus({ text, error: false })
+    editorStatusTimer.current = setTimeout(() => setEditorStatus(null), 2500)
+  }
+
+  // エラーは自動で消さない（読み逃すため）
+  function showSaveError(text) {
+    clearTimeout(editorStatusTimer.current)
+    setEditorStatus({ text, error: true })
+  }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -171,15 +191,19 @@ export default function AdminApp() {
   const catIdx = catProblems.findIndex(p => p.id === selectedId)
   const currentProblem = catIdx >= 0 ? catProblems[catIdx] : null
 
+  // RLS で弾かれるとエラーではなく「0行の正常応答」が返るため、
+  // .select() で実際に書き込まれた行を受け取って偽の成功表示を防ぐ（削除と同じ手口）。
+  // 管理者が自分ひとりのうちは起きないが、増えたときに
+  // 「保存しました ✓ なのに保存されていない」を出さないための備え
   async function saveOne(updated) {
-    setSaveStatus('保存中...')
-    const { error } = await supabase.from('problems').upsert(toDb(updated))
-    if (error) {
-      setSaveStatus('保存失敗 ✗')
-    } else {
-      setSaveStatus('保存しました ✓')
+    const { data, error } = await supabase.from('problems').upsert(toDb(updated)).select('id')
+    if (error) { showSaveError(`保存に失敗しました: ${error.message}`); return false }
+    if (!data || data.length === 0) {
+      showSaveError('保存できませんでした ✗（権限を確認してください）')
+      return false
     }
-    setTimeout(() => setSaveStatus(''), 2000)
+    showSaved('保存しました ✓')
+    return true
   }
 
   async function handleSave(updated) {
@@ -189,14 +213,13 @@ export default function AdminApp() {
 
   async function handleDelete(id) {
     const target = problems.find(p => p.id === id)
-    setSaveStatus('削除中...')
     // RLSで弾かれるとエラーではなく「0行削除の正常応答」が返るため、
     // .select() で実際に消えた行を受け取って偽の成功表示を防ぐ
     const { data, error } = await supabase.from('problems').delete().eq('id', id).select('id')
     if (error) {
-      setSaveStatus(`削除失敗 ✗ ${error.message}`)
+      showSaveError(`削除に失敗しました: ${error.message}`)
     } else if (!data || data.length === 0) {
-      setSaveStatus('削除できませんでした ✗（権限を確認してください）')
+      showSaveError('削除できませんでした ✗（権限を確認してください）')
     } else {
       // 問題画像はベストエフォートで削除（失敗しても問題の削除自体は成立）
       const imagePath = questionImagePath(target?.questionImageUrl)
@@ -209,15 +232,16 @@ export default function AdminApp() {
       const next = catProblems[catIdx + 1] ?? catProblems[catIdx - 1] ?? null
       setProblems(prev => prev.filter(p => p.id !== id))
       setSelectedId(next ? next.id : null)
-      setSaveStatus('削除しました ✓')
+      showSaved('削除しました ✓')
     }
-    setTimeout(() => setSaveStatus(''), 3000)
   }
 
-  // reviewed の扱い（自動チェックか手動状態の尊重か）は ProblemEditor 側で決定済み
+  // reviewed の扱い（自動チェックか手動状態の尊重か）は ProblemEditor 側で決定済み。
+  // 保存に失敗したときは次へ進まない（進むと失敗の表示が次の問題の画面に残って紛らわしい）
   async function handleSaveAndNext(updated) {
     setProblems(problems.map(p => (p.id === updated.id ? updated : p)))
-    await saveOne(updated)
+    const ok = await saveOne(updated)
+    if (!ok) return
     if (catIdx < catProblems.length - 1) {
       setSelectedId(catProblems[catIdx + 1].id)
     }
@@ -228,57 +252,54 @@ export default function AdminApp() {
     ? categoriesData.filter(c => c.book === addForm.book && c.major === addForm.major)
     : []
 
+  // 中身の初期値は自作問題と共通（problemMapper の newProblemBase）。
+  // ここで足しているのは公式問題にしかない列だけ
   function makeNewProblem(section, id) {
     return {
+      ...newProblemBase(),
       id,
       section,
-      image:            '',
-      tiles:            [],
-      answer:           '',
-      dora:             null,
-      riichi:           null,
-      melds:            [],
-      explanation:      '',
-      reviewed:         false,
-      disabled:         false,
-      problemType:      'default',
-      discardedTile:    null,
-      nakiChoices:      [],
-      questionImageUrl: null,
-      note:             '',
-      otherDiscards:    null,
+      image:    '',
+      reviewed: false,
     }
   }
 
+  // 問題を1問追加する。追加はサイドバーの操作なので結果もサイドバーに出す。
+  //
   // id はクライアント側で max+1 を計算して指定している（DB採番ではない）。
   // 管理者が複数いて同時に追加すると同じ id を計算して主キー衝突で失敗するため、
-  // 無言で終わらせずに理由を表示する
-  function reportAddError(error) {
-    setSaveStatus(`問題の追加に失敗しました: ${error.message}`)
+  // 無言で終わらせずに理由を表示する。
+  // あわせて RLS の「0行の正常応答」も検証する（エラーが無くても入っていないことがある）
+  async function insertProblem(section) {
+    const maxId = problems.reduce((m, p) => Math.max(m, p.id), 0)
+    const newProblem = makeNewProblem(String(section), maxId + 1)
+    const { data, error } = await supabase.from('problems').insert(toDb(newProblem)).select('id')
+    if (error) {
+      setSidebarStatus(`問題の追加に失敗しました: ${error.message}`)
+      return null
+    }
+    if (!data || data.length === 0) {
+      setSidebarStatus('問題を追加できませんでした ✗（権限を確認してください）')
+      return null
+    }
+    setProblems(prev => [...prev, newProblem])
+    setSidebarStatus('')
+    return newProblem
   }
 
   async function handleAddFromForm() {
     if (!addForm.section) return
-    const maxId = problems.reduce((m, p) => Math.max(m, p.id), 0)
-    const newProblem = makeNewProblem(String(addForm.section), maxId + 1)
-    const { error } = await supabase.from('problems').insert(toDb(newProblem))
-    if (error) { reportAddError(error); return }
-    setProblems(prev => [...prev, newProblem])
+    const added = await insertProblem(addForm.section)
+    if (!added) return
     setSelectedCat(String(addForm.section))
-    setSelectedId(newProblem.id)
+    setSelectedId(added.id)
     setAddForm({ book: '', major: '', section: '' })
-    setSaveStatus('')
   }
 
   async function handleAddProblem() {
     if (!selectedCat) return
-    const maxId = problems.reduce((m, p) => Math.max(m, p.id), 0)
-    const newProblem = makeNewProblem(selectedCat, maxId + 1)
-    const { error } = await supabase.from('problems').insert(toDb(newProblem))
-    if (error) { reportAddError(error); return }
-    setProblems([...problems, newProblem])
-    setSelectedId(newProblem.id)
-    setSaveStatus('')
+    const added = await insertProblem(selectedCat)
+    if (added) setSelectedId(added.id)
   }
 
   const handlePrev = useCallback(() => {
@@ -364,7 +385,7 @@ export default function AdminApp() {
             onClick={() => setActiveTab('users')}
           >ユーザー管理</button>
         </div>
-        {saveStatus && <div className="admin-save-status">{saveStatus}</div>}
+        {sidebarStatus && <div className="admin-save-status">{sidebarStatus}</div>}
         <div className="admin-id-jump" style={{ display: activeTab === 'problems' ? undefined : 'none' }}>
           <input
             className="admin-id-jump-input"
@@ -525,6 +546,12 @@ export default function AdminApp() {
             onSaveAndNext={handleSaveAndNext}
             onDelete={handleDelete}
             hasNext={catIdx < catProblems.length - 1}
+            // 保存の結果は保存ボタンの隣に出す（サイドバーだと遠くて気づけない）
+            saveStatus={editorStatus && (
+              <span className={editorStatus.error ? 'editor-save-err' : 'editor-save-ok'}>
+                {editorStatus.text}
+              </span>
+            )}
           />
         ) : (
           <div className="admin-placeholder">

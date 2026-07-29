@@ -38,6 +38,32 @@ export function fromDb(p) {
   }
 }
 
+// 新規作成する問題の「中身」の初期値。公式問題（AdminApp）と自作問題（makeNewUserProblem）が
+// 共通で使う土台で、それぞれに固有の列（公式＝id / section / image / reviewed、
+// 自作＝title）は呼び出し側が足す。
+//
+// ★ problems に列を追加したらここにも足すこと。
+//   片方の画面にだけ初期値が無いと、新規作成した問題だけ値が undefined のまま保存される
+//   （toDb の ?? で既定値には落ちるが、画面の初期表示が意図と食い違う）。
+//   取りこぼしは problemMapper.test.js / userProblemMapper.test.js が検出する
+export function newProblemBase() {
+  return {
+    tiles:            [],
+    answer:           '',
+    dora:             null,
+    riichi:           null,
+    melds:            [],
+    explanation:      '',
+    disabled:         false,
+    problemType:      'default',
+    discardedTile:    null,
+    nakiChoices:      [],
+    questionImageUrl: null,
+    note:             '',
+    otherDiscards:    null,
+  }
+}
+
 export function toDb(p) {
   return {
     id:                 p.id,
