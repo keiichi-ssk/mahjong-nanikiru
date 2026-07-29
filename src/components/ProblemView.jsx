@@ -3,7 +3,7 @@ import TileButton from './TileButton';
 import { getTileLabel, getTileImageUrl, compareTiles, randomSuitMap, remapProblem, getDoraIndicator } from '../utils/tileUtils';
 import { getSituationText } from '../utils/categoryUtils';
 import { normalizeProblemType, isRiichiJudgmentProblem, judgeAnswer, judgeNakiTiming, judgeNakiChoice, judgeBetaori, parseAnswers } from '../utils/judgeUtils';
-import { usesBoardView } from '../utils/problemDisplay';
+import { usesBoardView, usesSuitRemap } from '../utils/problemDisplay';
 import { buildProblemShareUrl } from '../utils/problemShare';
 import ResponsiveBoard from './ResponsiveBoard';
 import ShareButton from './ShareButton';
@@ -528,12 +528,12 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
     onPersistAnswer?.(problem.id, { suitMap, ...data });
   }
 
-  // 問題画像付きの問題はスーツ置換すると画像と牌が食い違うためそのまま使う
-  // （image-quiz は旧タイプ。DB移行済みだが未移行データの保険として残す）
-  const p = useMemo(() => {
-    if (problem.questionImageUrl || (problem.problemType ?? 'default') === 'image-quiz') return problem;
-    return remapProblem(problem, suitMap);
-  }, [problem, suitMap]);
+  // スーツ置換するかは usesSuitRemap が唯一の判定（自作問題・画像付きは置換しない）。
+  // ここに条件を書き足さないこと
+  const p = useMemo(
+    () => (usesSuitRemap(problem) ? remapProblem(problem, suitMap) : problem),
+    [problem, suitMap],
+  );
 
   // 麻雀卓の形で出すか（自作問題と、管理画面で「盤面で出題」にした公式問題）。
   // 卓には局・巡目・ドラ・点数・各家の河が全部入っているので、
@@ -563,7 +563,8 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
 
   // シェアできるのは自作問題だけ（公式問題は書籍の内容なので共有導線を作らない）。
   // 共有ページ（standalone）では既に共有された問題を見ているので出さない。
-  // 共有するのはスーツ置換後の p ＝ 画面に見えている牌姿そのもの
+  // 自作問題はスーツ置換しない（usesSuitRemap）ので p === problem ＝ 作者が作った牌姿が
+  // そのまま共有される。実戦の局面を切り取って議論するのが目的なのでずらしてはいけない
   const canShare = !!problem.isUserProblem && !standalone;
   const [shareUrl, setShareUrl] = useState(null);
   useEffect(() => {

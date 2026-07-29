@@ -16,3 +16,25 @@ export function usesBoardView(problem) {
   if (!problem) return false;
   return !!(problem.isUserProblem || problem.boardView);
 }
+
+/**
+ * 出題時にスーツ（m/p/s）をランダムに入れ替えるか。
+ *
+ * 置換するのは公式問題だけ。次の3つは置換しない:
+ *   - 自作問題（my問題集）… **実戦の局面を切り取って議論するためのもの**なので、
+ *     元の牌姿からずらしてはいけない（2026-07-29 追加）。Xでの共有も同じ理由で置換しない
+ *     —— ProblemView は置換後の問題をそのまま共有するので、ここを false にすれば
+ *     出題画面・シェア・共有ページ（share.html）・OGPカードの牌姿が一致する
+ *   - 問題画像付き … 画像の中の牌と食い違うため
+ *   - 旧 image-quiz … 同上（DB移行済み。未移行データの保険）
+ *
+ * 公式問題（書籍の問題）は暗記防止が目的なので置換を続ける。
+ * **判定はこの関数だけが持つこと**（ProblemView に条件を書き戻さない）。
+ */
+export function usesSuitRemap(problem) {
+  if (!problem) return false;
+  if (problem.isUserProblem) return false;
+  if (problem.questionImageUrl) return false;
+  if ((problem.problemType ?? 'default') === 'image-quiz') return false;
+  return true;
+}
