@@ -30,16 +30,45 @@ const TILE_GROUPS = [
   { label: '字牌', tiles: ['1z','2z','3z','4z','5z','6z','7z'] },
 ]
 
-// 共通パレット（画面下部固定）の送り先モード
-const PALETTE_MODE_LABELS = {
-  hand:        '手牌',
-  meld:        '副露',
-  dora:        'ドラ',
-  note:        '注釈に挿入',
-  explanation: '解説に挿入',
-  sutehai:     '捨て牌',
-  depai:       '出牌',
-  nakiChoice:  '選択肢',
+// 牌パレットの送り先タブ。画面に出るタブ列はこれ1つだけで、押すと
+// 「パレットの牌の送り先（mode）」と「右パネルに出す内容（panel）」が同時に決まる。
+// boardOnly のタブは盤面ロック中（牌譜モード）に出さない。
+// ドラ・出牌・選択肢はタブに出さず、盤面の王牌クリックと問題タイプで自動的に選ばれる
+const PALETTE_TABS = [
+  { key: 'hand',        label: '手牌',           panel: 'hand',    mode: 'hand',        boardOnly: true },
+  { key: 'meld',        label: '副露',           panel: 'hand',    mode: 'meld',        boardOnly: true },
+  { key: 'sutehai',     label: '捨て牌',         panel: 'sutehai', mode: 'sutehai',     boardOnly: true },
+  { key: 'answer',      label: '正解設定',       panel: 'answer',  mode: null },
+  { key: 'note',        label: '出題注釈に挿入', panel: null,      mode: 'note' },
+  { key: 'explanation', label: '解説に挿入',     panel: 'answer',  mode: 'explanation' },
+]
+
+// 右パネルの見出し（タブ列を左のパレットへ一本化したので、ここは現在地の目印だけ）
+const PANEL_TITLES = {
+  hand:    '手牌',
+  jokyo:   '点数',
+  sutehai: '捨て牌',
+  answer:  '正解設定',
+}
+
+// タブ → 右パネルに出す内容。
+// 注釈欄の実体は手牌パネルにあるが、盤面ロック中は手牌パネルが無いので正解設定パネルへ出る。
+// 'jokyo'（点数）はタブ列に無く盤面の点数チップから開くので、定義に無いキーはそのまま通す
+function panelOfTab(tab, locked) {
+  if (tab === 'note') return locked ? 'answer' : 'hand'
+  return PALETTE_TABS.find(t => t.key === tab)?.panel ?? tab
+}
+
+// 正解設定タブの送り先は問題タイプで決まる（鳴き系だけ専用の送り先がある）
+function answerPaletteMode(problemType) {
+  if (problemType === 'naki-timing') return 'depai'
+  if (problemType === 'naki-choice') return 'nakiChoice'
+  return 'explanation'
+}
+
+// 副露の入力中データ。種類を切り替えるたびに作り直す＝選択中の牌はクリアされる
+function newAddingMeld(type, target) {
+  return { type, tiles: [], target, from: defaultMeldFrom(type) }
 }
 
 const SCORE_WINDS    = ['東', '南', '西', '北']
@@ -94,8 +123,26 @@ function MeldFromSelect({ type, value, onChange }) {
   )
 }
 
+// 副露の種類のサブタブ（手牌・他家捨て牌の家ブロックで共用）。
+// 押すとその種類で入力を開始する＝選択中の牌はクリアされる（newAddingMeld を作り直すため）
+function MeldTypeTabs({ active, onSelect }) {
+  return (
+    <div className="meld-type-tabs">
+      {MELD_TYPES.map(type => (
+        <button
+          key={type}
+          className={`meld-type-tab${active === type ? ' meld-type-tab--active' : ''}`}
+          onClick={() => onSelect(type)}
+        >
+          {MELD_TYPE_LABELS[type]}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 // 副露入力中パネル（手牌・他家捨て牌の家ブロックで共用）。牌は下のパレットから追加し、揃うと自動確定する
-function MeldAddingPanel({ meld, onCancel, onRemoveTile, onChangeFrom }) {
+function MeldAddingPanel({ meld, onCancel, cancelLabel = 'キャンセル', onRemoveTile, onChangeFrom }) {
   return (
     <div className="meld-adding">
       <div className="meld-adding-header">
@@ -104,7 +151,7 @@ function MeldAddingPanel({ meld, onCancel, onRemoveTile, onChangeFrom }) {
           （{meld.tiles.length} / {MELD_TILE_COUNT[meld.type]}枚）
         </span>
         <MeldFromSelect type={meld.type} value={meld.from} onChange={onChangeFrom} />
-        <button className="meld-cancel-btn" onClick={onCancel}>キャンセル</button>
+        <button className="meld-cancel-btn" onClick={onCancel}>{cancelLabel}</button>
       </div>
       <div className="meld-selected-tiles">
         {meld.tiles.map((t, i) => (
@@ -389,12 +436,12 @@ export default function ProblemEditor({
   // 副露追加は手牌と他家捨て牌の家ブロックで共用する。target は 'hand' または家ブロックの index。
   // from（鳴いた元）は暗槓のみ null、それ以外は既定値から始めて追加中に変更できる
   function startAddMeld(type) {
-    setAddingMeld({ type, tiles: [], target: 'hand', from: defaultMeldFrom(type) })
+    setAddingMeld(newAddingMeld(type, 'hand'))
   }
 
   function startAddOtherDiscardMeld(blockIdx, type) {
     setSutehaiActiveIdx(blockIdx)
-    setAddingMeld({ type, tiles: [], target: blockIdx, from: defaultMeldFrom(type) })
+    setAddingMeld(newAddingMeld(type, blockIdx))
   }
 
   function changeAddingMeldFrom(from) {
@@ -429,7 +476,12 @@ export default function ProblemEditor({
       } else {
         updateOtherDiscard(addingMeld.target, od => ({ ...od, melds: [...od.melds, meld] }))
       }
-      setAddingMeld(null)
+      // 副露タブにいる間は同じ種類で入力待ちに戻す（続けて2つ目を鳴かせるため）。
+      // null にすると送り先が「副露」のままパレットが効かない状態になる。
+      // 捨て牌タブから家の副露を足したときは従来どおり解除して捨て牌の送り先へ戻る
+      setAddingMeld(paletteTab === 'meld' && addingMeld.target === 'hand'
+        ? newAddingMeld(addingMeld.type, 'hand')
+        : null)
     } else {
       setAddingMeld({ ...addingMeld, tiles: nextTiles })
     }
@@ -605,21 +657,47 @@ export default function ProblemEditor({
   const [paletteTab,  setPaletteTab]  = useState(lockBoard ? 'answer' : 'hand')
   const [paletteMode, setPaletteMode] = useState(lockBoard ? 'explanation' : 'hand')
 
-  // 共通パレットの送り先モード。タブや問題タイプに依存するモードは文脈があるときだけ出す。
-  // 副露追加中は「副露」に固定（setState不要にするため、実効モードは描画時に導出する）。
-  // ロック中は盤面を変えるモード（手牌・副露・ドラ・捨て牌）を外す
+  // 送り先として成立するモードの一覧（タブ列には出さないモードも含む妥当性チェック用）。
+  // 送り先はタブのクリック・盤面の王牌クリック・textarea のフォーカスから設定されるので、
+  // ここはロックや問題タイプが変わったときに古い値へ取り残されるのを防ぐためだけにある。
+  // 副露追加中は「副露」に固定（setState不要にするため、実効モードは描画時に導出する）
   const availableModes = [
-    ...(boardLocked ? [] : ['hand', ...(addingMeld ? ['meld'] : []), 'dora']),
+    ...(boardLocked ? [] : ['hand', 'meld', 'dora', 'sutehai']),
     'note',
     'explanation',
-    ...(!boardLocked && paletteTab === 'sutehai' ? ['sutehai'] : []),
-    ...(paletteTab === 'answer' && problemType === 'naki-timing' ? ['depai'] : []),
-    ...(paletteTab === 'answer' && problemType === 'naki-choice' ? ['nakiChoice'] : []),
+    ...(problemType === 'naki-timing' ? ['depai'] : []),
+    ...(problemType === 'naki-choice' ? ['nakiChoice'] : []),
   ]
   const fallbackMode = boardLocked ? 'explanation' : 'hand'
   const effectiveMode = addingMeld && !boardLocked
     ? 'meld'
     : (availableModes.includes(paletteMode) ? paletteMode : fallbackMode)
+
+  // タブ列に出すタブ。点数は盤面の点数チップから開くので常設しないが、
+  // 開いている間だけ末尾に出す（タブ列に選択中が1つも無い状態を作らないため）
+  const visibleTabs = PALETTE_TABS.filter(t => !(boardLocked && t.boardOnly))
+  const tabList = paletteTab === 'jokyo'
+    ? [...visibleTabs, { key: 'jokyo', label: '点数' }]
+    : visibleTabs
+  const activePanel = panelOfTab(paletteTab, boardLocked)
+
+  // タブの切り替え。送り先も一緒に決まる（同じ操作の入口を2つ作らない）
+  function selectPaletteTab(key) {
+    setPaletteTab(key)
+    setPaletteMode(
+      key === 'answer' ? answerPaletteMode(problemType)
+      : key === 'jokyo' ? 'dora'
+      : PALETTE_TABS.find(t => t.key === key)?.mode ?? fallbackMode
+    )
+    // 入力途中の副露はタブをまたいで持ち越さない。副露タブはポンから始める
+    setAddingMeld(key === 'meld' ? newAddingMeld('pon', 'hand') : null)
+    // 「〜に挿入」タブは牌がどこへ入るかを見せるため、その欄へカーソルを置く。
+    // パネルが描かれた後でないと ref が空なので次のフレームで触る
+    if (key === 'note' || key === 'explanation') {
+      const ref = key === 'note' ? noteRef : explanationRef
+      requestAnimationFrame(() => ref.current?.focus())
+    }
+  }
 
   function handlePaletteTile(tile) {
     switch (effectiveMode) {
@@ -676,18 +754,21 @@ export default function ProblemEditor({
     // ロック中は開く先のタブが無いので何もしない（盤面のクリックは無反応になる）
     if (boardLocked) return
     if (kind === 'hand') {
-      setPaletteTab('hand')
-      setPaletteMode('hand')
+      selectPaletteTab('hand')
     } else if (kind === 'jokyo') {
+      // 点数はタブ列に無いので selectPaletteTab を通さず直接開く
       setPaletteTab('jokyo')
       setPaletteMode('dora')
+      setAddingMeld(null)
       setActiveScoreWind(index ?? null)
     } else if (kind === 'sutehai') {
-      setPaletteTab('sutehai')
-      setPaletteMode('sutehai')
+      selectPaletteTab('sutehai')
       if (index >= 0) setSutehaiActiveIdx(index)
     } else if (kind === 'dora') {
-      // ドラは盤面の王牌から設定する。タブは変えず、下のパレットの送り先だけ切り替える
+      // ドラは盤面の王牌から設定する。タブは変えず、下のパレットの送り先だけ切り替える。
+      // ただし副露の入力中はそちらが送り先として優先されるので取りやめる
+      setAddingMeld(null)
+      setPaletteTab(prev => (prev === 'meld' ? 'hand' : prev))
       setPaletteMode('dora')
     }
   }
@@ -738,24 +819,23 @@ export default function ProblemEditor({
         />
 
         {/* 共通牌パレット。盤面の下（左カラム内）に置き、幅を盤面に合わせる。
-            右カラムは設定専用。送り先モードで牌の追加先を切り替える */}
+            右カラムは設定専用。上のタブで牌の送り先と右パネルの内容が同時に決まる */}
         <div className="palette-dock">
-          <div className="palette-dock-header">
-            <div className="palette-dock-modes">
-              <span className="palette-dock-modes-label">送り先:</span>
-              {availableModes.map(m => (
-                <button
-                  key={m}
-                  className={`palette-mode-btn${effectiveMode === m ? ' palette-mode-btn--active' : ''}`}
-                  onClick={() => setPaletteMode(m)}
-                  disabled={!!addingMeld && m !== 'meld'}
-                >
-                  {PALETTE_MODE_LABELS[m]}
-                </button>
-              ))}
-            </div>
-            <span className="palette-dock-status">{paletteStatus}</span>
+          {/* 画面に出るタブ列はここだけ（右パネル側にタブバーを戻さないこと） */}
+          <div className="palette-tabs" role="tablist">
+            {tabList.map(t => (
+              <button
+                key={t.key}
+                role="tab"
+                aria-selected={paletteTab === t.key}
+                className={`palette-tab${paletteTab === t.key ? ' palette-tab--active' : ''}`}
+                onClick={() => selectPaletteTab(t.key)}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
+          <div className="palette-dock-status">{paletteStatus}</div>
           {/* 牌は4行で 310px ほどしか使わないので、右の余白を操作ガイドに使う。
               paletteAside を渡さなければ従来どおり牌だけが並ぶ（管理画面はこちら） */}
           <div className="palette-dock-body">
@@ -920,45 +1000,14 @@ export default function ProblemEditor({
       </section>
       )}
 
-      {/* === パレット統合エリア === */}
+      {/* === パレット統合エリア ===
+          タブ列は左のパレット側へ一本化したので、ここは今どのパネルを見ているかの見出しだけ。
+          タブバーをここへ戻さないこと（同じ操作の入口が2つになる） */}
       <section className="editor-section editor-section--palette">
-        <div className="palette-tab-bar">
-          {/* ロック中は盤面を変えるタブを出さない（残るのは正解設定だけ） */}
-          {!boardLocked && <>
-          <button
-            className={`palette-tab-btn${paletteTab === 'hand' ? ' palette-tab-btn--active' : ''}`}
-            onClick={() => { setPaletteTab('hand'); setPaletteMode('hand') }}
-          >
-            手牌
-          </button>
-          <button
-            className={`palette-tab-btn${paletteTab === 'jokyo' ? ' palette-tab-btn--active' : ''}`}
-            onClick={() => { setPaletteTab('jokyo'); setPaletteMode('dora') }}
-          >
-            点数
-          </button>
-          <button
-            className={`palette-tab-btn${paletteTab === 'sutehai' ? ' palette-tab-btn--active' : ''}`}
-            onClick={() => { setPaletteTab('sutehai'); setPaletteMode('sutehai') }}
-          >
-            捨て牌
-          </button>
-          </>}
-          <button
-            className={`palette-tab-btn${paletteTab === 'answer' ? ' palette-tab-btn--active' : ''}`}
-            onClick={() => {
-              setPaletteTab('answer')
-              if (problemType === 'naki-timing')      setPaletteMode('depai')
-              else if (problemType === 'naki-choice') setPaletteMode('nakiChoice')
-              else                                    setPaletteMode('explanation')
-            }}
-          >
-            正解設定
-          </button>
-        </div>
+        <div className="palette-panel-title">{PANEL_TITLES[activePanel] ?? ''}</div>
 
-        {/* 手牌タブ */}
-        {paletteTab === 'hand' && (
+        {/* 手牌パネル（手牌・副露・出題注釈のタブから開く） */}
+        {activePanel === 'hand' && (
           <div className="palette-tab-content">
             <div className="editor-section-label">テキスト一括入力</div>
             <div className="tiles-text-input-row">
@@ -1007,33 +1056,34 @@ export default function ProblemEditor({
                 ))}
               </div>
             )}
-            {addingMeld?.target === 'hand' ? (
+            {/* 副露の種類はサブタブで選ぶ。押した時点で入力が始まる（＝選択中の牌はクリア） */}
+            <MeldTypeTabs
+              active={addingMeld?.target === 'hand' ? addingMeld.type : null}
+              onSelect={startAddMeld}
+            />
+            {addingMeld?.target === 'hand' && (
               <MeldAddingPanel
                 meld={addingMeld}
-                onCancel={() => setAddingMeld(null)}
+                // 副露タブは入力待ちのままなのが正しい状態なので、解除ではなく牌のクリアにする
+                cancelLabel={paletteTab === 'meld' ? 'クリア' : 'キャンセル'}
+                onCancel={() => setAddingMeld(
+                  paletteTab === 'meld' ? newAddingMeld(addingMeld.type, 'hand') : null
+                )}
                 onRemoveTile={removeTileFromMeld}
                 onChangeFrom={changeAddingMeldFrom}
               />
-            ) : (
-              <div className="meld-add-btns">
-                {MELD_TYPES.map(type => (
-                  <button key={type} className="meld-add-btn" onClick={() => startAddMeld(type)}>
-                    {MELD_TYPE_LABELS[type]}
-                  </button>
-                ))}
-              </div>
             )}
 
-            {/* 注釈は手牌と一緒に書くことが多いのでこのタブに置く（点数タブには置かない）。
-                盤面ロック中はこのタブ自体が出ないので、正解設定タブに同じものを出す */}
+            {/* 注釈は手牌と一緒に書くことが多いのでこのパネルに置く（点数パネルには置かない）。
+                盤面ロック中はこのパネル自体が出ないので、正解設定パネルに同じものを出す */}
             {noteEditor}
           </div>
         )}
 
-        {/* 点数タブ。
+        {/* 点数パネル（タブ列には無く、盤面の点数チップから開く）。
             ドラ・場風・局・自風・巡目は盤面の中央フィールドで直接設定するのでここには置かない
             （盤面を見ながら設定できるほうが速く、右カラムの縦の長さも抑えられる） */}
-        {paletteTab === 'jokyo' && (
+        {activePanel === 'jokyo' && (
           <div className="palette-tab-content">
             <div className="editor-section-label">点数状況</div>
             {/* 点数は常に既定値（全員25000）が入る仕様なので「未設定」の選択肢は置かない */}
@@ -1076,8 +1126,8 @@ export default function ProblemEditor({
           </div>
         )}
 
-        {/* 捨て牌タブ（自分を含む各家の河。データ構造の都合で変数名は otherDiscards のまま） */}
-        {paletteTab === 'sutehai' && (
+        {/* 捨て牌パネル（自分を含む各家の河。データ構造の都合で変数名は otherDiscards のまま） */}
+        {activePanel === 'sutehai' && (
           <div className="palette-tab-content">
             {otherDiscards.map((od, bi) => (
               <div
@@ -1187,21 +1237,18 @@ export default function ProblemEditor({
                     ))}
                   </div>
                 )}
-                {addingMeld?.target === bi ? (
+                {/* 手牌の副露と同じサブタブ。こちらは揃った時点で解除して捨て牌の送り先へ戻る */}
+                <MeldTypeTabs
+                  active={addingMeld?.target === bi ? addingMeld.type : null}
+                  onSelect={type => startAddOtherDiscardMeld(bi, type)}
+                />
+                {addingMeld?.target === bi && (
                   <MeldAddingPanel
                     meld={addingMeld}
                     onCancel={() => setAddingMeld(null)}
                     onRemoveTile={removeTileFromMeld}
                     onChangeFrom={changeAddingMeldFrom}
                   />
-                ) : (
-                  <div className="meld-add-btns">
-                    {MELD_TYPES.map(type => (
-                      <button key={type} className="meld-add-btn" onClick={() => startAddOtherDiscardMeld(bi, type)}>
-                        {MELD_TYPE_LABELS[type]}
-                      </button>
-                    ))}
-                  </div>
                 )}
               </div>
             ))}
@@ -1228,8 +1275,8 @@ export default function ProblemEditor({
           </div>
         )}
 
-        {/* 正解設定タブ */}
-        {paletteTab === 'answer' && (
+        {/* 正解設定パネル（正解設定・解説に挿入のタブから開く） */}
+        {activePanel === 'answer' && (
           <div className="palette-tab-content">
             {/* 通常（何切る） */}
             {problemType === 'default' && (
@@ -1440,7 +1487,7 @@ export default function ProblemEditor({
               maxLength={textLimits?.explanation ?? undefined}
             />
 
-            {/* 盤面ロック中は手牌タブが無いので、注釈をここに出す */}
+            {/* 盤面ロック中は手牌パネルが無いので、注釈をここに出す */}
             {boardLocked && noteEditor}
           </div>
         )}

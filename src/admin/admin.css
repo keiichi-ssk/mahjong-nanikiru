@@ -854,25 +854,43 @@ html {
   border-radius: 3px;
 }
 
-/* 副露追加ボタン群 */
-.meld-add-btns {
+/* 副露の種類のサブタブ（手牌の副露・各家の副露で共用）。
+   送り先タブ（.palette-tabs）と同じ「下と地続き」の見え方に揃えてある */
+.meld-type-tabs {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 2px;
+  border-bottom: 1px solid #2a3a5a;
 }
 
-.meld-add-btn {
+.meld-type-tab {
+  flex-shrink: 0;
+  margin-bottom: -1px;
+  padding: 6px 13px;
   background: none;
-  border: 1px solid #2a3a5a;
-  color: #ccc;
-  padding: 5px 14px;
-  border-radius: 4px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 7px 7px 0 0;
+  color: #8fa8c8;
   font-size: 0.8rem;
+  font-family: inherit;
+  white-space: nowrap;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 
-.meld-add-btn:hover { border-color: #f5c842; color: #f5c842; }
+/* 選択中＝その種類で入力中。下の入力パネル（.meld-adding）と同色にして繋げる */
+.meld-type-tab--active {
+  background: #0a0f1e;
+  border-color: #2a3a5a;
+  color: #f5c842;
+  font-weight: 700;
+}
+
+@media (hover: hover) {
+  .meld-type-tab:hover { background: #16203a; color: #ddd; }
+  .meld-type-tab--active:hover { background: #0a0f1e; color: #f5c842; }
+}
 
 /* 副露入力エリア */
 .meld-adding {
@@ -1751,39 +1769,16 @@ kbd {
   gap: 4px;
 }
 
-/* セグメントコントロール型タブ。選択中の見た目は場風・問題タイプ等の
-   「黄色塗りつぶし＋黒文字」ルール（situation-btn--active）に揃える */
-.palette-tab-bar {
-  display: flex;
-  gap: 5px;
-  padding: 6px 8px;
+/* 右パネルの見出し。タブ列は左のパレット側（.palette-tabs）へ一本化したので、
+   ここは「今どのパネルを見ているか」の目印だけ。タブバーをここへ戻さないこと */
+.palette-panel-title {
+  padding: 7px 12px;
   background: #0a0f1e;
   border-bottom: 1px solid #1a2a4a;
+  color: #f5c842;
+  font-size: 0.85rem;
+  font-weight: 700;
 }
-
-.palette-tab-btn {
-  flex: 1;
-  padding: 7px 6px;
-  background: none;
-  border: 1px solid #2a3a5a;
-  border-radius: 8px;
-  color: #aaa;
-  font-size: 0.82rem;
-  font-family: inherit;
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
-}
-
-.palette-tab-btn:hover { border-color: #f5c842; color: #f5c842; }
-
-.palette-tab-btn--active {
-  background: #f5c842;
-  border-color: #f5c842;
-  color: #000;
-  font-weight: bold;
-}
-
-.palette-tab-btn--active:hover { color: #000; }
 
 .palette-tab-content {
   padding: 8px 10px;
@@ -1977,7 +1972,8 @@ kbd {
   background: #0f1830;
   border: 1px solid #2a3a5a;
   border-radius: 10px;
-  padding: 10px 12px;
+  /* 上は 0。タブ列（.palette-tabs）が枠の縁に接する必要があるため */
+  padding: 0 12px 10px;
 }
 
 /* 牌は4行で 310px ほどしか使わないので、右の余白を操作ガイド等に使う
@@ -2017,51 +2013,53 @@ kbd {
   overflow-y: auto;
 }
 
-.palette-dock-header {
+/* Chrome のタブのような送り先タブ列。押すと「牌の送り先」と「右パネルに出す内容」が同時に決まる。
+   画面に出るタブ列はここだけなので、右パネル側にタブバーを戻さないこと。
+   幅が足りないときは折り返さず横スクロールする（段が増えるとそのぶん盤面が縮むため） */
+.palette-tabs {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 2px;
+  /* ドックの左右 padding を打ち消して縁まで伸ばす（タブの「裏」が枠に接して見える） */
+  margin: 0 -12px;
+  padding: 6px 10px 0;
+  background: #0a0f1e;
+  border-radius: 9px 9px 0 0;
+  border-bottom: 1px solid #2a3a5a;
+  overflow-x: auto;
+  scrollbar-width: thin;
 }
 
-.palette-dock-modes {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.palette-dock-modes-label {
-  font-size: 0.75rem;
-  color: #666;
-}
-
-.palette-mode-btn {
+.palette-tab {
+  flex-shrink: 0;
+  /* 下線を跨いでパレット面と地続きに見せる（Chrome のタブと同じ見え方） */
+  margin-bottom: -1px;
+  padding: 7px 14px;
   background: none;
-  border: 1px solid #2a3a5a;
-  color: #aaa;
-  padding: 4px 12px;
-  border-radius: 999px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 8px 8px 0 0;
+  color: #8fa8c8;
   font-size: 0.8rem;
+  font-family: inherit;
+  white-space: nowrap;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  transition: background 0.15s, color 0.15s;
 }
 
-.palette-mode-btn:hover { border-color: #f5c842; color: #f5c842; }
-
-.palette-mode-btn--active {
-  background: #f5c842;
-  border-color: #f5c842;
-  color: #000;
-  font-weight: bold;
+/* 選択中はパレット面と同色にして、タブの中と下が繋がって見えるようにする */
+.palette-tab--active {
+  background: #0f1830;
+  border-color: #2a3a5a;
+  color: #f5c842;
+  font-weight: 700;
 }
 
-.palette-mode-btn:disabled {
-  opacity: 0.4;
-  cursor: default;
+/* タッチ端末でホバー装飾が貼り付くのを防ぐ（タップUIのルール） */
+@media (hover: hover) {
+  .palette-tab:hover { background: #16203a; color: #ddd; }
+  .palette-tab--active:hover { background: #0f1830; color: #f5c842; }
 }
-.palette-mode-btn:disabled:hover { border-color: #2a3a5a; color: #aaa; }
 
 .palette-dock-status {
   font-size: 0.8rem;
