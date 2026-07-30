@@ -370,6 +370,17 @@ html {
   gap: 10px;
 }
 
+/* ⚠ スクロール領域の中身は絶対に縮ませないこと（これが無いとスクロールできなくなる）。
+   フレックスアイテムの自動最小サイズ（min-height: auto）は overflow が visible のときしか効かず、
+   .editor-section--palette は overflow: hidden を持つため min-height が 0 に解決される。
+   すると既定の flex-shrink: 1 で残り高さぶんまで潰れ、
+   「はみ出さない＝スクロールバーが出ない」のに中身は切り落とされる状態になる
+   （捨て牌の家を2つ以上追加すると2家目以降に到達できなくなっていた）。
+   左カラムが .palette-dock { flex-shrink: 0 } で同じ対処をしているのと揃えてある */
+.editor-panel-scroll > * {
+  flex-shrink: 0;
+}
+
 /* 縦積みに落とすルールは、上の3つ（columns / board-col / panel-col）より後に置くこと
    （同じ詳細度なので後勝ちで上書きしている） */
 @media (max-width: 1200px) {
