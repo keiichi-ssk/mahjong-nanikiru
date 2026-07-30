@@ -1,6 +1,6 @@
 // X投稿の下書きを自動生成するスクリプト。
 // メンチン何切るドリルの判定エンジン（chinitsuUtils.js）で大量の手牌をランダム生成し、
-// 「受け入れが広い」「待ちが多面」といった映える問題を選んで、
+// 「受け入れが広い」「最善手も次善手もテンパイに取れて待ちが2種類以上ある」といった映える問題を選んで、
 // そのままコピペで使える投稿文＋シェアURLを出力する。自動投稿はしない（下書きのみ）。
 // 手牌は文字表記だけだと分かりにくいため、実際の牌画像を並べたHTMLプレビューも生成しブラウザで開く。
 // 実行: npm run tweet-drafts [件数（省略時5）]
@@ -21,7 +21,9 @@ const SAMPLE_SIZE = 20000;
 const SUITS = ['m', 'p', 's'];
 const OUT_DIR = path.resolve('scripts/tweet-drafts-out');
 const TILES_DIR = path.resolve('public/tiles');
-const MULTI_WAIT_MIN = 3; // これ未満（両面・シャンポン等）は「多面待ち」とみなさない
+// 待ちの種類数の下限。単騎・カンチャン・ペンチャン＝1／両面・シャンポン＝2／多面待ち＝3以上なので、
+// 2 にすると両面・シャンポンまで通り、1種類待ちだけが落ちる
+const MIN_WAIT_KINDS = 2;
 
 // クイズ投稿の「答え（数時間後にリプする解説）」を組み立てる。
 // 判定エンジン(computeBestDiscards/analyzeDiscard)で最善打牌と待ちを算出し、麻雀表記に変換する。
@@ -58,7 +60,8 @@ function topValueOf(tier) {
   return tier.filter(r => r.value === maxValue);
 }
 
-// 面白さの基準: 「最善手」「次善手」の受け入れ枚数（2段階）がともに多面待ちになる手牌のみを対象にする
+// 面白さの基準: 「最善手」「次善手」の受け入れ枚数（2段階）がともに
+// MIN_WAIT_KINDS 種類以上の待ちになる手牌のみを対象にする
 function scoreHand(hand) {
   if (isWinningHand(hand)) return null; // 既にアガリの形は「何切る」問題として成立しないため除外
 
@@ -73,8 +76,8 @@ function scoreHand(hand) {
 
   const bestTier = topValueOf(results.filter(r => r.ukeire === ukeireLevels[0]));
   const secondTier = topValueOf(results.filter(r => r.ukeire === ukeireLevels[1]));
-  const isMulti = (tier) => tier.every(r => r.waits.length >= MULTI_WAIT_MIN);
-  if (!isMulti(bestTier) || !isMulti(secondTier)) return null;
+  const hasEnoughWaits = (tier) => tier.every(r => r.waits.length >= MIN_WAIT_KINDS);
+  if (!hasEnoughWaits(bestTier) || !hasEnoughWaits(secondTier)) return null;
 
   const waitKinds = new Set(bestTier.flatMap(r => r.waits)).size;
   return { hand, maxUkeire: ukeireLevels[0], waitKinds, score: ukeireLevels[0] * 10 + waitKinds };
