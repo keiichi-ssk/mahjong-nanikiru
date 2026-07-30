@@ -1,7 +1,8 @@
 // X投稿の下書きを自動生成するスクリプト。
-// メンチン何切るドリルの判定エンジン（chinitsuUtils.js）で大量の手牌をランダム生成し、
-// 「受け入れが広い」「最善手も次善手もテンパイに取れて待ちが2種類以上ある」といった映える問題を選んで、
+// メンチン何切るドリルの判定エンジン（chinitsuUtils.js）で手牌をランダム生成し、
+// 「最善手も次善手もテンパイに取れて待ちが2種類以上ある」問題だけを採って、
 // そのままコピペで使える投稿文＋シェアURLを出力する。自動投稿はしない（下書きのみ）。
+// 受け入れの広さで優劣は付けない（条件を満たせば広くても狭くても採用する）。
 // 手牌は文字表記だけだと分かりにくいため、実際の牌画像を並べたHTMLプレビューも生成しブラウザで開く。
 // 実行: npm run tweet-drafts [件数（省略時5）]
 
@@ -60,9 +61,10 @@ function topValueOf(tier) {
   return tier.filter(r => r.value === maxValue);
 }
 
-// 面白さの基準: 「最善手」「次善手」の受け入れ枚数（2段階）がともに
-// MIN_WAIT_KINDS 種類以上の待ちになる手牌のみを対象にする
-function scoreHand(hand) {
+// 採用条件: 「最善手」「次善手」の受け入れ枚数（2段階）がともに
+// MIN_WAIT_KINDS 種類以上の待ちになる手牌のみを対象にする。
+// 条件を満たすかどうかだけを見て、受け入れの広さで優劣は付けない
+function judgeHand(hand) {
   if (isWinningHand(hand)) return null; // 既にアガリの形は「何切る」問題として成立しないため除外
 
   const candidates = [...new Set(hand)];
@@ -79,8 +81,8 @@ function scoreHand(hand) {
   const hasEnoughWaits = (tier) => tier.every(r => r.waits.length >= MIN_WAIT_KINDS);
   if (!hasEnoughWaits(bestTier) || !hasEnoughWaits(secondTier)) return null;
 
-  const waitKinds = new Set(bestTier.flatMap(r => r.waits)).size;
-  return { hand, maxUkeire: ukeireLevels[0], waitKinds, score: ukeireLevels[0] * 10 + waitKinds };
+  // maxUkeire / waitKinds はプレビューの見出しに出すためだけに返す（採否の順位付けには使わない）
+  return { hand, maxUkeire: ukeireLevels[0], waitKinds: new Set(bestTier.flatMap(r => r.waits)).size };
 }
 
 // 手牌の形（スーツを無視した数字構成）が同じものは1件に絞り、似た問題が並ぶのを防ぐ
@@ -88,25 +90,22 @@ function shapeKey(hand) {
   return hand.map(t => t[0]).sort().join('');
 }
 
-function pickTopCandidates(count) {
-  const candidates = [];
-  for (let i = 0; i < SAMPLE_SIZE; i++) {
-    const suit = SUITS[i % SUITS.length];
-    const scored = scoreHand(generateChinitsuHand(suit));
-    if (scored) candidates.push(scored);
-  }
-  candidates.sort((a, b) => b.score - a.score);
-
+// 手牌はランダム生成なので、条件を満たしたものを出た順に採るだけで無作為抽出になる。
+// 受け入れの広さで並べ替えないので全部を作る必要はなく、必要な数が揃った時点で打ち切る
+// （SAMPLE_SIZE は条件を満たす手牌が出ないときに止めるための上限）
+function pickCandidates(count) {
   const seen = new Set();
-  const top = [];
-  for (const c of candidates) {
-    const key = shapeKey(c.hand);
+  const picked = [];
+  for (let i = 0; i < SAMPLE_SIZE && picked.length < count; i++) {
+    const suit = SUITS[i % SUITS.length];
+    const judged = judgeHand(generateChinitsuHand(suit));
+    if (!judged) continue;
+    const key = shapeKey(judged.hand);
     if (seen.has(key)) continue;
     seen.add(key);
-    top.push(c);
-    if (top.length >= count) break;
+    picked.push(judged);
   }
-  return top;
+  return picked;
 }
 
 function tileImgTag(tile) {
@@ -195,7 +194,7 @@ function previewPageHtml(cardsHtml) {
 }
 
 const count = Number(process.argv[2]) || 5;
-const drafts = pickTopCandidates(count);
+const drafts = pickCandidates(count);
 
 const cards = drafts.map((d, i) => {
   // 本文（クイズ）は buildShareUrl が組み立てたものをそのまま流用する（文言の二重管理を避けるため）
