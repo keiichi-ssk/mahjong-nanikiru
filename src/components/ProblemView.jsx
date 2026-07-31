@@ -201,12 +201,16 @@ function handRowUnits(tiles, melds) {
   return hand + meldTiles + melds.length * 0.5;
 }
 
-// 手牌が未設定でも他家捨て牌は独立して表示する（問題タイプ間で挙動を揃える）
+// 手牌が未設定でも他家捨て牌は独立して表示する（問題タイプ間で挙動を揃える）。
+// 手牌と他家の捨て牌は .hand-block でまとめ、左端を縦に揃える（下の通常の何切ると同じ扱い）
 function HandDisplay({ tiles, melds, otherDiscards, jikaze }) {
   const hasMelds = Array.isArray(melds) && melds.length > 0;
   const hasHand = tiles && tiles.length > 0;
+  const hasDiscards = (otherDiscards ?? []).some(od => od?.player && od.tiles?.length > 0);
+  // どちらも無いときに空の div を残すと .problem-view の gap だけが空きとして残る
+  if (!hasHand && !hasDiscards) return null;
   return (
-    <>
+    <div className="hand-block">
       {hasHand && (
         <div className="hand-and-melds" style={{ '--hand-count': handRowUnits(tiles, melds) }}>
           <div className="tile-display-readonly">
@@ -226,7 +230,7 @@ function HandDisplay({ tiles, melds, otherDiscards, jikaze }) {
         </div>
       )}
       <OtherDiscardDisplay otherDiscards={otherDiscards} jikaze={jikaze} />
-    </>
+    </div>
   );
 }
 
@@ -553,6 +557,9 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
   const needsRiichi = !isRiichiJudgment && p.riichi !== null && p.riichi !== undefined;
   const answered = selected !== null;
   const hasMelds = Array.isArray(p.melds) && p.melds.length > 0;
+  // .hand-block を出すかの判定（中身が空のブロックを残さないため）
+  const hasHandTiles = (p.tiles?.length ?? 0) > 0;
+  const hasOtherDiscards = (pv.otherDiscards ?? []).some(od => od?.player && od.tiles?.length > 0);
 
   // 正解はカンマ区切りで複数持てる。牌切りと暗槓（ankan:）が混在してもよい
   const answers = parseAnswers(p.answer);
@@ -755,6 +762,10 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
       {/* ===== 通常の何切るカテゴリ ===== */}
       {problemType === 'default' && !isRiichiJudgment && (
         <>
+          {/* 手牌・リーチ・他家の捨て牌・暗槓は左端を縦に揃える（.hand-block でまとめて中央寄せ）。
+              中身が1つも無いときに空の div を残すと .problem-view の gap だけが空きとして残る */}
+          {(hasHandTiles || hasOtherDiscards || quadTiles.length > 0) && (
+          <div className="hand-block">
           {p.tiles && p.tiles.length > 0 && (
             <div className="tile-selector-row">
               <div className="hand-and-melds" style={{ '--hand-count': handRowUnits(p.tiles, p.melds) }}>
@@ -806,6 +817,8 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
                 })}
               </div>
             )}
+          </div>
+          )}{/* /hand-block */}
 
             {answered && (
               <AnswerPanel isCorrect={isCorrect} explanation={p.explanation}>

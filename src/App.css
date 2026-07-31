@@ -1044,6 +1044,29 @@
 }
 
 /* ===== 牌選択エリア ===== */
+
+/* 手牌・リーチボタン・他家の捨て牌・暗槓ボタンの左端を縦に揃えるためのブロック。
+   3つを別々に置くと、手牌だけが中央寄せ・他は画面の左端になって縦ラインがずれる。
+   ブロックごと中央へ寄せ（align-self）、中身は左寄せ（align-items: flex-start）にすると、
+   ブロックの幅＝一番広い中身（通常は手牌）になるので手牌の左端がそのまま基準線になる。
+   ★ 中央寄せに margin: auto を使わないこと（.problem-view が縦フレックスなので stretch が
+     打ち消され、中身が絶対配置ぶん幅0に潰れる。ResponsiveBoard と同じ落とし穴） */
+.hand-block {
+  align-self: center;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;          /* .problem-view の gap と同じ。まとめる前後で間隔を変えない */
+  max-width: 100%;
+  min-width: 0;       /* 手牌が画面より広いとき .hand-and-melds の overflow-x を効かせるため */
+}
+
+/* 中身も同じ理由で画面幅を超えられないようにする（超えたぶんは手牌の行が横スクロールする） */
+.hand-block > * {
+  max-width: 100%;
+  min-width: 0;
+}
+
 .hand-and-melds {
   display: flex;
   align-items: flex-end;
