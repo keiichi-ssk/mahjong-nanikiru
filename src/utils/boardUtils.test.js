@@ -94,6 +94,20 @@ describe('buildRiver（河の組み立て）', () => {
     expect(buildRiver({ tiles: [], junme: null, meldCount: 3 })).toEqual([]);
   });
 
+  // 牌譜の1巡目では、まだ第一打を切っていない家の河が空のままデータ無しになる。
+  // ここで裏向きを1枚並べると「切っていないのに1枚捨てている」卓になってしまう
+  it('巡目1では裏向きを並べない（まだ切っていない家とみなす）', () => {
+    expect(buildRiver({ tiles: [], junme: 1, meldCount: 0 })).toEqual([]);
+  });
+
+  it('巡目1でも鳴いている家は打牌が1回増えるぶんだけ裏向きになる', () => {
+    expect(render(buildRiver({ tiles: [], junme: 1, meldCount: 1 }))).toBe('X');
+  });
+
+  it('巡目2以降は従来どおり「巡目＋副露数」枚（巡目1の特例を広げない）', () => {
+    expect(render(buildRiver({ tiles: [], junme: 2, meldCount: 0 }))).toBe('X X');
+  });
+
   it('鳴かれた牌は河から減らさず網掛けになる', () => {
     const river = buildRiver({ tiles: ['1m', '5p', '9s'], junme: 6, calledTiles: ['5p'] });
     expect(render(river)).toBe('1m 5p* 9s');

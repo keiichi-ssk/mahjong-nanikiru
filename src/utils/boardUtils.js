@@ -5,6 +5,7 @@
 //   - 捨て牌データがある家 … データの枚数だけ表示する（裏向きでの補完はしない）
 //   - データが無い家（自分を含む） … 「巡目 ＋ その家の副露数」枚を裏向きで並べる
 //   - 巡目が未設定 … 裏向きは並べない
+//   - 巡目1 … 裏向きは並べない（2026-07-31 追加。まだ1周していないので「データが無い＝まだ切っていない」）
 //   - 鳴かれた牌は河から減らさず、網掛けにして「鳴かれた」と分かるようにする
 
 // api/ 配下（Vercel Functions）からも読み込まれるため拡張子を明示する
@@ -74,9 +75,13 @@ export function buildRiver({
 
   // データが無い家は裏向きで埋める。鳴かれた牌は河の末尾に置く
   // （河のどの位置で切ったかはデータに無いため末尾固定）
-  const total = junme != null
-    ? Math.max(junme + meldCount, calledTiles.length)
-    : calledTiles.length;
+  //
+  // ★ 巡目1は「まだ1周していない」ので、データが無い家＝まだ切っていない家とみなして裏向きを出さない。
+  //   牌譜から作った問題では実際に切った家には必ず捨て牌データがあるので、この推定は常に正しい
+  //   （切っていない家だけがデータ無しになる）。手作りの問題でも巡目1で裏向きを1枚並べる意味は薄い。
+  //   鳴いている家は打牌が1回増えるので副露数ぶんだけは残す
+  const estimated = junme == null ? 0 : (junme <= 1 ? meldCount : junme + meldCount);
+  const total = Math.max(estimated, calledTiles.length);
   const hiddenCount = Math.max(0, total - calledTiles.length);
   return [
     ...Array.from({ length: hiddenCount }, () => ({ tile: null, hidden: true, called: false, tsumogiri: false })),
