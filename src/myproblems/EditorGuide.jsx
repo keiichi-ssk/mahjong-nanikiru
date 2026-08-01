@@ -27,7 +27,7 @@ const GUIDES = {
     title: '問題を作る手順',
     steps: [
       { title: '手牌を並べる',   hint: '左の牌パレットをクリックすると盤面に入る（送り先が「手牌」のとき）' },
-      { title: 'ドラを設定する', hint: '盤面の王牌をクリック、または送り先の「ドラ」を選んで牌パレットをクリック' },
+      { title: 'ドラを設定する', hint: '盤面の王牌をクリックまたはタブの「ドラ」を選んで牌パレットをクリック' },
       { title: '状況を設定する',   hint: '盤面の中央で局・巡目、自風を設定' },
       { title: '問題タイプを選ぶ', hint: '上の「問題タイプ:」で「リーチ判断」「鳴きタイミング」などに変えられる' },
       { title: '正解を選ぶ',       hint: '右の「正解設定」タブで、正解の牌をクリックして設定' },
@@ -52,8 +52,21 @@ const GUIDES = {
   },
 }
 
-export default function EditorGuide({ mode = 'manual' }) {
-  const guide = GUIDES[mode] ?? GUIDES.manual
+// 未ログイン（保存できない）ときは**最後の手順だけ**を差し替える。
+// そこまでの作り方は同じなので、手順の文言を二重に持たない
+const GUEST_LAST_STEP = {
+  title: 'Xで共有する',
+  hint: '右上の「Xで共有」。問題の中身はURLに入るので、ログインしなくてもそのまま共有できる',
+}
+const GUEST_NOTE = 'ログインすると「保存」に変わり、my問題集に登録して何度でも解き直せます（20問まで）。作りかけの内容はログインを挟んでも残ります。'
+
+export default function EditorGuide({ mode = 'manual', canSave = true }) {
+  const base  = GUIDES[mode] ?? GUIDES.manual
+  const guide = canSave ? base : {
+    ...base,
+    steps: [...base.steps.slice(0, -1), GUEST_LAST_STEP],
+    notes: [...(base.notes ?? []), GUEST_NOTE],
+  }
 
   return (
     <div className="guide">

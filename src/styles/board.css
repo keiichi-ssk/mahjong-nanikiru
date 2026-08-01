@@ -71,6 +71,12 @@
   box-shadow: 0 0 20px -8px var(--gold-soft);
 }
 
+/* ドラタブを開いている間の選択表示（他の領域と同じ金色のリング＋グロー） */
+.board-dead-wall-btn--active {
+  border-color: var(--gold);
+  box-shadow: 0 0 20px -6px var(--gold);
+}
+
 /* 盤面の牌そのものをボタンにする（手牌タブ中はクリックで削除） */
 .board-tile-btn,
 .board-melds-btn {

@@ -138,19 +138,23 @@ export default function PaifuImport({
             </span>
           )}
 
-          <label className="paifu-save-to">
-            保存先
-            <select
-              className="mp-cat-select"
-              value={categoryId ?? ''}
-              onChange={e => onChangeCategory(e.target.value || null)}
-            >
-              <option value="">未分類</option>
-              {categories.map(c => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </label>
+          {/* 保存先の選択は保存できるとき（ログイン中）だけ出す。
+              未ログインの作問では保存自体ができないので、置いても選ばせる意味が無い */}
+          {onChangeCategory && (
+            <label className="paifu-save-to">
+              保存先
+              <select
+                className="mp-cat-select"
+                value={categoryId ?? ''}
+                onChange={e => onChangeCategory(e.target.value || null)}
+              >
+                <option value="">未分類</option>
+                {categories.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </label>
+          )}
 
           {/* 同じ局面を続けて保存してしまわないよう、保存済みなら知らせる */}
           {saved && <span className="paifu-saved">この局面は保存済み</span>}

@@ -102,8 +102,9 @@
 
 /* ===== トップページ（未ログイン時のランディング） =====
    構成は「ヒーロー → 特長3つ → 問題集の案内」の1カラム。
-   主CTA（.landing-cta）はページに1つだけにすること。ログイン導線と同格に並べると、
-   権限のない訪問者がそちらを押して行き止まりに落ちる。 */
+   塗りの主CTA（.landing-cta）はページに1つだけにすること。並べてよいのは
+   **ログインなしで始められる導線**だけで、枠線の副次CTA（.landing-cta--sub）として格を下げる。
+   ログイン必須の導線を同格に並べないこと（権限のない訪問者が行き止まりに落ちる）。 */
 .landing {
   text-align: center;
 }
@@ -125,6 +126,32 @@
   font-size: clamp(0.95rem, 3.4vw, 1.05rem);
   line-height: 1.7;
   color: var(--color-text-secondary);
+}
+
+/* CTAは横並び。入らなければ折り返して縦積みになる（説明文は各CTAの直下に付く）。
+   2つのボタンは同じ大きさに揃える（片方だけ小さいと機能の格差に見えるため）ので、
+   列を等幅（flex: 1 1 0）にしてボタンを幅いっぱいに伸ばす */
+.landing-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px 20px;
+}
+
+/* ★ 幅は 380px 固定（伸縮させない）。主CTAの文言「今すぐメンチン何切るドリルを始める」が
+   1行に収まる幅で、縮めると片方だけ2行になって高さが揃わなくなる。
+   入らなくなったら縮まずに折り返して縦並びになる。**文言を長くするときはこの幅を見直すこと** */
+.landing-cta-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 0 0 380px;
+  max-width: 100%;
+}
+
+.landing-cta-item .landing-cta {
+  width: 100%;
 }
 
 /* 主CTA。既存の --color-primary 塗りより一段強く見せるためアクセント色を使う
@@ -154,6 +181,20 @@
   .landing-cta:hover {
     background: #9ed0de;
     transform: translateY(-1px);
+  }
+}
+
+/* 副次CTA（作問画面）。主CTAと同格に見せないよう塗らずに枠線だけにする。
+   ★ .landing-cta の hover/active を上書きするので、必ずその後ろに置くこと */
+.landing-cta--sub {
+  background: transparent;
+  color: var(--color-accent);
+  box-shadow: inset 0 0 0 1px var(--color-accent);
+}
+
+@media (hover: hover) {
+  .landing-cta--sub:hover {
+    background: rgba(136, 192, 208, 0.12);
   }
 }
 
@@ -277,6 +318,15 @@
   .landing-cta {
     width: 100%;
     padding: 0 20px;
+  }
+
+  /* 幅いっぱいの縦積みにする（横並びのまま潰れると文言が読めなくなる） */
+  .landing-cta-item {
+    width: 100%;
+  }
+
+  .landing-note {
+    margin-top: 8px;
   }
 }
 

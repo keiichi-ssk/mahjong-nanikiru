@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { getTileImageUrl, getTileLabel, sortTiles } from '../utils/tileUtils'
+import { getTileImageUrl, getTileLabel, sortTiles, getDoraIndicator } from '../utils/tileUtils'
 import { normalizeProblemType, parseAnswers } from '../utils/judgeUtils'
 import {
   NAKI_TIMING_OPTIONS, MELD_TYPE_LABELS, MELD_TILE_COUNT, MELD_TYPES, getMeldTileRole,
@@ -33,10 +33,12 @@ const TILE_GROUPS = [
 // 牌パレットの送り先タブ。画面に出るタブ列はこれ1つだけで、押すと
 // 「パレットの牌の送り先（mode）」と「右パネルに出す内容（panel）」が同時に決まる。
 // boardOnly のタブは盤面ロック中（牌譜モード）に出さない。
-// ドラ・出牌・選択肢はタブに出さず、盤面の王牌クリックと問題タイプで自動的に選ばれる
+// 出牌・選択肢はタブに出さず、問題タイプから自動的に選ばれる
+// （ドラは盤面の王牌クリックだけだと気づけないので 2026-08-01 にタブへ出した）
 const PALETTE_TABS = [
   { key: 'hand',        label: '手牌',           panel: 'hand',    mode: 'hand',        boardOnly: true },
   { key: 'meld',        label: '副露',           panel: 'hand',    mode: 'meld',        boardOnly: true },
+  { key: 'dora',        label: 'ドラ',           panel: 'dora',    mode: 'dora',        boardOnly: true },
   { key: 'sutehai',     label: '捨て牌',         panel: 'sutehai', mode: 'sutehai',     boardOnly: true },
   { key: 'answer',      label: '正解設定',       panel: 'answer',  mode: null },
   { key: 'note',        label: '出題注釈に挿入', panel: null,      mode: 'note' },
@@ -47,6 +49,7 @@ const PALETTE_TABS = [
 const PANEL_TITLES = {
   hand:    '手牌',
   jokyo:   '点数',
+  dora:    'ドラ',
   sutehai: '捨て牌',
   answer:  '正解設定',
 }
@@ -278,12 +281,16 @@ function TextCount({ len, max }) {
 //   textLimits   … { explanation, note } の文字数上限。入力欄に maxLength と残数表示を付ける。
 //                  自作問題は DB 側の CHECK 制約で 200字までなので、書いてから保存で弾かれるのを防ぐ。
 //                  公式問題に上限は無いので既定は null（管理画面の挙動は変わらない）
+//   saveLabel    … 保存ボタンの文言。未ログインの作問（my問題集のゲスト）では
+//                  押すとログインに進むので「ログインして保存」に差し替える
+//   hideSaveNext … 「保存して次へ」を隠す。次の問題という概念が無い場面（ゲスト・牌譜の下書き）用。
+//                  hasNext=false でも disabled のボタンが残ると何が押せるのか分かりにくいため
 export default function ProblemEditor({
   problem, prevProblem, onSave, onSaveAndNext, onDelete, hasNext,
   hideImage = false, hideReviewed = false, hideDelete = false, headerLead = null,
   saveStatus = null, lockBoard = false, concealedCounts = null,
   hideDisabled = false, paletteAside = null, textLimits = null, hideBoardView = false,
-  onShare = null,
+  onShare = null, saveLabel = '保存', hideSaveNext = false,
 }) {
   // 手牌が未設定（新規追加直後）の問題は、手牌・正解・状況設定（ドラ・場風・自風・巡目）を
   // ひとつ前の問題から引き継いでおく。手牌がすでにある問題は自分自身の値を優先する。
@@ -643,12 +650,14 @@ export default function ProblemEditor({
     function onKeyDown(e) {
       if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault()
-        handleSaveAndNext()
+        // 「保存して次へ」を出していない場面（ゲスト・牌譜の下書き）では素の保存に回す
+        if (hideSaveNext) handleSave()
+        else handleSaveAndNext()
       }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [handleSaveAndNext])
+  }, [handleSaveAndNext, handleSave, hideSaveNext])
 
   // 盤面（手牌・状況設定・捨て牌）を編集できるか。
   // 牌譜から作った問題は「実在の局面をそのまま出題する」のが基本なので既定でロックする
@@ -746,6 +755,7 @@ export default function ProblemEditor({
   const activeArea = boardLocked ? null
     : paletteTab === 'sutehai' ? `sutehai:${activeSutehaiIdx}`
     : paletteTab === 'jokyo' ? 'jokyo'
+    : paletteTab === 'dora'  ? 'dora'
     : paletteTab === 'hand'  ? 'hand'
     : null
 
@@ -765,11 +775,9 @@ export default function ProblemEditor({
       selectPaletteTab('sutehai')
       if (index >= 0) setSutehaiActiveIdx(index)
     } else if (kind === 'dora') {
-      // ドラは盤面の王牌から設定する。タブは変えず、下のパレットの送り先だけ切り替える。
-      // ただし副露の入力中はそちらが送り先として優先されるので取りやめる
-      setAddingMeld(null)
-      setPaletteTab(prev => (prev === 'meld' ? 'hand' : prev))
-      setPaletteMode('dora')
+      // 王牌のクリックはドラタブを開くのと同じ扱いにする（入口が2つあっても状態は1つ）。
+      // selectPaletteTab が入力途中の副露も片付ける（残っていると送り先が meld のままになる）
+      selectPaletteTab('dora')
     }
   }
 
@@ -924,10 +932,12 @@ export default function ProblemEditor({
         )}
         {/* 保存・保存して次へ・削除はひとまとまり（折り返しても3つが分かれないようにする） */}
         <div className="editor-header-actions">
-          <button className="editor-save-btn" onClick={handleSave}>保存</button>
-          <button className="editor-save-next-btn" onClick={handleSaveAndNext} disabled={!hasNext}>
-            保存して次へ <kbd>Ctrl+S</kbd>
-          </button>
+          <button className="editor-save-btn" onClick={handleSave}>{saveLabel}</button>
+          {!hideSaveNext && (
+            <button className="editor-save-next-btn" onClick={handleSaveAndNext} disabled={!hasNext}>
+              保存して次へ <kbd>Ctrl+S</kbd>
+            </button>
+          )}
           {saveStatus && <span className="editor-save-status">{saveStatus}</span>}
           {/* Xへの共有（管理画面だけ。my問題集は一覧側に入口があるので渡していない）。
               共有するのは「いま画面に見えている内容」＝未保存の編集も含む buildSaveData()。
@@ -1077,6 +1087,27 @@ export default function ProblemEditor({
             {/* 注釈は手牌と一緒に書くことが多いのでこのパネルに置く（点数パネルには置かない）。
                 盤面ロック中はこのパネル自体が出ないので、正解設定パネルに同じものを出す */}
             {noteEditor}
+          </div>
+        )}
+
+        {/* ドラパネル（ドラタブ・盤面の王牌クリックから開く）。
+            値の差し替えは下の牌パレットで行うので、ここは現在の値の確認だけ。
+            ★ 盤面の王牌に出るのは**ドラ表示牌**（1つ前の牌）なので、取り違えないよう両方並べる */}
+        {activePanel === 'dora' && (
+          <div className="palette-tab-content">
+            <div className="editor-section-label">いまのドラ</div>
+            <div className="editor-dora-row">
+              <span className="editor-current">ドラ</span>
+              {/* 押しても何も起きない見本なので button（TileImg）ではなく span で描く */}
+              <span className="tile-btn editor-tile editor-tile--static">
+                <img src={getTileImageUrl(dora)} alt={dora} width={30} height={41} />
+              </span>
+              <span className="editor-current">王牌に出る表示牌</span>
+              <span className="tile-btn editor-tile editor-tile--static">
+                <img src={getTileImageUrl(getDoraIndicator(dora))} alt={getDoraIndicator(dora)} width={30} height={41} />
+              </span>
+            </div>
+            <p className="editor-current">下の牌パレットをクリックするとドラが差し替わります。</p>
           </div>
         )}
 

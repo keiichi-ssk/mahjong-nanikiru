@@ -577,6 +577,16 @@ html {
 
 /* 編集パネル内の牌（正解設定・副露入力中）。パレットの牌と同じ大きさに揃える */
 .editor-tile { width: 30px; height: 40px; }
+/* ドラパネルの見本のように、押しても何も起きない牌（span で描くもの） */
+.editor-tile--static { cursor: default; }
+
+/* ドラパネル。「ドラ」と「王牌に出る表示牌」を並べて取り違えを防ぐ */
+.editor-dora-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 /* パレットの牌だけは小さくする（枚数が多く場所を食うため。盤面の牌は大きいままにする） */
 .palette-tile { width: 30px; height: 40px; }
 .tile-btn img { max-width: 100%; height: auto; display: block; }

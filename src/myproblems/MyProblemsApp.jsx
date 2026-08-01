@@ -6,9 +6,11 @@ import { PROBLEM_TYPE_LABELS } from '../utils/problemConstants'
 import { normalizeProblemType } from '../utils/judgeUtils'
 import PaifuImport from './PaifuImport'
 import EditorGuide from './EditorGuide'
+import ShareButton from '../components/ShareButton'
 import { MAX_PROBLEMS, MAX_CATEGORIES, MAX_EXPLANATION, MAX_NOTE, insertErrorText } from './limits'
 import { snapshotToProblem } from '../utils/importBoard'
 import { openProblemShare } from '../utils/shareWindow'
+import { loadGuestDraft, saveGuestDraft, clearGuestDraft } from './guestDraft'
 import {
   validatePaifu, listRounds, listSteps, snapshotAt, filterSteps, defaultProblemTitle,
 } from '../utils/tenhouPaifu'
@@ -16,7 +18,13 @@ import {
 // 自作問題集（my問題集(β)）の作成画面。
 // 計画: docs/user-problems-plan.md
 //
-// ゲートは「ログインしているか」だけ（2026-07-28 一般公開）。
+// ★ 作問そのものはログイン不要（2026-08-01〜）。ログインが要るのは**保存だけ**で、
+//   未ログインでも問題を作って X で共有できる（問題の中身は URL に入るので DB を使わない）。
+//   未ログイン時はカテゴリ・問題一覧（DB前提）を出さず、いきなりエディタを開く。
+//   作りかけの内容は「ログインして保存」を押した時点で sessionStorage へ退避し（guestDraft.js）、
+//   OAuth から戻ったら復元して保存できる。**この往復を壊さないこと**（作った問題が消える体験になる）。
+//
+// 保存まわりのゲートは「ログインしているか」だけ（2026-07-28 一般公開）。
 // allowed_users（公式問題の閲覧許可リスト）にも is_admin にも依存しない。
 // 実効防御は user_problems / user_categories の RLS（auth.uid() = user_id）で、
 // 作れる件数・文字数の上限も DB 側で強制する（UIで止めても anon キーで直接叩けるため）。
@@ -66,11 +74,23 @@ function problemSummary(p) {
 // 書いてから保存で弾かれるのを防ぐため、入力欄の maxLength と残数表示に使う
 const TEXT_LIMITS = { explanation: MAX_EXPLANATION, note: MAX_NOTE }
 
+// Google ログインを始める。ログイン画面と「ログインして保存」の両方から呼ぶ。
+// ★ redirectTo に window.location.href を使わないこと。OAuth 後に付くハッシュ（#access_token=…）が
+//   混ざると Redirect URLs にマッチせず Site URL（本番）へ飛ばされる
+//   （CLAUDE.md「特定の画面だけログインボタンが効かない」）
+async function signIn() {
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: `${window.location.origin}${window.location.pathname}` },
+  })
+  if (error) console.error('OAuth error:', error)
+}
+
 // 1問ぶんの編集ペイン。
 // 番号・タイトル・カテゴリは**左の一覧から**変更するので、ここでは持たない
 // （同じ設定の入口が2つあると、どちらが有効か分からなくなるため）。
 // 保存時は問題が元々持っている値をそのまま引き継ぐ。
-function ProblemPane({ problem, prevProblem, hasNext, onSave, onSaveAndNext, saveStatus }) {
+function ProblemPane({ problem, prevProblem, hasNext, onSave, onSaveAndNext, onShare, saveStatus }) {
   // buildSaveData は {...problem} を土台にするので title / categoryId は自動で残る
   return (
     <ProblemEditor
@@ -87,6 +107,9 @@ function ProblemPane({ problem, prevProblem, hasNext, onSave, onSaveAndNext, sav
       saveStatus={saveStatus}
       onSave={onSave}
       onSaveAndNext={onSaveAndNext}
+      // 共有は一覧（↗）だけでは気づけないので、編集中の画面からも出せるようにする（2026-08-01〜）。
+      // 共有されるのは buildSaveData() ＝ 未保存の編集も含む「いま見えている内容」
+      onShare={onShare}
       onDelete={() => {}}
     />
   )
@@ -124,6 +147,10 @@ export default function MyProblemsApp() {
   const [editProbNo, setEditProbNo]         = useState('')
   const [editProbCat, setEditProbCat]       = useState('')
   const [status, setStatus]                 = useState('')
+  // ログイン前に作っていた問題（sessionStorage）。
+  // 未ログイン時はこれが編集対象、ログイン後は「保存できる1問」として復元する。
+  // 読み出しは初期化時の1回だけ（編集中に差し替わると ProblemEditor の中身が飛ぶため）
+  const [guestDraft, setGuestDraft]         = useState(() => loadGuestDraft())
   // 保存ボタンの隣に出す状態表示。{ text, error } | null
   // 成功は数秒で自動的に消す（消えずに残っていると、次の保存で変化が無く保存されたか分からないため）
   const [editorStatus, setEditorStatus]     = useState(null)
@@ -207,6 +234,25 @@ export default function MyProblemsApp() {
       title: defaultProblemTitle(paifu, draft.roundIndex, board.junme),
     }
   }, [paifuResult, paifu, draft.roundIndex])
+
+  // 退避してあった下書き。見知らぬキーをそのまま DB へ送らないよう、
+  // 必ず makeNewUserProblem() に重ねてから使う（guestDraft.js は検証をしない入れ物）
+  const guestProblem = useMemo(
+    () => ({ ...makeNewUserProblem(), ...(guestDraft ?? {}) }),
+    [guestDraft],
+  )
+
+  // ===== 選択中のカテゴリ（描画時に導出する） =====
+  // ★ 何も選ばれていない状態を作らない（2026-08-01〜）。未選択だと「＋ 新しい問題」が押せず、
+  //   何から始めればいいのか分からないため、先頭のカテゴリ（無ければ未分類）へ寄せる。
+  //   state は書き換えない（effect 内の setState は cascading render になるため）ので、
+  //   カテゴリを削除して選択が外れたときも自動的に次の候補へ移る
+  const uncategorized = problems.filter(p => p.categoryId == null)
+  const activeCatId   = selectedCatId
+    ?? categories[0]?.id
+    ?? (uncategorized.length > 0 ? UNCATEGORIZED : null)
+  // 問題を作る先のカテゴリ（未分類は null で保存する）
+  const activeCatValue = activeCatId === UNCATEGORIZED ? null : activeCatId
 
   useEffect(() => {
     if (!session) return undefined
@@ -320,10 +366,9 @@ export default function MyProblemsApp() {
   }
 
   async function addProblem() {
-    if (!userId || !selectedCatId) return
-    const categoryId = selectedCatId === UNCATEGORIZED ? null : selectedCatId
+    if (!userId || !activeCatId) return
     // user_id は insert のときだけ付ける（toUserDb は含めない）
-    const row = { ...toUserDb(makeNewUserProblem(), { categoryId }), user_id: userId }
+    const row = { ...toUserDb(makeNewUserProblem(), { categoryId: activeCatValue }), user_id: userId }
     const { data, error } = await supabase.from('user_problems').insert(row).select('*')
     if (error) { setStatus(insertErrorText(error, { kind: 'problem', count: problems.length })); return }
     if (!data || data.length === 0) { setStatus('追加できませんでした（権限の可能性）'); return }
@@ -346,7 +391,7 @@ export default function MyProblemsApp() {
       // 牌譜が変わったら局面と保存済みの記録は最初に戻す
       setDraft({ roundIndex: 0, seat: 0, stepIndex: 0, filter: 'self' })
       setSavedKeys(new Set())
-      setDraftCategoryId(selectedCatId === UNCATEGORIZED ? null : selectedCatId)
+      setDraftCategoryId(activeCatValue)
       setView('paifu')
     } catch {
       setPaifu(null)
@@ -370,6 +415,30 @@ export default function MyProblemsApp() {
     setSavedKeys(prev => new Set(prev).add(draftKey))
     await reload()
     return true
+  }
+
+  // ログイン前に作っていた1問を保存する（insert）。保存できたら退避を消し、その問題を開く。
+  // 保存先カテゴリは牌譜ドラフトと同じ draftCategoryId を使う（ヘッダーの「保存先」）
+  async function saveRestoredDraft(updated) {
+    if (!userId) return false
+    const row = { ...toUserDb(updated, { categoryId: draftCategoryId }), user_id: userId }
+    const { data, error } = await supabase.from('user_problems').insert(row).select('*')
+    if (error) { showSaveError(insertErrorText(error, { kind: 'problem', count: problems.length })); return false }
+    if (!data || data.length === 0) { showSaveError('保存できませんでした（権限の可能性）'); return false }
+    clearGuestDraft()
+    setGuestDraft(null)
+    showSaved('保存しました ✓')
+    // 保存先のカテゴリを開いておかないと、保存した問題が一覧に出てこない
+    setSelectedCatId(draftCategoryId ?? UNCATEGORIZED)
+    await reload()
+    selectProblem(data[0].id)
+    return true
+  }
+
+  function discardGuestDraft() {
+    if (!window.confirm('ログイン前に作っていた問題を破棄しますか？\nこの操作は取り消せません。')) return
+    clearGuestDraft()
+    setGuestDraft(null)
   }
 
   async function saveProblem(updated) {
@@ -460,30 +529,116 @@ export default function MyProblemsApp() {
     await reload()
   }
 
-  // ===== 認証ガード（ログインしているかどうかだけ） =====
+  // 一覧・エディタの共通の共有導線。問題の中身は URL に埋め込まれる（DBは公開しない）。
+  // タブを開く手順（ポップアップブロック対策）は openProblemShare が持つ
+  async function shareFromEditor(p) {
+    if (!(await openProblemShare(p))) showSaveError('共有リンクを作成できませんでした')
+  }
+
   if (authLoading) {
     return <div className="admin-auth-screen">読み込み中...</div>
   }
 
+  // ===== 未ログイン：カテゴリ作成を挟まず、いきなり作問画面を出す =====
+  // 保存だけができない。作った問題は X で共有でき、「ログインして保存」を押すと
+  // 内容を退避してからログインへ進む（戻ってきたら下の復元エディタで保存できる）
   if (!session) {
+    const guestPaifu = view === 'paifu'
+    const guestSave = updated => {
+      if (!saveGuestDraft(updated)) {
+        showSaveError('この環境では作りかけを保持できません。先にログインしてください')
+        return false
+      }
+      signIn()
+      return false
+    }
     return (
-      <div className="admin-auth-screen">
-        <h1 className="admin-auth-title">my問題集(β)</h1>
-        <p className="admin-auth-desc">ログインが必要です</p>
-        <button
-          className="admin-auth-btn"
-          onClick={async () => {
-            const { error } = await supabase.auth.signInWithOAuth({
-              provider: 'google',
-              // href はハッシュ（OAuth 後に付く #access_token=...）やクエリを含むため使わない。
-              // 壊れた redirectTo は Redirect URLs にマッチせず、Site URL（本番）へ飛ばされる
-              options: { redirectTo: `${window.location.origin}${window.location.pathname}` },
-            })
-            if (error) console.error('OAuth error:', error)
-          }}
-        >
-          Googleでログイン
-        </button>
+      <div className="admin-layout">
+        <main className="admin-main">
+          <ProblemEditor
+            // 局面を切り替えたら作り直す（手牌が変わる以上、入力中の正解・解説は引き継がない）
+            key={guestPaifu ? `guest-draft-${draftKey}` : 'guest'}
+            problem={guestPaifu ? (draftProblem ?? makeNewUserProblem()) : guestProblem}
+            prevProblem={null}
+            hasNext={false}
+            hideImage
+            hideReviewed
+            hideDelete
+            hideDisabled
+            hideBoardView
+            hideSaveNext
+            lockBoard={guestPaifu}
+            concealedCounts={guestPaifu ? concealedCounts : null}
+            paletteAside={<EditorGuide mode={guestPaifu ? 'paifu' : 'manual'} canSave={false} />}
+            textLimits={TEXT_LIMITS}
+            saveLabel="ログインして保存"
+            headerLead={
+              // ★ 画面上部に別のヘッダー行を足さないこと。盤面の高さは calc(100vh - 24px) 固定なので、
+              //   上に行が増えると卓が画面からはみ出す。だから戻る導線もここ（headerLead）に入れる
+              <div className="mp-guest-lead">
+                <div className="mp-guest-bar">
+                  <a className="mp-back-link mp-back-link--inline" href="/">← 座学する麻雀</a>
+                  <h3 className="editor-title">my問題集(β)</h3>
+                  {guestPaifu ? (
+                    <button className="mp-add-btn mp-add-btn--sm" onClick={() => setView('editor')}>
+                      手で作る
+                    </button>
+                  ) : (
+                    <>
+                      <input
+                        ref={paifuFileRef}
+                        type="file"
+                        accept="application/json,.json"
+                        className="paifu-file-input"
+                        onChange={e => { readPaifuFile(e.target.files?.[0]); e.target.value = '' }}
+                      />
+                      <button
+                        className="mp-add-btn mp-add-btn--sm"
+                        onClick={() => { if (paifu) setView('paifu'); else paifuFileRef.current?.click() }}
+                        title="牌譜のJSONファイルから局面を切り出して問題にする"
+                      >
+                        牌譜から
+                      </button>
+                    </>
+                  )}
+                  <span className="mp-guest-note">
+                    ログインなしで作れます（保存にはログインが必要）
+                  </span>
+                </div>
+                {guestPaifu && (
+                  <PaifuImport
+                    paifu={paifu}
+                    fileName={paifuFile}
+                    error={paifuError}
+                    rounds={paifuRounds}
+                    roundIndex={draft.roundIndex}
+                    seat={draft.seat}
+                    steps={visibleSteps}
+                    stepIndex={stepIndex}
+                    stepFilter={draft.filter}
+                    step={currentStep}
+                    onPickFile={readPaifuFile}
+                    onChangeRound={i => setDraft(d => ({ ...d, roundIndex: i, stepIndex: 0 }))}
+                    onChangeSeat={i => setDraft(d => ({ ...d, seat: i }))}
+                    onChangeStep={i => { if (i != null) setDraft(d => ({ ...d, stepIndex: i })) }}
+                    onChangeFilter={f => setDraft(d => ({ ...d, filter: f }))}
+                    // 保存できないので「保存先」は出さない（PaifuImport が null で省く）
+                    onChangeCategory={null}
+                  />
+                )}
+              </div>
+            }
+            saveStatus={editorStatus && (
+              <span className={editorStatus.error ? 'editor-save-err' : 'editor-save-ok'}>
+                {editorStatus.text}
+              </span>
+            )}
+            onShare={shareFromEditor}
+            onSave={guestSave}
+            onSaveAndNext={guestSave}
+            onDelete={() => {}}
+          />
+        </main>
       </div>
     )
   }
@@ -492,10 +647,9 @@ export default function MyProblemsApp() {
   const probFull = problems.length >= MAX_PROBLEMS
   const catFull  = categories.length >= MAX_CATEGORIES
 
-  const uncategorized  = problems.filter(p => p.categoryId == null)
-  const visibleProblems = selectedCatId === UNCATEGORIZED
+  const visibleProblems = activeCatId === UNCATEGORIZED
     ? uncategorized
-    : (selectedCatId ? problems.filter(p => p.categoryId === selectedCatId) : [])
+    : (activeCatId ? problems.filter(p => p.categoryId === activeCatId) : [])
   const selectedIdx  = visibleProblems.findIndex(p => p.id === selectedProbId)
   const selectedProb = selectedIdx >= 0 ? visibleProblems[selectedIdx] : null
 
@@ -506,6 +660,10 @@ export default function MyProblemsApp() {
             同じタブで出題画面へ移動する（target を付けないこと） */}
         <a className="mp-back-link" href="/">← 座学する麻雀</a>
         <h1 className="admin-sidebar-title">my問題集(β)</h1>
+
+        {/* 一覧が何のリストなのかを明示する。既定でどれかが選ばれている（activeCatId）ので、
+            「選ばないと先へ進めない」という指示ではなく現在地の見出しとして置いている */}
+        <p className="mp-section-hint">カテゴリを選択してください</p>
 
         <div className="mp-cat-list">
           {!ready && !loadError && <p className="mp-empty">読み込んでいます...</p>}
@@ -520,7 +678,7 @@ export default function MyProblemsApp() {
             return (
               <div
                 key={cat.id}
-                className={`mp-cat-item${selectedCatId === cat.id ? ' mp-cat-item--active' : ''}`}
+                className={`mp-cat-item${activeCatId === cat.id ? ' mp-cat-item--active' : ''}`}
               >
                 {isEditing ? (
                   <input
@@ -557,7 +715,7 @@ export default function MyProblemsApp() {
           })}
 
           {uncategorized.length > 0 && (
-            <div className={`mp-cat-item${selectedCatId === UNCATEGORIZED ? ' mp-cat-item--active' : ''}`}>
+            <div className={`mp-cat-item${activeCatId === UNCATEGORIZED ? ' mp-cat-item--active' : ''}`}>
               <button
                 className="mp-cat-name"
                 onClick={() => { setSelectedCatId(UNCATEGORIZED); setSelectedProbId(null) }}
@@ -615,7 +773,7 @@ export default function MyProblemsApp() {
                 onClick={() => {
                   // 読み込み済みならその牌譜の続きへ戻るだけ。未読込ならファイル選択を開く
                   if (paifu) {
-                    setDraftCategoryId(selectedCatId === UNCATEGORIZED ? null : selectedCatId)
+                    setDraftCategoryId(activeCatValue)
                     setView('paifu')
                   } else {
                     paifuFileRef.current?.click()
@@ -629,7 +787,7 @@ export default function MyProblemsApp() {
               <button
                 className="mp-add-btn mp-add-btn--sm"
                 onClick={addProblem}
-                disabled={!selectedCatId || probFull}
+                disabled={!activeCatId || probFull}
               >
                 ＋ 新しい問題
               </button>
@@ -641,8 +799,10 @@ export default function MyProblemsApp() {
             </p>
           )}
           <div className="mp-prob-list">
-            {!selectedCatId && <p className="mp-empty">カテゴリを選んでください。</p>}
-            {selectedCatId && visibleProblems.length === 0 && (
+            {/* 既定でどれかが選ばれるので、ここに来るのは
+                「カテゴリも未分類の問題も1つも無い」＝作り始める前だけ */}
+            {!activeCatId && <p className="mp-empty">上の欄からカテゴリを追加してください。</p>}
+            {activeCatId && visibleProblems.length === 0 && (
               <p className="mp-empty">問題がありません。「＋ 新しい問題」で追加してください。</p>
             )}
             {visibleProblems.map(p => {
@@ -725,7 +885,14 @@ export default function MyProblemsApp() {
                           onClick={() => deleteProblem(p)}
                           title="削除"
                         >×</button>
-                        <button className="mp-icon-btn" onClick={() => shareProblem(p)} title="Xで共有">↗</button>
+                        {/* ロゴだけの「↗」では何のボタンか読み取れなかったため、
+                            X のロゴ＋文字のボタンにしてある（ロゴの実装は ShareButton のみ） */}
+                        <ShareButton
+                          onClick={() => shareProblem(p)}
+                          title="この問題をXで共有する"
+                        >
+                          共有
+                        </ShareButton>
                       </>
                     )}
                   </div>
@@ -745,7 +912,53 @@ export default function MyProblemsApp() {
       </aside>
 
       <main className="admin-main">
-        {view === 'paifu' ? (
+        {guestDraft ? (
+          // ログイン前に作っていた問題。保存すると user_problems に入り、退避は消える。
+          // 保存も破棄もせずに他の操作へ移れないのは意図的（見失うと作った内容が消えるため）
+          <ProblemEditor
+            key="restored-draft"
+            problem={guestProblem}
+            prevProblem={null}
+            hasNext={false}
+            hideImage
+            hideReviewed
+            hideDelete
+            hideBoardView
+            hideSaveNext
+            paletteAside={<EditorGuide mode="manual" />}
+            textLimits={TEXT_LIMITS}
+            headerLead={
+              <div className="mp-guest-lead">
+                <div className="mp-guest-bar">
+                  <h3 className="editor-title">ログイン前に作っていた問題</h3>
+                  <label className="paifu-save-to">
+                    保存先
+                    <select
+                      className="mp-cat-select"
+                      value={draftCategoryId ?? ''}
+                      onChange={e => setDraftCategoryId(e.target.value || null)}
+                    >
+                      <option value="">未分類</option>
+                      {categories.map(c => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <button className="mp-text-btn" onClick={discardGuestDraft}>破棄する</button>
+                </div>
+              </div>
+            }
+            saveStatus={editorStatus && (
+              <span className={editorStatus.error ? 'editor-save-err' : 'editor-save-ok'}>
+                {editorStatus.text}
+              </span>
+            )}
+            onShare={shareFromEditor}
+            onSave={saveRestoredDraft}
+            onSaveAndNext={saveRestoredDraft}
+            onDelete={() => {}}
+          />
+        ) : view === 'paifu' ? (
           // 牌譜から切り出した局面。まだ保存されていないので key で作り直す
           // （局面が変われば手牌も変わるため、入力中の正解・解説は引き継がない）
           <ProblemEditor
@@ -792,6 +1005,7 @@ export default function MyProblemsApp() {
                 {editorStatus.text}
               </span>
             )}
+            onShare={shareFromEditor}
             onSave={saveDraft}
             onSaveAndNext={saveDraft}
             onDelete={() => {}}
@@ -804,6 +1018,7 @@ export default function MyProblemsApp() {
             hasNext={selectedIdx < visibleProblems.length - 1}
             onSave={saveProblem}
             onSaveAndNext={saveProblemAndNext}
+            onShare={shareFromEditor}
             saveStatus={editorStatus && (
               <span className={editorStatus.error ? 'editor-save-err' : 'editor-save-ok'}>
                 {editorStatus.text}

@@ -20,6 +20,43 @@
 /* 見出しの上余白は戻る導線ぶん詰める（admin.css の 16px のままだと離れて見える） */
 .mp-back-link + .admin-sidebar-title { padding-top: 8px; }
 
+/* ===== 未ログインの作問画面（ゲスト）／ログイン前の下書きの復元 =====
+   エディタのヘッダー行（ProblemEditor の headerLead）に差し込むナビ。
+   ★ 画面の上に別のヘッダー行を足さないこと。盤面は height: calc(100vh - 24px) の固定なので、
+     上に行が増えたぶんだけ卓が画面からはみ出す。だから戻る導線もここへ入れている */
+.mp-guest-lead {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.mp-guest-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* 戻る導線はサイドバー用（block・上余白あり）なので、行に並べるぶんだけ打ち消す */
+.mp-back-link--inline {
+  display: inline;
+  padding: 0;
+}
+
+.mp-guest-note {
+  color: #8fa8c8;
+  font-size: 0.75rem;
+}
+
+/* カテゴリ一覧の見出し。何のリストなのかが分からないと最初の一歩が踏み出せないため置いている */
+.mp-section-hint {
+  margin: 0;
+  padding: 4px 16px 6px;
+  color: #8fa8c8;
+  font-size: 0.78rem;
+}
+
 /* 残数の案内。上限は DB 側（RLS）で止めているが、押しても失敗するだけなので画面でも伝える。
    数値は limits.js（＝docs/user-problems-schema.sql と同じ値）から来る */
 .mp-limit {

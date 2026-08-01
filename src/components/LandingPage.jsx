@@ -66,13 +66,15 @@ const FEATURES = [
 
 /**
  * 未ログインでトップページに来た人向けのランディング。
- * 主目的は「無料ドリル（/chinitsu.html）へ送ること」なので、主CTAは1つだけ置く。
+ * 主目的は「無料ドリル（/chinitsu.html）へ送ること」なので、主CTA（塗り）は1つだけ。
  *
- * ログイン導線は最下部の副次セクションのまま。ドリルは登録不要で遊べるので、
+ * その隣に副次CTAとして作問画面（/myproblems.html）を置いている（2026-08-01〜）。
+ * ★ ログイン不要で作れるようになったから並べられる導線であって、
+ *   **行き止まりに落ちる導線（ログイン必須のもの）をここに増やさないこと**。
+ *   格を分けるため副次側は枠線のみ（.landing-cta--sub）にしてある。
+ *
+ * ログイン導線は最下部の副次セクションのまま。ドリルも作問も登録不要で始められるので、
  * 訪問者にとって最初の一歩はログインではないため（同格に並べると main CTA が薄まる）。
- * ただし my問題集(β)の一般公開（2026-07-28）で、ログインすれば誰でも使えるものが増えたので、
- * 「ログインしてできること」を具体的に書いて行き止まり感を無くしている。
- * **CTAを増やして解決しないこと** — 増やすなら主CTAの格上げとして設計し直す。
  */
 export default function LandingPage({ onLogin }) {
   return (
@@ -81,8 +83,16 @@ export default function LandingPage({ onLogin }) {
         <h1 className="landing-title">解いて、強くなる</h1>
         {/* 見出しに準じる短い一行なので句点は付けない */}
         <p className="landing-lead">一問一答形式の麻雀学習サイト</p>
-        <a className="landing-cta" href="/chinitsu.html">今すぐメンチン何切るドリルを始める</a>
-        <p className="landing-note">登録不要・PC / スマートフォンからそのまま遊べます</p>
+        <div className="landing-cta-row">
+          <div className="landing-cta-item">
+            <a className="landing-cta" href="/chinitsu.html">今すぐメンチン何切るドリルを始める</a>
+            <p className="landing-note">登録不要・PC / スマートフォンからそのまま遊べます</p>
+          </div>
+          <div className="landing-cta-item">
+            <a className="landing-cta landing-cta--sub" href="/myproblems.html">何切る問題をつくる</a>
+            <p className="landing-note">ログイン不要・作った問題はXで共有できます（作成はPC向け）</p>
+          </div>
+        </div>
       </section>
 
       <section className="landing-features">
@@ -99,10 +109,10 @@ export default function LandingPage({ onLogin }) {
         <h2>ログインしてできること</h2>
         <ul className="landing-benefits">
           <li>
-            <strong>my問題集(β)をつくる</strong>
+            <strong>作った問題を保存する</strong>
             <span>
-              気になった局面を自分の問題として登録し、何度でも解き直せます。
-              牌譜（JSONファイル）を読み込めば、実戦の局面をそのまま問題にできます。
+              問題を作るだけならログインは要りませんが、保存できるのはログインしてからです。
+              保存した問題は my問題集(β) に入り、何度でも解き直せます。
               <br />
               どなたでもご利用いただけます（20問まで）。
               問題を作る画面はPC専用ですが、解くのはスマートフォンでもできます。
