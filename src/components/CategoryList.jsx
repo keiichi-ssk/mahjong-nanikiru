@@ -363,8 +363,6 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
               <a className="my-problems-link" href="/myproblems.html" target="_blank" rel="noopener">
                 ＋ 問題を作る・編集する
               </a>
-              {/* 作成画面は盤面と編集パネルの2カラムでPC前提。開いてから気づくと手間なので先に伝える */}
-              <p className="my-problems-empty">作成画面はPC専用です（解くのはスマートフォンでもできます）</p>
               {activeBookData.majorGroups.length === 0 && (
                 <p className="my-problems-empty">
                   まだ問題がありません。作成画面で自分だけの問題集を作れます。

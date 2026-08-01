@@ -20,6 +20,12 @@ export const NAKI_TIMING_OPTIONS = [
   { value: 'no',    label: '鳴かない' },
 ];
 
+// 場風と局は「東1局」〜「西4局」の1つのセレクタにまとめる（別々に選ばせると片方の選び忘れが起きる）。
+// 盤面中央のセレクタ（BoardView）と、スマホの「状況」パネル（ProblemEditor）が同じ選択肢を使う
+export const KYOKU_OPTIONS = ['東', '南', '西'].flatMap(b =>
+  [1, 2, 3, 4].map(k => ({ value: `${b}${k}`, label: `${b}${k}局` }))
+);
+
 // 副露の種類と表示ラベル・必要牌数
 export const MELD_TYPES = ['chi', 'pon', 'kan', 'kakan', 'ankan'];
 export const MELD_TYPE_LABELS = { chi: 'チー', pon: 'ポン', kan: '大明槓', kakan: '加槓', ankan: '暗槓' };

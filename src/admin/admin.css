@@ -395,6 +395,9 @@ html {
   }
   .editor-panel-scroll { overflow-y: visible; }
 }
+/* スマホ（600px 以下）の指定はファイル末尾にまとめてある（後勝ちで上書きするため） */
+
+
 
 /* ヘッダー行（ID・問題タイプ・フラグ・保存）に入る部品 */
 /* 値だけだと何のプルダウンか読み取れないのでラベルを添える */
@@ -2128,4 +2131,272 @@ kbd {
 @keyframes editor-save-status-in {
   from { opacity: 0; transform: translateX(-4px); }
   to   { opacity: 1; transform: none; }
+}
+
+/* ===== スマホ（作問画面 /myproblems.html 向け） =====
+   ★ このブロックは必ずファイルの末尾に置くこと。上書きしたいセレクタ（.palette-tile など）は
+     どれも同じ詳細度なので、途中に置くと後ろの基本ルールに負けて効かない（実際に踏んだ）。
+   ★ ブレークポイント 600px は出題画面（App.css）と src/utils/useMediaQuery.js に揃えてある。
+     片方だけ変えると「JS はスマホ扱いなのに CSS は PC のまま」という食い違いが起きる。
+
+   画面の作り: ヘッダー行（sticky・保存）→ 盤面（ResponsiveBoard で縮小）
+             → タブ列＋牌パレット → 編集パネル、をページごと縦にスクロールさせる。
+   ヘッダー行だけ JSX 側（ProblemEditor）で .editor の先頭に移してある。 */
+@media (max-width: 600px) {
+  /* ページ自体をスクロールさせる（100vh 固定のままだと中身に届かない） */
+  .admin-layout {
+    display: block;
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .admin-main {
+    padding: 8px;
+    overflow: visible;
+  }
+
+  /* 縦積みで sticky が残ると盤面とパレットが画面を占有して編集パネルに届かなくなる */
+  .editor-board-col { position: static; }
+
+  .editor { gap: 8px; }
+  .editor-columns { gap: 10px; }
+
+  /* ⚠ sticky にしないこと（2026-08-01 に試してやめた）。
+     ヘッダーは折り返して 110px ほどになり、貼り付けると画面の2割を常に占めるうえ、
+     直下に来る送り先タブ列がヘッダーの裏に潜って押しにくくなる。
+     sticky を外すと 盤面(371)＋タブ(48)＋パレット(190) が1画面に収まり、
+     編集中はスクロール不要になる（保存は最上部へ1回スクロールするだけ） */
+  .editor-header {
+    gap: 8px;
+    row-gap: 6px;
+    padding: 8px 10px;
+  }
+  /* キーボードショートカットの案内はスマホでは意味がない */
+  .editor-header kbd { display: none; }
+
+  /* --- 牌パレット ---
+     1行の内訳は ラベル24 ＋ gap6 ＋ 牌10枚 ＋ 牌間 3×9。
+     折り返すとパレットが縦に伸びて盤面を押し出すので、出題画面と同じ「換算枚数」方式で
+     1行に収まる牌幅を clamp で割り出す（牌の画像は .tile-btn img の max-width で追従する） */
+  .palette-dock { padding: 0 10px 8px; }
+  .palette-tiles { flex-wrap: nowrap; }
+  .palette-label {
+    width: 24px;
+    font-size: 0.65rem;
+  }
+  /* 操作ガイドは出さない（縦の場所は盤面とパレットに使う） */
+  .palette-dock-aside { display: none; }
+
+  /* --- 右カラム側の牌の大きさ ---
+     ★ パレット（.palette-tile）／正解設定・副露入力中（.editor-tile）／捨て牌
+       （.other-discard-tile-img-wrap）の3系統は **常に同じ大きさ** にすること。
+       PC では 30×40 で揃えてあり、スマホでも揃える。片方だけ縮めると不揃いになる（実際に踏んだ）。
+     基準は一番きつい制約＝牌パレットの「1行10枚」。 */
+  .editor {
+    /* 100vw − .admin-main 16 − .palette-dock 20 − ラベル24 − gap6 − 牌間 3×9 ＝ 100vw − 93 */
+    --editor-tile-w: clamp(20px, calc((100vw - 93px) / 10), 30px);
+  }
+
+  .palette-tile,
+  .editor-tile,
+  .other-discard-tile-img-wrap:not(.tile-rotated),
+  .other-discard-tile-img-wrap:not(.tile-rotated) img {
+    width: var(--editor-tile-w);
+    height: auto;
+    aspect-ratio: 30 / 40;
+  }
+
+  /* 横向き（リーチ宣言牌）も同じ牌サイズから作る（.tile-rotated が縦横を入れ替える） */
+  .other-discard-tile-item--riichi .other-discard-tile-img-wrap {
+    --tile-w: var(--editor-tile-w);
+    --tile-h: calc(var(--editor-tile-w) * 40 / 30);
+  }
+
+  /* 正解牌の並びは折り返さない（折り返すと何行目が何か読めなくなる）。
+     手牌の種類が多くて収まらないぶんは横スクロールに逃がす。
+     padding は下のタップ標的の拡張（上下 6px）が overflow で切られないように取る */
+  .editor-tiles {
+    overflow-x: auto;
+    padding-block: 6px;
+  }
+
+  /* ⚠ 折り返さない牌の行では flex-shrink を切ること。
+     既定の flex-shrink: 1 のままだと、はみ出したときに横スクロールにならず
+     **牌のほうが縮んで** 上で揃えた大きさが崩れる（正解設定が 20px になっていた） */
+  .palette-tiles > *,
+  .editor-tiles > *,
+  .editor-order-list > * {
+    flex-shrink: 0;
+  }
+
+  /* --- タップ標的の拡張（見た目は変えない。牌間の隙間を半分ずつ埋める） --- */
+  .palette-tile,
+  .editor-tile { position: relative; }
+  .palette-tile::after,
+  .editor-tile::after {
+    content: '';
+    position: absolute;
+    inset: -6px -1px;
+  }
+
+  /* --- 編集パネル（右カラムの 500px 前提を解く） --- */
+  .editor-panel-scroll { padding-right: 0; }
+  .editor-image { max-width: 100%; }
+
+  /* --- 捨て牌パネル ---
+     牌の6列グリッド（30×6＋gap8×5＝220px）は入るが、枠の余白は詰める。
+     ⚠ 並べ替えは HTML5 DnD のままなのでタッチでは動かない（× で削除して入れ直す運用） */
+  .other-discard-block {
+    gap: 8px;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  /* 「◯家 ▾」と操作ボタンが並ぶ見出し行は折り返させる */
+  .other-discard-block .editor-section-label { flex-wrap: wrap; row-gap: 6px; }
+
+  /* 削除の × は 18px で牌本体と隣り合うため、指で押し分けられる大きさにする。
+     当たり判定の拡張は牌間の gap（8px）の半分まで（隣の牌の × を奪わない） */
+  .other-discard-tile-remove {
+    width: 22px;
+    height: 22px;
+    line-height: 20px;
+    font-size: 0.8rem;
+  }
+  .other-discard-tile-remove::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+  }
+
+  /* --- 点数（スマホは一覧＋ポップアップ。ScoreInputRow は PC 専用） --- */
+  .score-edit-jikaze {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: #aaa;
+    margin-bottom: 8px;
+  }
+
+  .score-list-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    /* 一覧の行はそのままタップ標的なので 44px 以上を確保する */
+    min-height: 48px;
+    padding: 8px 12px;
+    background: #0f1830;
+    border: 1px solid #2a3a5a;
+    border-left-width: 3px;
+    border-radius: 8px;
+    color: #ddd;
+    font-family: inherit;
+    font-size: 0.9rem;
+    text-align: left;
+    cursor: pointer;
+  }
+
+  .score-list-row--self   { border-left-color: #4a90d9; }
+  .score-list-row--active { border-left-color: #f5c842; }
+
+  .score-list-wind {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .score-list-value {
+    font-variant-numeric: tabular-nums;
+    color: #f5c842;
+  }
+
+  .score-list-caret { color: #6b7c94; }
+
+  /* 点数ポップアップ。画面の下から出す（片手で届く位置に操作を集める） */
+  .score-sheet-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    align-items: flex-end;
+    background: rgba(0, 0, 0, 0.6);
+  }
+
+  .score-sheet {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+    background: #0d1426;
+    border-top: 1px solid #2a3a5a;
+    border-radius: 14px 14px 0 0;
+  }
+
+  .score-sheet-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 1rem;
+    color: #f5c842;
+  }
+
+  .score-sheet-input {
+    width: 100%;
+    padding: 10px 12px;
+    background: #111827;
+    border: 1px solid #2a3a5a;
+    border-radius: 8px;
+    color: #fff;
+    font-family: inherit;
+    font-size: 1.3rem;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+  }
+
+  .score-sheet-steps {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* −と＋を同じ額で左右に並べる（金額の対応が縦に読み取れる） */
+  .score-sheet-step-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .score-sheet-step {
+    flex: 1;
+    min-height: 48px;
+    background: #16213e;
+    border: 1px solid #2a3a5a;
+    border-radius: 8px;
+    color: #ddd;
+    font-family: inherit;
+    font-size: 0.95rem;
+    font-variant-numeric: tabular-nums;
+    cursor: pointer;
+  }
+
+  .score-sheet-close {
+    min-height: 48px;
+    background: none;
+    border: 1px solid #2a3a5a;
+    border-radius: 8px;
+    color: #8fa8c8;
+    font-family: inherit;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  /* ⚠ 並べ替え行は折り返してはいけない（useDragReorder は横位置だけで挿入位置を決めるため）。
+     はみ出すぶんは横スクロールで逃がす */
+  .editor-order-list {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
 }

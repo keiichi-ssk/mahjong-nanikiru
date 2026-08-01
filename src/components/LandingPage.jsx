@@ -86,11 +86,11 @@ export default function LandingPage({ onLogin }) {
         <div className="landing-cta-row">
           <div className="landing-cta-item">
             <a className="landing-cta" href="/chinitsu.html">今すぐメンチン何切るドリルを始める</a>
-            <p className="landing-note">登録不要・PC / スマートフォンからそのまま遊べます</p>
+            <p className="landing-note">登録不要・そのまま遊べます</p>
           </div>
           <div className="landing-cta-item">
             <a className="landing-cta landing-cta--sub" href="/myproblems.html">何切る問題をつくる</a>
-            <p className="landing-note">ログイン不要・作った問題はXで共有できます（作成はPC向け）</p>
+            <p className="landing-note">ログイン不要・作った問題はXで共有できます</p>
           </div>
         </div>
       </section>
@@ -115,7 +115,6 @@ export default function LandingPage({ onLogin }) {
               保存した問題は my問題集(β) に入り、何度でも解き直せます。
               <br />
               どなたでもご利用いただけます（20問まで）。
-              問題を作る画面はPC専用ですが、解くのはスマートフォンでもできます。
             </span>
           </li>
           <li>

@@ -11,6 +11,7 @@ import { MAX_PROBLEMS, MAX_CATEGORIES, MAX_EXPLANATION, MAX_NOTE, insertErrorTex
 import { snapshotToProblem } from '../utils/importBoard'
 import { openProblemShare } from '../utils/shareWindow'
 import { loadGuestDraft, saveGuestDraft, clearGuestDraft } from './guestDraft'
+import { useIsNarrow } from '../utils/useMediaQuery'
 import {
   validatePaifu, listRounds, listSteps, snapshotAt, filterSteps, defaultProblemTitle,
 } from '../utils/tenhouPaifu'
@@ -90,7 +91,7 @@ async function signIn() {
 // 番号・タイトル・カテゴリは**左の一覧から**変更するので、ここでは持たない
 // （同じ設定の入口が2つあると、どちらが有効か分からなくなるため）。
 // 保存時は問題が元々持っている値をそのまま引き継ぐ。
-function ProblemPane({ problem, hasNext, onSave, onSaveAndNext, onShare, saveStatus }) {
+function ProblemPane({ problem, hasNext, onSave, onSaveAndNext, onShare, saveStatus, menuButton }) {
   // buildSaveData は {...problem} を土台にするので title / categoryId は自動で残る
   return (
     <ProblemEditor
@@ -104,7 +105,12 @@ function ProblemPane({ problem, hasNext, onSave, onSaveAndNext, onShare, saveSta
       hideReviewed
       hideDelete
       hideBoardView
-      headerLead={<h3 className="editor-title">#{problem.displayNo ?? '—'}</h3>}
+      headerLead={
+        <>
+          {menuButton}
+          <h3 className="editor-title">#{problem.displayNo ?? '—'}</h3>
+        </>
+      }
       paletteAside={<EditorGuide mode="manual" />}
       textLimits={TEXT_LIMITS}
       saveStatus={saveStatus}
@@ -121,6 +127,11 @@ function ProblemPane({ problem, hasNext, onSave, onSaveAndNext, onShare, saveSta
 export default function MyProblemsApp() {
   const [session, setSession]         = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
+
+  // スマホでは 一覧 ⇄ エディタ を行き来する（サイドバーを常設する幅が無い）。
+  // 一覧はドロワーとして重ね、問題を選んだら閉じる
+  const isNarrow = useIsNarrow()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const [categories, setCategories] = useState([])
   const [problems, setProblems]     = useState([])
@@ -367,10 +378,12 @@ export default function MyProblemsApp() {
 
   // ===== 問題操作 =====
 
-  // 問題を選ぶと必ず編集画面に戻す（牌譜画面を開いたままだと選んだ問題が見えない）
+  // 問題を選ぶと必ず編集画面に戻す（牌譜画面を開いたままだと選んだ問題が見えない）。
+  // スマホでは一覧がエディタに重なっているので閉じる
   function selectProblem(id) {
     setSelectedProbId(id)
     setView('editor')
+    setSidebarOpen(false)
   }
 
   async function addProblem() {
@@ -580,7 +593,7 @@ export default function MyProblemsApp() {
       return false
     }
     return (
-      <div className="admin-layout">
+      <div className="admin-layout mp-layout">
         <main className="admin-main">
           <ProblemEditor
             // 局面を切り替えたら作り直す（手牌が変わる以上、入力中の正解・解説は引き継がない）
@@ -604,7 +617,8 @@ export default function MyProblemsApp() {
               //   上に行が増えると卓が画面からはみ出す。だから戻る導線もここ（headerLead）に入れる
               <div className="mp-guest-lead">
                 <div className="mp-guest-bar">
-                  <a className="mp-back-link mp-back-link--inline" href="/">← 座学する麻雀</a>
+                  {/* 矢印は CSS（.mp-back-link::before）が付ける */}
+                  <a className="mp-back-link mp-back-link--inline" href="/">座学する麻雀</a>
                   <h3 className="editor-title">my問題集(β)</h3>
                   {guestPaifu ? (
                     <button className="mp-add-btn mp-add-btn--sm" onClick={() => setView('editor')}>
@@ -620,7 +634,7 @@ export default function MyProblemsApp() {
                         onChange={e => { readPaifuFile(e.target.files?.[0]); e.target.value = '' }}
                       />
                       <button
-                        className="mp-add-btn mp-add-btn--sm"
+                        className="mp-add-btn mp-add-btn--sm mp-desktop-only"
                         onClick={() => { if (paifu) setView('paifu'); else paifuFileRef.current?.click() }}
                         title="牌譜のJSONファイルから局面を切り出して問題にする"
                       >
@@ -680,12 +694,47 @@ export default function MyProblemsApp() {
   const selectedIdx  = visibleProblems.findIndex(p => p.id === selectedProbId)
   const selectedProb = selectedIdx >= 0 ? visibleProblems[selectedIdx] : null
 
+  // スマホでの一覧の見せ方。編集するものが無いときは一覧そのものが画面になる
+  // （「左のリストから選んでください」だけの画面を出しても、その左が無いため）。
+  // 編集中は ☰ で重ねて開く。PC は従来どおり常設
+  const editingSomething = view !== 'editor' || !!selectedProb
+  const drawerOpen  = isNarrow && (sidebarOpen || !editingSomething)
+  const showSidebar = !isNarrow || drawerOpen
+
+  // スマホのエディタのヘッダーに置く導線。PC は同じものがサイドバーに常設されているので出さない
+  // （入口を2つにしない）。スマホはサイドバーがドロワーで、閉じている間は行き先が見えないため必要
+  const menuButton = isNarrow ? (
+    <>
+      <button
+        className="mp-menu-btn"
+        onClick={() => setSidebarOpen(true)}
+        title="問題の一覧を開く"
+        aria-label="問題の一覧を開く"
+      >
+        ☰
+      </button>
+      {/* 出題画面（トップ）へ戻る。サイドバーのものと同じ見た目・同じ文言にする */}
+      <a className="mp-back-link mp-back-link--inline" href="/">座学する麻雀</a>
+    </>
+  ) : null
+
   return (
-    <div className="admin-layout">
-      <aside className="admin-sidebar">
+    <div className={`admin-layout mp-layout${drawerOpen ? ' mp-layout--drawer' : ''}`}>
+      {/* ドロワーの外側を触ったら閉じる（スマホで一覧を重ねているときだけ出る） */}
+      {drawerOpen && editingSomething && (
+        <div className="mp-drawer-backdrop" onClick={() => setSidebarOpen(false)} />
+      )}
+      <aside className={`admin-sidebar${showSidebar ? '' : ' mp-sidebar--hidden'}`}>
+        {/* スマホで重ねて開いているときだけ、閉じる導線を出す */}
+        {drawerOpen && editingSomething && (
+          <button className="mp-drawer-close" onClick={() => setSidebarOpen(false)}>
+            ✕ 閉じる
+          </button>
+        )}
         {/* 本体からは別タブで開かれるので、ブラウザの「戻る」では帰れない。
             同じタブで出題画面へ移動する（target を付けないこと） */}
-        <a className="mp-back-link" href="/">← 座学する麻雀</a>
+        {/* 矢印は CSS（.mp-back-link::before）が付ける */}
+        <a className="mp-back-link" href="/">座学する麻雀</a>
         <h1 className="admin-sidebar-title">my問題集(β)</h1>
 
         {/* 自動保存できなかった下書きの案内。**画面を塞がずに開き直せる場所**として置いてある
@@ -814,8 +863,10 @@ export default function MyProblemsApp() {
                 className="paifu-file-input"
                 onChange={e => { readPaifuFile(e.target.files?.[0]); e.target.value = '' }}
               />
+              {/* 牌譜の取り込みはスマホでは出さない（JSONファイルを端末に用意する手段が現実的でない）。
+                  中身は残してあるので、PC 幅に戻せばそのまま使える */}
               <button
-                className={`mp-add-btn mp-add-btn--sm${view === 'paifu' ? ' mp-add-btn--active' : ''}`}
+                className={`mp-add-btn mp-add-btn--sm mp-desktop-only${view === 'paifu' ? ' mp-add-btn--active' : ''}`}
                 onClick={() => {
                   // 読み込み済みならその牌譜の続きへ戻るだけ。未読込ならファイル選択を開く
                   if (paifu) {
@@ -977,6 +1028,7 @@ export default function MyProblemsApp() {
             headerLead={
               <div className="mp-guest-lead">
                 <div className="mp-guest-bar">
+                  {menuButton}
                   <h3 className="editor-title">保存できなかった問題</h3>
                   <label className="paifu-save-to">
                     保存先
@@ -1023,6 +1075,8 @@ export default function MyProblemsApp() {
             paletteAside={<EditorGuide mode="paifu" />}
             textLimits={TEXT_LIMITS}
             headerLead={
+              <>
+              {menuButton}
               <PaifuImport
                 paifu={paifu}
                 fileName={paifuFile}
@@ -1046,6 +1100,7 @@ export default function MyProblemsApp() {
                 onChangeFilter={f => setDraft(d => ({ ...d, filter: f }))}
                 onChangeCategory={setDraftCategoryId}
               />
+              </>
             }
             saveStatus={editorStatus && (
               <span className={editorStatus.error ? 'editor-save-err' : 'editor-save-ok'}>
@@ -1065,6 +1120,7 @@ export default function MyProblemsApp() {
             onSave={saveProblem}
             onSaveAndNext={saveProblemAndNext}
             onShare={shareFromEditor}
+            menuButton={menuButton}
             saveStatus={editorStatus && (
               <span className={editorStatus.error ? 'editor-save-err' : 'editor-save-ok'}>
                 {editorStatus.text}

@@ -7,9 +7,12 @@
 // そこで **卓は常に基準サイズで組み、コンテナ幅に合わせて丸ごと transform: scale() する**。
 // 牌の寸法計算には一切触らずにスマホ幅へ収められる（縮尺が変わるだけなので比率も崩れない）。
 //
-// 表示専用（readOnly）に固定してある。盤面から編集する用途は管理画面が直接 BoardView を使うこと。
+// 既定は表示専用（readOnly）。出題画面はこのまま使う。
+// 作問画面はスマホ幅のときだけ readOnly={false} で使い、編集できる卓を画面幅に収める
+// （PC の作問画面は従来どおり BoardView を直接置き、画面の高さいっぱいに広げる）。
 import { useEffect, useRef, useState } from 'react';
 import BoardView from '../admin/BoardView';
+import { selfHandRowWidth } from '../utils/boardMetrics';
 
 // 卓を組む基準サイズ（px）。実際に必要な幅は
 //   左右の他家の手牌（TILE.h = 35 × 2）＋ 左右の河（3行なら 109 × 2）＋ 中央（300）＋ padding（20）
@@ -19,29 +22,39 @@ import BoardView from '../admin/BoardView';
 // ★ 実測値（河が3行まで伸びた終盤の局面＝一番きつい条件）は 598 × 538（手牌なし）/ 601（手牌あり）。
 //   .board は縦に overflow を持たないので、足りないと卓の外へ牌がはみ出す。
 //   牌の寸法（BoardView の TILE / HAND_TILE）を変えたらこの値も measure し直すこと
+//
+// ★ 自分の手牌を出す（hideSelfHand が false）ときは、手牌14枚＋副露が卓に収まる幅を
+//   BoardView の selfHandRowWidth() から求めて基準幅を広げる。620 のままだと
+//   14枚（530px）が入らず手牌が卓の左へはみ出す（作問画面のスマホ表示で実際に踏んだ）
 const BASE_WIDTH = 620;
 const BASE_HEIGHT = 640;
 const BASE_HEIGHT_WITHOUT_HAND = 560;
 
-export default function ResponsiveBoard({ hideSelfHand = false, ...boardProps }) {
+export default function ResponsiveBoard({ hideSelfHand = false, readOnly = true, ...boardProps }) {
   const outerRef = useRef(null);
   // 初期値は 1（等倍）。コンテナ幅が基準より狭いときだけ縮む
   const [scale, setScale] = useState(1);
   const baseHeight = hideSelfHand ? BASE_HEIGHT_WITHOUT_HAND : BASE_HEIGHT;
+  // 自分の手牌を出すときは、手牌14枚＋副露が収まる幅を確保する。
+  // 足りないと手牌が卓の左へはみ出す（理由は BoardView の selfHandRowWidth を参照）
+  const baseWidth = hideSelfHand
+    ? BASE_WIDTH
+    : Math.max(BASE_WIDTH, selfHandRowWidth(boardProps.tiles, boardProps.melds));
 
   useEffect(() => {
     const el = outerRef.current;
     if (!el) return;
     const update = () => {
       const width = el.clientWidth;
-      if (width > 0) setScale(Math.min(1, width / BASE_WIDTH));
+      if (width > 0) setScale(Math.min(1, width / baseWidth));
     };
     update();
     // 画面回転・サイドバーの開閉など、window の resize では拾えない変化にも追従させる
     const observer = new ResizeObserver(update);
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+    // 手牌や副露が増えて基準幅が変わったら測り直す
+  }, [baseWidth]);
 
   return (
     // 縮小しても元の高さぶんの場所を占め続けてしまうため、外側の高さは縮小後の実寸にする
@@ -49,13 +62,13 @@ export default function ResponsiveBoard({ hideSelfHand = false, ...boardProps })
       className="responsive-board"
       ref={outerRef}
       // 幅の上限も JSX 側で持つ（CSS に基準サイズを二重に書かないため）
-      style={{ height: baseHeight * scale, maxWidth: BASE_WIDTH }}
+      style={{ height: baseHeight * scale, maxWidth: baseWidth }}
     >
       <div
         className="responsive-board-inner"
-        style={{ width: BASE_WIDTH, height: baseHeight, transform: `scale(${scale})` }}
+        style={{ width: baseWidth, height: baseHeight, transform: `scale(${scale})` }}
       >
-        <BoardView {...boardProps} hideSelfHand={hideSelfHand} readOnly />
+        <BoardView {...boardProps} hideSelfHand={hideSelfHand} readOnly={readOnly} />
       </div>
     </div>
   );

@@ -5,16 +5,37 @@
 
 /* 出題画面（トップ）へ戻る導線。作成画面は本体から別タブで開かれるため、
    ブラウザの「戻る」では帰れない。サイドバーの一番上に置く */
+/* 素のテキストリンクだと「戻れる」ことに気づけないので、枠を持つボタンとして見せる。
+   ★ 矢印だけのアイコンボタンにしないこと（どこへ戻るのか分からなくなる）。
+     行き先の名前をラベルに入れる。高さはタップ標的の最小 44px を満たす */
 .mp-back-link {
-  display: block;
-  padding: 10px 16px 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin: 10px 16px 0;
+  padding: 8px 14px;
+  background: #0f1830;
+  border: 1px solid #2a3a5a;
+  border-radius: 8px;
   color: #8fa8c8;
   font-size: 0.8rem;
   text-decoration: none;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+/* 矢印は行き先の名前より控えめに（ラベルが主役） */
+.mp-back-link::before {
+  content: '←';
+  color: #6b7c94;
 }
 
 @media (hover: hover) {
-  .mp-back-link:hover { color: #f5c842; }
+  .mp-back-link:hover {
+    border-color: #f5c842;
+    color: #f5c842;
+  }
+  .mp-back-link:hover::before { color: #f5c842; }
 }
 
 /* 見出しの上余白は戻る導線ぶん詰める（admin.css の 16px のままだと離れて見える） */
@@ -39,9 +60,11 @@
 }
 
 /* 戻る導線はサイドバー用（block・上余白あり）なので、行に並べるぶんだけ打ち消す */
+/* エディタのヘッダー行に差し込むとき（未ログイン／スマホ）は、サイドバー用の外余白だけ外す。
+   ★ ボタンの見た目は落とさないこと（同じ導線が場所によって別物に見えると分かりにくい） */
 .mp-back-link--inline {
-  display: inline;
-  padding: 0;
+  margin: 0;
+  flex-shrink: 0;
 }
 
 .mp-guest-note {
@@ -710,4 +733,86 @@
 .paifu-saved {
   font-size: 0.75rem;
   color: #4caf50;
+}
+
+/* ===== スマホ（600px 以下）=====
+   ★ ブレークポイントは admin.css のモバイル用ブロックと src/utils/useMediaQuery.js に揃えること。
+   ★ ここは my問題集だけに当てる（.mp-layout でスコープする）。
+     .admin-sidebar は admin.css の定義なので、素で上書きすると管理画面(admin.html)まで変わってしまう。
+
+   作り: 一覧（サイドバー）を画面に重ねるドロワーにする。
+   編集するものが無いときは一覧そのものが画面になり、編集中は ☰ で開く（MyProblemsApp の drawerOpen）。 */
+
+/* 一覧を開くボタン（エディタのヘッダー行の先頭）。PC では JSX 側で描かない */
+.mp-menu-btn {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  background: #0f1830;
+  border: 1px solid #2a3a5a;
+  border-radius: 8px;
+  color: #f5c842;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  /* ドロワーは画面に重ねる。PC の 300px 固定（admin.css）を上書きする */
+  .mp-layout .admin-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 50;
+    width: min(320px, 88vw);
+    min-width: 0;
+    box-shadow: 0 0 24px rgba(0, 0, 0, 0.6);
+  }
+
+  /* 編集中は閉じておく（表示は MyProblemsApp が drawerOpen で決める） */
+  .mp-layout .mp-sidebar--hidden { display: none; }
+
+  /* 編集するものが無いときはドロワーが画面そのものになる（重ねる意味がないので全幅） */
+  .mp-layout--drawer .admin-sidebar { width: 100%; }
+
+  .mp-drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    background: rgba(0, 0, 0, 0.55);
+  }
+
+  .mp-drawer-close {
+    align-self: flex-start;
+    margin: 8px 12px 0;
+    padding: 8px 12px;
+    background: none;
+    border: 1px solid #2a3a5a;
+    border-radius: 8px;
+    color: #8fa8c8;
+    font-size: 0.8rem;
+    cursor: pointer;
+  }
+
+  /* 一覧のカテゴリは縦の余裕があるぶん広く見せる（40vh の頭打ちを外す） */
+  .mp-layout .mp-cat-list { max-height: none; }
+
+  /* PC 専用の導線（牌譜の取り込み） */
+  .mp-desktop-only { display: none; }
+
+  /* ヘッダー行は sticky で常に場所を取るので、操作でない説明文は落とす
+     （同じことは保存ボタンの文言「ログインして保存」が伝えている） */
+  .mp-guest-note { display: none; }
+
+  /* タップ標的を 44px 相当まで広げる（見た目は変えない。mobile-touch-ui のルール） */
+  .mp-icon-btn { position: relative; }
+  .mp-icon-btn::after {
+    content: '';
+    position: absolute;
+    inset: -10px;
+  }
+
+  /* 牌譜ナビは幅が足りないので、行ごと縦に積む */
+  .paifu-nav-row { row-gap: 8px; }
 }

@@ -10,24 +10,13 @@
 // 回転すると見た目の縦横が入れ替わるため、外側のラッパーには入れ替えたサイズを持たせる。
 // サイズ計算に牌の寸法が要るので、寸法は CSS ではなくこのファイル（TILE）が持つ。
 import { getTileImageUrl, getTileLabel, getDoraIndicator } from '../utils/tileUtils'
-import { getMeldTileRole } from '../utils/problemConstants'
+import { getMeldTileRole, KYOKU_OPTIONS } from '../utils/problemConstants'
 import { seatWinds, collectCalledTiles, buildRiver } from '../utils/boardUtils'
-
-const RIVER_COLUMNS = 6 // 1行あたりの捨て牌の枚数（実卓と同じ6枚）
-
-// 盤面の牌の寸法（px）。盤面は編集の主役なのでパレットより大きく取る
-const TILE      = { w: 26, h: 35, gap: 2, meldGap: 6 }
-const HAND_TILE = { w: 38, h: 50, gap: 3, meldGap: 8 }
-
-// 手牌の並びの長さ（その家から見た横幅）
-function handLength(count, size) {
-  return count > 0 ? count * size.w + (count - 1) * size.gap : 0
-}
-
-// 手牌が空のときに出す「手牌が未設定です」の幅。手牌と同じ扱いで辺の中央に置くため、
-// 長さ0ではなくこの値を渡す（0 だと左端が辺の中央に来て右へずれる）。
-// admin.css の .board-empty-text の width と必ず揃えること
-const EMPTY_HAND_LEN = 150
+// 牌の寸法と長さの計算（ResponsiveBoard も使うので別ファイルに置いてある）
+import {
+  RIVER_COLUMNS, TILE, HAND_TILE, WALL_TILE, EMPTY_HAND_LEN,
+  handLength, riverSize, meldsWidth,
+} from '../utils/boardMetrics'
 
 // 手牌の置き場は各辺いっぱい。手牌は辺の中央、副露はその家から見た右端に置き、
 // 両者が重なるときだけ手牌を必要な分だけ左へ寄せる（実際の判定は CSS の min() が行う）。
@@ -42,19 +31,12 @@ function seatVars(handLen, meldLen, depth) {
 
 // 王牌の枚数。左端がドラ表示牌で、残りは裏向き
 const DEAD_WALL_COUNT = 5
-// 中央（局設定）に置く王牌の牌サイズ。5枚＋gap で .board-center-info の 124px に収める
-const WALL_TILE = { w: 23, h: 30, gap: 2, meldGap: 6 }
 
 // 自分から見た各席の回転角（時計回り・度）。自分の視点が 0°
 const SEAT_ANGLE = { 上家: 90, 対面: 180, 下家: -90 }
 
 // 自風をクリックで切り替える順番
 const WIND_ORDER = ['東', '南', '西', '北']
-
-// 場風と局は「東1局」〜「西4局」の1つのセレクタにまとめる（別々に選ばせると片方の選び忘れが起きる）
-const KYOKU_OPTIONS = ['東', '南', '西'].flatMap(b =>
-  [1, 2, 3, 4].map(k => ({ value: `${b}${k}`, label: `${b}${k}局` }))
-)
 
 function BoardTile({ tile, rotated = false, size = TILE, className = '' }) {
   const slotStyle = { width: rotated ? size.h : size.w, height: rotated ? size.w : size.h }
@@ -76,31 +58,6 @@ function BoardTile({ tile, rotated = false, size = TILE, className = '' }) {
       />
     </span>
   )
-}
-
-// ===== サイズ計算（回転ラッパーに渡す寸法を求める） =====
-
-function riverSize(count) {
-  if (count === 0) return { w: 0, h: 0 }
-  const cols = Math.min(RIVER_COLUMNS, count)
-  const rows = Math.ceil(count / RIVER_COLUMNS)
-  return {
-    w: cols * TILE.w + (cols - 1) * TILE.gap,
-    h: rows * TILE.h + (rows - 1) * TILE.gap,
-  }
-}
-
-function meldWidth(meld, size = TILE) {
-  const tilesWidth = meld.tiles.reduce(
-    (sum, _, i) => sum + (getMeldTileRole(meld.type, i, meld.from) === 'rotated' ? size.h : size.w),
-    0
-  )
-  return tilesWidth + (meld.tiles.length - 1)
-}
-
-function meldsWidth(melds, size = TILE) {
-  if (!melds?.length) return 0
-  return melds.reduce((sum, m) => sum + meldWidth(m, size), 0) + (melds.length - 1) * size.meldGap
 }
 
 // 他家の手牌（裏向き）の枚数。副露1組につき手牌から3枚減る（カンも嶺上牌を引くので同じ）。
@@ -395,7 +352,8 @@ export default function BoardView({
         // 表示専用のときは破線のプレースホルダーを出さない（押せない領域を示す意味がないため）
         empty={!readOnly && seat.cells.length === 0}
         readOnly={readOnly}
-        onClick={() => onSelectArea('sutehai', seat.index)}
+        // ブロックがまだ無い家（index が -1）でも編集を始められるよう、風も一緒に渡す
+        onClick={() => onSelectArea('sutehai', seat.index, seat.wind)}
       >
         <SeatRiverBlock
           cells={seat.cells}
@@ -418,7 +376,8 @@ export default function BoardView({
         active={activeArea === `sutehai:${seat.index}`}
         style={seatVars(handLength(handCount, TILE), meldsWidth(melds), TILE.h)}
         readOnly={readOnly}
-        onClick={() => onSelectArea('sutehai', seat.index)}
+        // ブロックがまだ無い家（index が -1）でも編集を始められるよう、風も一緒に渡す
+        onClick={() => onSelectArea('sutehai', seat.index, seat.wind)}
       >
         <span className="board-seat-hand-slot">
           <SeatHandBlock handCount={handCount} angle={SEAT_ANGLE[seat.relative]} />
@@ -531,7 +490,7 @@ export default function BoardView({
             active={activeArea === `sutehai:${selfIndex}`}
             empty={!readOnly && selfCells.length === 0}
             readOnly={readOnly}
-            onClick={() => onSelectArea('sutehai', selfIndex)}
+            onClick={() => onSelectArea('sutehai', selfIndex, jikaze)}
           >
             <SeatRiverBlock
               cells={selfCells}

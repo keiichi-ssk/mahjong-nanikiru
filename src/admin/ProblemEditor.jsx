@@ -6,8 +6,11 @@ import {
   getMeldFromOptions, normalizeMelds, PROBLEM_TYPE_LABELS,
 } from '../utils/problemConstants'
 import { parseTileNotation } from '../utils/importBoard'
+import { useTap } from '../utils/useTap'
+import { useIsNarrow } from '../utils/useMediaQuery'
 
 import BoardView from './BoardView'
+import ResponsiveBoard from '../components/ResponsiveBoard'
 
 // 副露を新規作成するときの鳴いた元（チーは上家固定・暗槓は無し）
 function defaultMeldFrom(type) {
@@ -79,8 +82,10 @@ const DEFAULT_SCORES = { 東: 25000, 南: 25000, 西: 25000, 北: 25000, kyotaku
 
 function TileImg({ tile, size = 44, onClick, className = '' }) {
   const url = getTileImageUrl(tile)
+  // 隣り合う小さい牌の連続タップでクリックが隣へ誤配送されるのを防ぐ（出題画面の TileButton と同じ）
+  const tap = useTap(onClick ?? (() => {}), { disabled: !onClick })
   return (
-    <button className={`tile-btn ${className}`} onClick={onClick} title={getTileLabel(tile)}>
+    <button className={`tile-btn ${className}`} {...tap} title={getTileLabel(tile)}>
       {url
         ? <img src={url} width={size} height={Math.round(size * 60 / 44)} alt={tile} />
         : <span className="tile-code">{tile}</span>
@@ -254,6 +259,59 @@ function ScoreInputRow({ label, isSelf, active, value, onChange, steps }) {
   )
 }
 
+// スマホの点数入力（1家ぶんのポップアップ）。
+// ScoreInputRow の「家名＋±6個＋入力」は右カラムの幅（500px）を前提にした形で、
+// スマホでは横にはみ出す。家をタップして開くシートに分けることで、
+// ボタンを 44px 以上に取れる（タップ標的のルール）。
+// ± は「−と＋を同じ額で左右に並べる」ので、金額の対応が縦に読み取れる
+function ScoreSheet({ label, isSelf, value, steps, onChange, onClose }) {
+  const minus = steps.filter(s => s < 0).sort((a, b) => a - b)   // −10000, −1000, −100
+  const plus  = steps.filter(s => s > 0).sort((a, b) => b - a)   // +10000, +1000, +100
+  const rows  = minus.map((m, i) => [m, plus[i]])
+
+  return (
+    // 背景をタップしても閉じる（シート自体のタップは伝播を止める）
+    <div className="score-sheet-backdrop" onClick={onClose}>
+      <div
+        className="score-sheet"
+        role="dialog"
+        aria-label={`${label}の点数`}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="score-sheet-title">
+          {label}
+          {isSelf && <span className="score-edit-self">自分</span>}
+        </div>
+        <input
+          type="text"
+          inputMode="numeric"
+          className="score-sheet-input"
+          value={value}
+          onFocus={e => e.target.select()}
+          onChange={e => {
+            const n = parseInt(e.target.value.replace(/[^0-9]/g, ''), 10)
+            onChange(Number.isNaN(n) ? 0 : n)
+          }}
+          onBlur={() => onChange(Math.max(0, Math.round(value / 100) * 100))}
+        />
+        <div className="score-sheet-steps">
+          {rows.map(([m, p]) => (
+            <div className="score-sheet-step-row" key={m}>
+              <button className="score-sheet-step" onClick={() => onChange(Math.max(0, value + m))}>
+                −{-m}
+              </button>
+              <button className="score-sheet-step" onClick={() => onChange(value + p)}>
+                +{p}
+              </button>
+            </div>
+          ))}
+        </div>
+        <button className="score-sheet-close" onClick={onClose}>閉じる</button>
+      </div>
+    </div>
+  )
+}
+
 // 入力欄の残数表示（textLimits を渡したときだけ出る）
 function TextCount({ len, max }) {
   return (
@@ -346,6 +404,8 @@ export default function ProblemEditor({
   })
   // 盤面の点数チップからどの家をクリックしたか（点数タブでその家の行をハイライトする）
   const [activeScoreWind, setActiveScoreWind] = useState(null)
+  // スマホの点数ポップアップで開いている家（'東'〜'北' か 'kyotaku'。null なら閉じている）
+  const [scoreSheet, setScoreSheet] = useState(null)
   // パレットからの牌追加先ブロック（ブロック削除でずれるため描画時に clamp する）
   const [sutehaiActiveIdx, setSutehaiActiveIdx] = useState(0)
   const activeSutehaiIdx = Math.min(sutehaiActiveIdx, otherDiscards.length - 1) // ブロックが無ければ -1
@@ -661,6 +721,10 @@ export default function ProblemEditor({
   // 牌譜から作った問題は「実在の局面をそのまま出題する」のが基本なので既定でロックする
   const [boardLocked, setBoardLocked] = useState(lockBoard)
 
+  // スマホ幅（600px以下）かどうか。CSS で書けるものは CSS に置き、ここで見るのは
+  // 「盤面を縮小して出す」「ヘッダー行を先頭へ移す」「タブを減らす」の3つだけ
+  const isNarrow = useIsNarrow()
+
   const [paletteTab,  setPaletteTab]  = useState(lockBoard ? 'answer' : 'hand')
   const [paletteMode, setPaletteMode] = useState(lockBoard ? 'explanation' : 'hand')
 
@@ -680,13 +744,21 @@ export default function ProblemEditor({
     ? 'meld'
     : (availableModes.includes(paletteMode) ? paletteMode : fallbackMode)
 
-  // タブ列に出すタブ。点数は盤面の点数チップから開くので常設しないが、
-  // 開いている間だけ末尾に出す（タブ列に選択中が1つも無い状態を作らないため）
+  // タブ列に出すタブ。点数は盤面の点数チップから開くので PC では常設せず、
+  // 開いている間だけ末尾に出す（タブ列に選択中が1つも無い状態を作らないため）。
+  // スマホは盤面を縮小して出すぶん点数チップが小さいので、点数タブを常設する
   const visibleTabs = PALETTE_TABS.filter(t => !(boardLocked && t.boardOnly))
-  const tabList = paletteTab === 'jokyo'
-    ? [...visibleTabs, { key: 'jokyo', label: '点数' }]
-    : visibleTabs
-  const activePanel = panelOfTab(paletteTab, boardLocked)
+  const jokyoTab = { key: 'jokyo', label: '点数' }
+  const tabList = isNarrow
+    // スマホは常設。末尾に足すとタブ列の横スクロールの先に隠れるので、盤面の設定が並ぶドラの隣に置く
+    ? (boardLocked ? visibleTabs : visibleTabs.flatMap(t => t.key === 'dora' ? [t, jokyoTab] : [t]))
+    : (paletteTab === 'jokyo' ? [...visibleTabs, jokyoTab] : visibleTabs)
+  // 画面幅が変わってタブが消えたとき（捨て牌タブなど）に取り残されないよう、
+  // 実効タブは state ではなく描画時に導出する（effect で setState しない）
+  const activeTab = tabList.some(t => t.key === paletteTab)
+    ? paletteTab
+    : (tabList[0]?.key ?? 'answer')
+  const activePanel = panelOfTab(activeTab, boardLocked)
 
   // タブの切り替え。送り先も一緒に決まる（同じ操作の入口を2つ作らない）
   function selectPaletteTab(key) {
@@ -751,14 +823,15 @@ export default function ProblemEditor({
   // 盤面クリックで対応する編集パネルを開く（盤面からデータは書き換えない）。
   // ハイライトは逆にタブ側から導出するので、タブを直接切り替えても盤面の選択表示が追従する
   const activeArea = boardLocked ? null
-    : paletteTab === 'sutehai' ? `sutehai:${activeSutehaiIdx}`
-    : paletteTab === 'jokyo' ? 'jokyo'
-    : paletteTab === 'dora'  ? 'dora'
-    : paletteTab === 'hand'  ? 'hand'
+    : activeTab === 'sutehai' ? `sutehai:${activeSutehaiIdx}`
+    : activeTab === 'jokyo' ? 'jokyo'
+    : activeTab === 'dora'  ? 'dora'
+    : activeTab === 'hand'  ? 'hand'
     : null
 
-  // index は kind ごとに意味が違う（sutehai＝家ブロックの番号 / jokyo＝クリックした家の風）
-  function handleSelectArea(kind, index) {
+  // index は kind ごとに意味が違う（sutehai＝家ブロックの番号 / jokyo＝クリックした家の風）。
+  // sutehai だけ第3引数でその席の風も受け取る（ブロックがまだ無い家を押したときに作るため）
+  function handleSelectArea(kind, index, wind) {
     // ロック中は開く先のタブが無いので何もしない（盤面のクリックは無反応になる）
     if (boardLocked) return
     if (kind === 'hand') {
@@ -769,9 +842,25 @@ export default function ProblemEditor({
       setPaletteMode('dora')
       setAddingMeld(null)
       setActiveScoreWind(index ?? null)
+      // スマホは点数タブが一覧なので、家が分かっているならそのままポップアップまで開く
+      if (isNarrow && index) setScoreSheet(index)
     } else if (kind === 'sutehai') {
       selectPaletteTab('sutehai')
-      if (index >= 0) setSutehaiActiveIdx(index)
+      if (index >= 0) {
+        setSutehaiActiveIdx(index)
+      } else if (wind) {
+        // まだブロックの無い家の河（または手牌）を押した。その家のブロックを用意して
+        // すぐ牌を足せる状態にする（押したのに何も起きない、を無くすため）。
+        // 家が未設定の空ブロックが余っていればそれを使い、無ければ足す（自分を含め最大4人）
+        const emptyIdx = otherDiscards.findIndex(od => !od.player)
+        if (emptyIdx >= 0) {
+          setOtherDiscards(prev => prev.map((od, i) => i === emptyIdx ? { ...od, player: wind } : od))
+          setSutehaiActiveIdx(emptyIdx)
+        } else if (otherDiscards.length < 4) {
+          setOtherDiscards(prev => [...prev, { ...emptyDiscardBlock(), player: wind }])
+          setSutehaiActiveIdx(otherDiscards.length)
+        }
+      }
     } else if (kind === 'dora') {
       // 王牌のクリックはドラタブを開くのと同じ扱いにする（入口が2つあっても状態は1つ）。
       // selectPaletteTab が入力途中の副露も片付ける（残っていると送り先が meld のままになる）
@@ -792,37 +881,163 @@ export default function ProblemEditor({
     nakiChoice:  `選択肢: ${nakiChoices.length}件`,
   }[effectiveMode]
 
+  // ヘッダー行（ID・問題タイプ・フラグ・保存）。実体はこの1つで、置き場所だけ2つある:
+  //   PC   … 右カラム（編集パネル）の先頭。1画面に収める従来のレイアウト
+  //   スマホ … 縦積みなので右カラムの先頭＝画面のはるか下になる。ページの先頭へ持ち上げて
+  //            sticky で貼り付ける（保存へいつでも手が届くようにするため）。
+  // CSS の order は別のコンテナへは要素を移せないので、ここは JSX 側で出し分けている
+  // （注釈欄 noteEditor と同じ「実体は1つ・置き場所だけ2つ」の形）
+  const headerRow = (
+    <div className="editor-header">
+      {headerLead ?? <h3 className="editor-title">ID {problem.id}</h3>}
+      {/* 何のプルダウンか分かるようラベルを付ける（値だけだと用途が読み取れないため） */}
+      <label className="editor-type-field">
+        <span className="editor-type-label">問題タイプ:</span>
+        <select
+          className="editor-type-select"
+          value={problemType}
+          onChange={e => setProblemType(e.target.value)}
+        >
+          {Object.entries(PROBLEM_TYPE_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>{label}</option>
+          ))}
+        </select>
+      </label>
+      {!hideReviewed && (
+        <label className="reviewed-check">
+          <input
+            type="checkbox"
+            checked={reviewed}
+            onChange={e => { reviewedTouchedRef.current = true; setReviewed(e.target.checked) }}
+          />
+          修正済み
+        </label>
+      )}
+      {!hideDisabled && (
+        <label className="reviewed-check" style={{ color: disabled ? '#e74c3c' : undefined }}>
+          <input
+            type="checkbox"
+            checked={disabled}
+            onChange={e => setDisabled(e.target.checked)}
+          />
+          非表示
+        </label>
+      )}
+      {/* 出題画面をこの盤面と同じ「麻雀卓」の形にする。
+          外すと従来表示（手牌＋他家の捨て牌を縦に並べる）になる。
+          自作問題は常に盤面なので、あちらではこの設定を出さない（hideBoardView） */}
+      {!hideBoardView && (
+        <label
+          className="reviewed-check"
+          title="出題画面を麻雀卓の形で表示する（局・点数・各家の河が卓に入る）"
+        >
+          <input
+            type="checkbox"
+            checked={boardView}
+            onChange={e => setBoardView(e.target.checked)}
+          />
+          盤面で出題
+        </label>
+      )}
+      {/* 牌譜から作った問題は実在の局面をそのまま出すのが基本なので、
+          盤面はロックしておき、変えたいときだけここで解除する */}
+      {lockBoard && (
+        <label className="reviewed-check" title="手牌・状況設定・捨て牌を変更できるようにする">
+          <input
+            type="checkbox"
+            checked={!boardLocked}
+            onChange={e => {
+              const unlock = e.target.checked
+              setBoardLocked(!unlock)
+              // 残るタブが変わるので、送り先も切り替える
+              setPaletteTab(unlock ? 'hand' : 'answer')
+              setPaletteMode(unlock ? 'hand' : 'explanation')
+            }}
+          />
+          盤面を編集
+        </label>
+      )}
+      {/* 保存・保存して次へ・削除はひとまとまり（折り返しても3つが分かれないようにする） */}
+      <div className="editor-header-actions">
+        <button className="editor-save-btn" onClick={handleSave}>{saveLabel}</button>
+        {!hideSaveNext && (
+          <button className="editor-save-next-btn" onClick={handleSaveAndNext} disabled={!hasNext}>
+            保存して次へ <kbd>Ctrl+S</kbd>
+          </button>
+        )}
+        {saveStatus && <span className="editor-save-status">{saveStatus}</span>}
+        {/* Xへの共有。共有するのは「いま画面に見えている内容」＝未保存の編集も含む buildSaveData()。
+            ★ 問題画像はURLに載せられないので、画像付きの問題は共有できない
+              （盤面だけが飛んで問題が成立しないため） */}
+        {onShare && (
+          <ShareButton
+            onClick={() => onShare(buildSaveData())}
+            disabled={!!questionImageUrl}
+            title={questionImageUrl
+              ? '問題画像は共有リンクに含められないため、画像付きの問題は共有できません'
+              : 'いま編集している内容をXで共有します'}
+          >
+            Xで共有
+          </ShareButton>
+        )}
+        {!hideDelete && (
+          <button
+            className="editor-delete-btn"
+            onClick={() => {
+              if (window.confirm(`問題 #${problem.id} を削除しますか？\nこの問題の全ユーザーの正誤記録も削除されます。この操作は取り消せません。`)) {
+                onDelete(problem.id)
+              }
+            }}
+          >
+            この問題を削除
+          </button>
+        )}
+      </div>
+    </div>
+  )
+
+  const boardProps = {
+    tiles, melds, dora, answerList,
+    bakaze, kyoku, honba, jikaze, junme,
+    scores, otherDiscards, concealedCounts,
+    activeArea,
+    onSelectArea: handleSelectArea,
+    // ロック中は編集用のコールバックを渡さない＝盤面から局面を変えられない
+    ...(boardLocked ? {} : {
+      onChangeBakaze:   setBakaze,
+      onChangeKyoku:    setKyoku,
+      onChangeHonba:    setHonba,
+      onChangeJikaze:   setJikaze,
+      onChangeJunme:    setJunme,
+      onRemoveHandTile: removeTile,
+    }),
+  }
+
   return (
     <div className="editor">
+      {/* スマホは縦積みなので、ヘッダー行をページの先頭に置いて画面上端へ貼り付ける */}
+      {isNarrow && headerRow}
+      {/* スマホの点数入力。点数タブの一覧と盤面の点数チップ、どちらから開いても同じシート */}
+      {isNarrow && scoreSheet && (
+        <ScoreSheet
+          label={scoreSheet === 'kyotaku' ? '供託' : `${scoreSheet}家`}
+          isSelf={jikaze === scoreSheet}
+          value={scores[scoreSheet] ?? 0}
+          steps={scoreSheet === 'kyotaku' ? [-1000, 1000] : [-10000, -1000, -100, 100, 1000, 10000]}
+          onChange={v => setScores(prev => ({ ...prev, [scoreSheet]: v }))}
+          onClose={() => setScoreSheet(null)}
+        />
+      )}
       {/* 前後の移動はサイドバーの問題一覧と ←/→ キー（AdminApp）に任せ、ナビ行は置かない */}
       <div className="editor-columns">
-      {/* 左：盤面。クリックすると右カラムの対応するパネルへ切り替わる */}
+      {/* 左：盤面。クリックすると右カラムの対応するパネルへ切り替わる。
+          スマホでは卓（約598px幅）がそのままでは入らないので、出題画面と同じ
+          ResponsiveBoard（卓を丸ごと transform: scale する）に載せて幅に収める。
+          ★ 牌の寸法（BoardView の TILE / HAND_TILE）には絶対に手を入れないこと */}
       <div className="editor-board-col">
-        <BoardView
-          tiles={tiles}
-          melds={melds}
-          dora={dora}
-          answerList={answerList}
-          bakaze={bakaze}
-          kyoku={kyoku}
-          honba={honba}
-          jikaze={jikaze}
-          junme={junme}
-          scores={scores}
-          otherDiscards={otherDiscards}
-          concealedCounts={concealedCounts}
-          activeArea={activeArea}
-          onSelectArea={handleSelectArea}
-          {...(boardLocked ? {} : {
-            // ロック中は編集用のコールバックを渡さない＝盤面から局面を変えられない
-            onChangeBakaze:   setBakaze,
-            onChangeKyoku:    setKyoku,
-            onChangeHonba:    setHonba,
-            onChangeJikaze:   setJikaze,
-            onChangeJunme:    setJunme,
-            onRemoveHandTile: removeTile,
-          })}
-        />
+        {isNarrow
+          ? <ResponsiveBoard {...boardProps} readOnly={false} />
+          : <BoardView {...boardProps} />}
 
         {/* 共通牌パレット。盤面の下（左カラム内）に置き、幅を盤面に合わせる。
             右カラムは設定専用。上のタブで牌の送り先と右パネルの内容が同時に決まる */}
@@ -833,8 +1048,8 @@ export default function ProblemEditor({
               <button
                 key={t.key}
                 role="tab"
-                aria-selected={paletteTab === t.key}
-                className={`palette-tab${paletteTab === t.key ? ' palette-tab--active' : ''}`}
+                aria-selected={activeTab === t.key}
+                className={`palette-tab${activeTab === t.key ? ' palette-tab--active' : ''}`}
                 onClick={() => selectPaletteTab(t.key)}
               >
                 {t.label}
@@ -858,114 +1073,9 @@ export default function ProblemEditor({
       <div className="editor-panel-col">
       <div className="editor-panel-scroll">
 
-      {/* ヘッダー：ID・問題タイプ・フラグ・保存を1行にまとめて縦の場所を節約する */}
-      <div className="editor-header">
-        {headerLead ?? <h3 className="editor-title">ID {problem.id}</h3>}
-        {/* 何のプルダウンか分かるようラベルを付ける（値だけだと用途が読み取れないため） */}
-        <label className="editor-type-field">
-          <span className="editor-type-label">問題タイプ:</span>
-          <select
-            className="editor-type-select"
-            value={problemType}
-            onChange={e => setProblemType(e.target.value)}
-          >
-            {Object.entries(PROBLEM_TYPE_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
-        </label>
-        {!hideReviewed && (
-          <label className="reviewed-check">
-            <input
-              type="checkbox"
-              checked={reviewed}
-              onChange={e => { reviewedTouchedRef.current = true; setReviewed(e.target.checked) }}
-            />
-            修正済み
-          </label>
-        )}
-        {!hideDisabled && (
-          <label className="reviewed-check" style={{ color: disabled ? '#e74c3c' : undefined }}>
-            <input
-              type="checkbox"
-              checked={disabled}
-              onChange={e => setDisabled(e.target.checked)}
-            />
-            非表示
-          </label>
-        )}
-        {/* 出題画面をこの盤面と同じ「麻雀卓」の形にする。
-            外すと従来表示（手牌＋他家の捨て牌を縦に並べる）になる。
-            自作問題は常に盤面なので、あちらではこの設定を出さない（hideBoardView） */}
-        {!hideBoardView && (
-          <label
-            className="reviewed-check"
-            title="出題画面を麻雀卓の形で表示する（局・点数・各家の河が卓に入る）"
-          >
-            <input
-              type="checkbox"
-              checked={boardView}
-              onChange={e => setBoardView(e.target.checked)}
-            />
-            盤面で出題
-          </label>
-        )}
-        {/* 牌譜から作った問題は実在の局面をそのまま出すのが基本なので、
-            盤面はロックしておき、変えたいときだけここで解除する */}
-        {lockBoard && (
-          <label className="reviewed-check" title="手牌・状況設定・捨て牌を変更できるようにする">
-            <input
-              type="checkbox"
-              checked={!boardLocked}
-              onChange={e => {
-                const unlock = e.target.checked
-                setBoardLocked(!unlock)
-                // 残るタブが変わるので、送り先も切り替える
-                setPaletteTab(unlock ? 'hand' : 'answer')
-                setPaletteMode(unlock ? 'hand' : 'explanation')
-              }}
-            />
-            盤面を編集
-          </label>
-        )}
-        {/* 保存・保存して次へ・削除はひとまとまり（折り返しても3つが分かれないようにする） */}
-        <div className="editor-header-actions">
-          <button className="editor-save-btn" onClick={handleSave}>{saveLabel}</button>
-          {!hideSaveNext && (
-            <button className="editor-save-next-btn" onClick={handleSaveAndNext} disabled={!hasNext}>
-              保存して次へ <kbd>Ctrl+S</kbd>
-            </button>
-          )}
-          {saveStatus && <span className="editor-save-status">{saveStatus}</span>}
-          {/* Xへの共有（管理画面だけ。my問題集は一覧側に入口があるので渡していない）。
-              共有するのは「いま画面に見えている内容」＝未保存の編集も含む buildSaveData()。
-              ★ 問題画像はURLに載せられないので、画像付きの問題は共有できない
-                （盤面だけが飛んで問題が成立しないため） */}
-          {onShare && (
-            <ShareButton
-              onClick={() => onShare(buildSaveData())}
-              disabled={!!questionImageUrl}
-              title={questionImageUrl
-                ? '問題画像は共有リンクに含められないため、画像付きの問題は共有できません'
-                : 'いま編集している内容をXで共有します'}
-            >
-              Xで共有
-            </ShareButton>
-          )}
-          {!hideDelete && (
-            <button
-              className="editor-delete-btn"
-              onClick={() => {
-                if (window.confirm(`問題 #${problem.id} を削除しますか？\nこの問題の全ユーザーの正誤記録も削除されます。この操作は取り消せません。`)) {
-                  onDelete(problem.id)
-                }
-              }}
-            >
-              この問題を削除
-            </button>
-          )}
-        </div>
-      </div>
+      {/* ヘッダー：ID・問題タイプ・フラグ・保存を1行にまとめて縦の場所を節約する
+          （スマホでは .editor の先頭に出しているのでここには置かない） */}
+      {!isNarrow && headerRow}
 
       {/* 問題画像（任意・全タイプ共通）。ほとんどの問題では未設定なので、
           未設定のときは1行のボタンだけにして縦の場所を使わない */}
@@ -1114,6 +1224,24 @@ export default function ProblemEditor({
             （盤面を見ながら設定できるほうが速く、右カラムの縦の長さも抑えられる） */}
         {activePanel === 'jokyo' && (
           <div className="palette-tab-content">
+            {/* 自風だけはスマホでもここから設定する。盤面の自風バッジは点数チップの中の
+                小さいボタンなので、卓を縮小すると押しにくいため。
+                局・本場・巡目は盤面中央のセレクタで足りるので出さない（入口を増やさない） */}
+            {isNarrow && !boardLocked && (
+              <label className="score-edit-jikaze">
+                自風
+                <select
+                  className="editor-type-select"
+                  value={jikaze ?? ''}
+                  onChange={e => setJikaze(e.target.value === '' ? null : e.target.value)}
+                >
+                  <option value="">—</option>
+                  {SCORE_WINDS.map(w => (
+                    <option key={w} value={w}>{w}家</option>
+                  ))}
+                </select>
+              </label>
+            )}
             <div className="editor-section-label">点数状況</div>
             {/* 点数は常に既定値（全員25000）が入る仕様なので「未設定」の選択肢は置かない */}
             {(() => {
@@ -1121,24 +1249,49 @@ export default function ProblemEditor({
               const totalOk = total === 100000
               return (
                 <div className="score-edit-area">
-                  {SCORE_WINDS.map(w => (
-                    <ScoreInputRow
-                      key={w}
-                      label={`${w}家`}
-                      isSelf={jikaze === w}
-                      active={activeScoreWind === w}
-                      value={scores[w] ?? 0}
-                      onChange={v => setScores(prev => ({ ...prev, [w]: v }))}
-                      steps={[-10000, -1000, -100, 100, 1000, 10000]}
-                    />
-                  ))}
-                  <ScoreInputRow
-                    label="供託"
-                    isSelf={false}
-                    value={scores.kyotaku ?? 0}
-                    onChange={v => setScores(prev => ({ ...prev, kyotaku: v }))}
-                    steps={[-1000, 1000]}
-                  />
+                  {/* スマホは一覧＋ポップアップ。ScoreInputRow の2段レイアウトは
+                      右カラムの幅（500px）前提で、スマホでは横にはみ出すため */}
+                  {isNarrow
+                    ? [...SCORE_WINDS, 'kyotaku'].map(w => (
+                        <button
+                          key={w}
+                          className={
+                            'score-list-row' +
+                            (jikaze === w ? ' score-list-row--self' : '') +
+                            (activeScoreWind === w ? ' score-list-row--active' : '')
+                          }
+                          onClick={() => setScoreSheet(w)}
+                        >
+                          <span className="score-list-wind">
+                            {w === 'kyotaku' ? '供託' : `${w}家`}
+                            {jikaze === w && <span className="score-edit-self">自分</span>}
+                          </span>
+                          <span className="score-list-value">{(scores[w] ?? 0).toLocaleString()}</span>
+                          <span className="score-list-caret">›</span>
+                        </button>
+                      ))
+                    : (
+                      <>
+                        {SCORE_WINDS.map(w => (
+                          <ScoreInputRow
+                            key={w}
+                            label={`${w}家`}
+                            isSelf={jikaze === w}
+                            active={activeScoreWind === w}
+                            value={scores[w] ?? 0}
+                            onChange={v => setScores(prev => ({ ...prev, [w]: v }))}
+                            steps={[-10000, -1000, -100, 100, 1000, 10000]}
+                          />
+                        ))}
+                        <ScoreInputRow
+                          label="供託"
+                          isSelf={false}
+                          value={scores.kyotaku ?? 0}
+                          onChange={v => setScores(prev => ({ ...prev, kyotaku: v }))}
+                          steps={[-1000, 1000]}
+                        />
+                      </>
+                    )}
                   <div className="score-edit-footer">
                     <span className={`score-edit-total${totalOk ? '' : ' score-edit-total--warn'}`}>
                       {totalOk
