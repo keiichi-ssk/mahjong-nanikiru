@@ -21,8 +21,10 @@ public/samplequestions/
 samplequestions/
 screenshot_zihai_before.png
 
-# Claude Code 開発メモ
+# Claude Code 開発メモ（CLAUDE.md から分割したものも同じ扱い）
 CLAUDE.md
+docs/dev-*.md
+docs/troubleshooting.md
 
 # Claude Code 個人用設定（Git管理外）
 .claude/settings.local.json
