@@ -49,6 +49,31 @@
   font-size: 0.75rem;
 }
 
+/* ログイン前に作っていた下書きの案内。保存するまで消えないので目立つ色にする */
+.mp-draft-notice {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin: 0 12px 8px;
+  padding: 8px 10px;
+  border: 1px solid #4a3c14;
+  border-radius: 6px;
+  background: #1e1a0c;
+}
+
+.mp-draft-notice-label {
+  color: #f5c842;
+  font-size: 0.78rem;
+}
+
+.mp-draft-notice-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
 /* カテゴリ一覧の見出し。何のリストなのかが分からないと最初の一歩が踏み出せないため置いている */
 .mp-section-hint {
   margin: 0;

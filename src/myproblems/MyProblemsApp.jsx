@@ -90,12 +90,15 @@ async function signIn() {
 // 番号・タイトル・カテゴリは**左の一覧から**変更するので、ここでは持たない
 // （同じ設定の入口が2つあると、どちらが有効か分からなくなるため）。
 // 保存時は問題が元々持っている値をそのまま引き継ぐ。
-function ProblemPane({ problem, prevProblem, hasNext, onSave, onSaveAndNext, onShare, saveStatus }) {
+function ProblemPane({ problem, hasNext, onSave, onSaveAndNext, onShare, saveStatus }) {
   // buildSaveData は {...problem} を土台にするので title / categoryId は自動で残る
   return (
     <ProblemEditor
       problem={problem}
-      prevProblem={prevProblem}
+      // ★ 自作問題は前の問題を引き継がない（2026-08-01〜）。
+      //   公式問題は書籍の連番で状況設定が続くので引き継ぐが、自作問題は1問ずつ別の局面なので
+      //   前の手牌が入っていると毎回消す手間になる（未設定なら既定値＝東1局・南家・9巡目・ドラ北が入る）
+      prevProblem={null}
       hasNext={hasNext}
       hideImage
       hideReviewed
@@ -126,8 +129,17 @@ export default function MyProblemsApp() {
 
   const [selectedCatId, setSelectedCatId]   = useState(null)
   const [selectedProbId, setSelectedProbId] = useState(null)
+  // ログイン前に作っていた下書き（sessionStorage）。
+  // 未ログイン時はこれが編集対象、ログイン後は「保存できる1問」として復元する。
+  // 読み出しは初期化時の1回だけ（編集中に差し替わると ProblemEditor の中身が飛ぶため）
+  const [guestDraft, setGuestDraft]         = useState(() => loadGuestDraft())
   // メイン領域の表示。'editor' = 保存済みの問題を編集 / 'paifu' = 牌譜から局面を切り出す（未保存）
+  // / 'draft' = ログイン前に作っていた下書き。
+  // ★ 下書きは通常ログイン直後に自動で未分類へ保存されるので 'draft' は**保存に失敗したときだけ**使う。
+  //   そのときも**他の操作を塞がない**（問題を選べば普通に切り替わり、サイドバーの案内から開き直せる）
   const [view, setView]                     = useState('editor')
+  // 自動保存が失敗したか（＝下書きが残っていて、人が保存先を選び直す必要がある）
+  const [draftSaveFailed, setDraftSaveFailed] = useState(false)
   // 読み込んだ牌譜と、いま見ている局面。
   // ★ 牌譜から作った問題は「保存」で初めて user_problems に入る（作りかけが溜まらないようにするため）
   const [paifu, setPaifu]               = useState(null)
@@ -147,10 +159,6 @@ export default function MyProblemsApp() {
   const [editProbNo, setEditProbNo]         = useState('')
   const [editProbCat, setEditProbCat]       = useState('')
   const [status, setStatus]                 = useState('')
-  // ログイン前に作っていた問題（sessionStorage）。
-  // 未ログイン時はこれが編集対象、ログイン後は「保存できる1問」として復元する。
-  // 読み出しは初期化時の1回だけ（編集中に差し替わると ProblemEditor の中身が飛ぶため）
-  const [guestDraft, setGuestDraft]         = useState(() => loadGuestDraft())
   // 保存ボタンの隣に出す状態表示。{ text, error } | null
   // 成功は数秒で自動的に消す（消えずに残っていると、次の保存で変化が無く保存されたか分からないため）
   const [editorStatus, setEditorStatus]     = useState(null)
@@ -418,27 +426,46 @@ export default function MyProblemsApp() {
   }
 
   // ログイン前に作っていた1問を保存する（insert）。保存できたら退避を消し、その問題を開く。
-  // 保存先カテゴリは牌譜ドラフトと同じ draftCategoryId を使う（ヘッダーの「保存先」）
-  async function saveRestoredDraft(updated) {
+  // 保存先は既定で draftCategoryId（復元エディタのヘッダーの「保存先」）。
+  // ログイン直後の自動保存だけは categoryId: null（未分類）を明示して呼ぶ
+  async function saveRestoredDraft(updated, { categoryId = draftCategoryId } = {}) {
     if (!userId) return false
-    const row = { ...toUserDb(updated, { categoryId: draftCategoryId }), user_id: userId }
+    const row = { ...toUserDb(updated, { categoryId }), user_id: userId }
     const { data, error } = await supabase.from('user_problems').insert(row).select('*')
     if (error) { showSaveError(insertErrorText(error, { kind: 'problem', count: problems.length })); return false }
     if (!data || data.length === 0) { showSaveError('保存できませんでした（権限の可能性）'); return false }
     clearGuestDraft()
     setGuestDraft(null)
-    showSaved('保存しました ✓')
+    setDraftSaveFailed(false)
+    showSaved(categoryId ? '保存しました ✓' : '未分類に保存しました ✓')
     // 保存先のカテゴリを開いておかないと、保存した問題が一覧に出てこない
-    setSelectedCatId(draftCategoryId ?? UNCATEGORIZED)
+    setSelectedCatId(categoryId ?? UNCATEGORIZED)
     await reload()
-    selectProblem(data[0].id)
+    selectProblem(data[0].id)   // view も 'editor' に戻る
     return true
   }
+
+  // ログイン前に「ログインして保存」で退避した下書きは、ログインが済んだ時点で
+  // **その場で未分類に保存する**（押した操作がそもそも「保存」なので、
+  // 戻ってきてからもう一度押させない）。
+  // ★ StrictMode では effect が2回走る。ref で止めないと同じ問題が2つ入る
+  // ★ 失敗しても下書きは消さない（上限に達している等）。そのときだけ復元エディタを開く
+  // ★ この effect は saveRestoredDraft より後ろに置くこと（前に置くと宣言前アクセスで lint に落ちる）
+  const autoSaveRef = useRef(false)
+  useEffect(() => {
+    if (!userId || !guestDraft || autoSaveRef.current) return
+    autoSaveRef.current = true
+    saveRestoredDraft(guestProblem, { categoryId: null }).then(ok => {
+      if (!ok) { setDraftSaveFailed(true); setView('draft') }
+    })
+  }, [userId, guestDraft, guestProblem]) // eslint-disable-line react-hooks/exhaustive-deps
 
   function discardGuestDraft() {
     if (!window.confirm('ログイン前に作っていた問題を破棄しますか？\nこの操作は取り消せません。')) return
     clearGuestDraft()
     setGuestDraft(null)
+    setDraftSaveFailed(false)
+    setView('editor')
   }
 
   async function saveProblem(updated) {
@@ -660,6 +687,25 @@ export default function MyProblemsApp() {
             同じタブで出題画面へ移動する（target を付けないこと） */}
         <a className="mp-back-link" href="/">← 座学する麻雀</a>
         <h1 className="admin-sidebar-title">my問題集(β)</h1>
+
+        {/* 自動保存できなかった下書きの案内。**画面を塞がずに開き直せる場所**として置いてある
+            （メイン領域を専有すると、問題を選んでも切り替わらない画面になる）。
+            自動保存が成功した場合は下書き自体が消えるのでここには出ない */}
+        {guestDraft && draftSaveFailed && (
+          <div className="mp-draft-notice">
+            <span className="mp-draft-notice-label">保存できなかった問題があります</span>
+            <div className="mp-draft-notice-actions">
+              <button
+                className="mp-add-btn mp-add-btn--sm"
+                onClick={() => setView('draft')}
+                disabled={view === 'draft'}
+              >
+                {view === 'draft' ? '表示中' : '開く'}
+              </button>
+              <button className="mp-text-btn" onClick={discardGuestDraft}>破棄</button>
+            </div>
+          </div>
+        )}
 
         {/* 一覧が何のリストなのかを明示する。既定でどれかが選ばれている（activeCatId）ので、
             「選ばないと先へ進めない」という指示ではなく現在地の見出しとして置いている */}
@@ -912,9 +958,10 @@ export default function MyProblemsApp() {
       </aside>
 
       <main className="admin-main">
-        {guestDraft ? (
-          // ログイン前に作っていた問題。保存すると user_problems に入り、退避は消える。
-          // 保存も破棄もせずに他の操作へ移れないのは意図的（見失うと作った内容が消えるため）
+        {view === 'draft' && guestDraft ? (
+          // ログイン直後の自動保存に失敗した下書き（上限に達している等）。保存先を選び直して保存する。
+          // ★ 保存するまで他の操作を塞がないこと（問題を選んでも切り替わらない画面になる）。
+          //   保存も破棄もしないまま離れたぶんはサイドバーの案内から開き直せる
           <ProblemEditor
             key="restored-draft"
             problem={guestProblem}
@@ -930,7 +977,7 @@ export default function MyProblemsApp() {
             headerLead={
               <div className="mp-guest-lead">
                 <div className="mp-guest-bar">
-                  <h3 className="editor-title">ログイン前に作っていた問題</h3>
+                  <h3 className="editor-title">保存できなかった問題</h3>
                   <label className="paifu-save-to">
                     保存先
                     <select
@@ -1014,7 +1061,6 @@ export default function MyProblemsApp() {
           <ProblemPane
             key={selectedProb.id}
             problem={selectedProb}
-            prevProblem={selectedIdx > 0 ? visibleProblems[selectedIdx - 1] : null}
             hasNext={selectedIdx < visibleProblems.length - 1}
             onSave={saveProblem}
             onSaveAndNext={saveProblemAndNext}

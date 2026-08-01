@@ -630,10 +630,8 @@ export default function ProblemEditor({
   const otherDiscardDuplicatePlayer = otherDiscards.some((od, i) =>
     od.player !== null && otherDiscards.slice(0, i).some(o => o.player === od.player)
   )
-  // リーチ宣言牌の設定漏れは警告のみ（リーチしていない他家の捨て牌もあり得るため保存はされる）
-  const otherDiscardRiichiMissing = otherDiscards.some(od =>
-    od.player !== null && od.tiles.length > 0 && od.riichiIndex === null
-  )
+  // ★ リーチ宣言牌の設定漏れは警告しない（2026-08-01〜）。
+  //   リーチしていない家の河のほうが多く、未設定が正常なので警告が鳴りっぱなしになっていた
 
   const handleSave = useCallback(() => {
     onSave(buildSaveData())
@@ -1298,11 +1296,6 @@ export default function ProblemEditor({
                 ⚠ 同じ家が複数設定されています。重複した家は最初の1つだけ保存されます。
               </div>
             )}
-            {otherDiscardRiichiMissing && (
-              <div className="other-discard-warning">
-                ⚠ リーチ宣言牌が設定されていません。指定する場合は捨て牌をクリックしてください（リーチしていない家なら未設定のまま保存できます）。
-              </div>
-            )}
           </div>
         )}
 
@@ -1525,7 +1518,7 @@ export default function ProblemEditor({
       </section>
 
       {/* 保存・削除はヘッダー行に移したので、ここは保存時の警告だけ（無いときは行ごと出さない） */}
-      {(otherDiscardIncomplete || otherDiscardDuplicatePlayer || otherDiscardRiichiMissing) && (
+      {(otherDiscardIncomplete || otherDiscardDuplicatePlayer) && (
         <div className="editor-save-area">
           {otherDiscardIncomplete && (
             <span className="editor-save-warning">
@@ -1535,11 +1528,6 @@ export default function ProblemEditor({
           {otherDiscardDuplicatePlayer && (
             <span className="editor-save-warning">
               ⚠ 捨て牌に同じ家が複数あり、最初の1つだけ保存されます
-            </span>
-          )}
-          {otherDiscardRiichiMissing && (
-            <span className="editor-save-warning">
-              ⚠ リーチ宣言牌が未設定です（このままでも保存されます）
             </span>
           )}
         </div>
