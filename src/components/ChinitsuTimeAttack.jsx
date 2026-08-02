@@ -7,6 +7,7 @@ import { generateChinitsuHand, evaluateAnswer } from '../utils/chinitsuUtils';
 import { buildTimeAttackShareUrl } from '../utils/chinitsuShare';
 import { fetchTodayRanking, submitScore } from '../utils/leaderboardApi';
 import { rankForScore, MAX_NAME_LENGTH } from '../utils/leaderboardUtils';
+import { track, EVENTS } from '../utils/analytics';
 
 // 前回入力したニックネームを localStorage から復元する（任意入力・公開ページでも動く）
 const PLAYER_NAME_KEY = 'chinitsuPlayerName';
@@ -107,7 +108,20 @@ export default function ChinitsuTimeAttack({ onBack, onPractice, onReview }) {
     setPhase('finished');
   }
 
+  // 結果画面に移ったときの最終スコアを送る。
+  // finishGame の中で送らないのは、直前の正解ぶんの setScore がまだ反映されておらず
+  // 1点ずれることがあるため（描画が終わった時点の score を見る）。
+  const finishSentRef = useRef(false);
+  useEffect(() => {
+    if (phase === 'playing') finishSentRef.current = false;
+    if (phase === 'finished' && !finishSentRef.current) {
+      finishSentRef.current = true;
+      track(EVENTS.drillFinish, { score });
+    }
+  }, [phase, score]);
+
   function startGame() {
+    track(EVENTS.drillStart, { mode: 'timeattack' });
     setScore(0);
     setMissedHands([]);
     setSubmitStatus('idle');
@@ -166,6 +180,7 @@ export default function ChinitsuTimeAttack({ onBack, onPractice, onReview }) {
     if (!answering) return;
     if (action === 'tenpai' && (!discarded || selectedWaits.size === 0)) return;
     const res = evaluateAnswer(hand, action, discarded, selectedWaits);
+    track(EVENTS.drillAnswer, { mode: 'timeattack', correct: res.isCorrect });
     if (res.isCorrect) setScore(s => s + 1);
     else setMissedHands(m => [...m, hand]);
     setResult(res);

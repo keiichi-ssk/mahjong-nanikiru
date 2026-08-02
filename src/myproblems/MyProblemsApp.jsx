@@ -12,6 +12,7 @@ import { snapshotToProblem } from '../utils/importBoard'
 import { openProblemShare } from '../utils/shareWindow'
 import { loadGuestDraft, saveGuestDraft, clearGuestDraft } from './guestDraft'
 import { useIsNarrow } from '../utils/useMediaQuery'
+import { track, EVENTS } from '../utils/analytics'
 import {
   validatePaifu, listRounds, listSteps, snapshotAt, filterSteps, defaultProblemTitle,
 } from '../utils/tenhouPaifu'
@@ -432,6 +433,7 @@ export default function MyProblemsApp() {
     const { data, error } = await supabase.from('user_problems').insert(row).select('id')
     if (error) { showSaveError(insertErrorText(error, { kind: 'problem', count: problems.length })); return false }
     if (!data || data.length === 0) { showSaveError('保存できませんでした（権限の可能性）'); return false }
+    track(EVENTS.problemSaved, { kind: 'paifu' })
     showSaved('保存しました ✓')
     setSavedKeys(prev => new Set(prev).add(draftKey))
     await reload()
@@ -450,6 +452,7 @@ export default function MyProblemsApp() {
     clearGuestDraft()
     setGuestDraft(null)
     setDraftSaveFailed(false)
+    track(EVENTS.problemSaved, { kind: 'restored' })
     showSaved(categoryId ? '保存しました ✓' : '未分類に保存しました ✓')
     // 保存先のカテゴリを開いておかないと、保存した問題が一覧に出てこない
     setSelectedCatId(categoryId ?? UNCATEGORIZED)
@@ -492,6 +495,7 @@ export default function MyProblemsApp() {
       .select('id')
     if (error) { showSaveError(`保存に失敗: ${error.message}`); return false }
     if (!data || data.length === 0) { showSaveError('保存できませんでした（権限の可能性）'); return false }
+    track(EVENTS.problemSaved, { kind: 'edit' })
     showSaved('保存しました ✓')
     await reload()
     return true

@@ -6,6 +6,7 @@ import ShareButton from './ShareButton';
 import { generateChinitsuHand, evaluateAnswer } from '../utils/chinitsuUtils';
 import { saveChinitsuRound, loadChinitsuRound } from '../utils/chinitsuStorage';
 import { decodeHandParam, buildShareUrl } from '../utils/chinitsuShare';
+import { track, EVENTS } from '../utils/analytics';
 
 // スーツ選択は各スーツの5の牌を代表としてボタン表示する
 const SUITS = [
@@ -69,6 +70,12 @@ export default function ChinitsuTrainer({ onBack, onTimeAttack, reviewHands = nu
   useEffect(() => {
     if (historyPos === null) saveChinitsuRound(round);
   }, [round, historyPos]);
+
+  // 練習モードを開いたことを送る。タイムアタックの結果から「間違えた問題を復習」で来た場合は
+  // 別モード（review）として数える。モードを移ると再マウントされるので実質1回だけ送られる
+  useEffect(() => {
+    track(EVENTS.drillStart, { mode: reviewHands ? 'review' : 'practice' });
+  }, [reviewHands]);
 
   // シェアURLから開いた場合、?q= は初期手牌として消費済みなのでURLから取り除く
   // （残したままだと「次の問題」以降にリロードしたとき再びシェア手牌に戻ってしまう）
@@ -143,6 +150,10 @@ export default function ChinitsuTrainer({ onBack, onTimeAttack, reviewHands = nu
     if (answered) return;
     if (action === 'tenpai' && (!discarded || selectedWaits.size === 0)) return;
     const res = evaluateAnswer(hand, action, discarded, selectedWaits);
+    track(EVENTS.drillAnswer, {
+      mode: reviewQueue !== null ? 'review' : 'practice',
+      correct: res.isCorrect,
+    });
     setResult(res);
     setTally(t => ({ correct: t.correct + (res.isCorrect ? 1 : 0), total: t.total + 1 }));
   }

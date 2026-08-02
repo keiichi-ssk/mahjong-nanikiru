@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import ProblemView from '../components/ProblemView'
 import { decodeProblemParam } from '../utils/problemShare'
 import { SITE_URL } from '../config/site'
+import { track, EVENTS } from '../utils/analytics'
 
 // 共有された1問を表示するページ（認証不要・DB非依存）。
 //
@@ -33,6 +34,9 @@ export default function ShareApp() {
     // デコードは非同期（DecompressionStream）なので、ここでの setState は同期実行にならない
     decodeProblemParam(param).then(p => {
       if (!cancelled) {
+        // 共有リンクが実際に開かれた回数（＝拡散の効き具合）。壊れたリンクも ok:false で数え、
+        // 「共有したのに解けなかった」ケースが起きていないかを見られるようにする
+        track(EVENTS.sharedProblemOpened, { ok: !!p })
         setResult(p ? { status: 'ready', problem: p } : { status: 'invalid', problem: null })
       }
     })

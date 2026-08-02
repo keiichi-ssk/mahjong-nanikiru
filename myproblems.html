@@ -6,6 +6,16 @@
     <!-- 自作問題の作成画面。本人のデータしか扱わないが検索対象にはしない -->
     <meta name="robots" content="noindex, nofollow" />
     <title>my問題集(β) | 座学する麻雀</title>
+    <!-- Google Analytics 4（index.html / chinitsu.html と同じ測定ID。
+         ページごとにプロパティは分けず、1つの中で画面別に見る）。
+         ★ 計測タグを入れるのは本番ビルドに含まれる4ページだけ。admin.html には入れないこと -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-VQYJXV1K4H"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-VQYJXV1K4H');
+    </script>
   </head>
   <body>
     <div id="root"></div>
