@@ -101,67 +101,51 @@
 }
 
 /* ===== トップページ（未ログイン時のランディング） =====
-   構成は「ヒーロー → 特長3つ → 問題集の案内」の1カラム。
-   塗りの主CTA（.landing-cta）はページに1つだけにすること。並べてよいのは
-   **ログインなしで始められる導線**だけで、枠線の副次CTA（.landing-cta--sub）として格を下げる。
-   ログイン必須の導線を同格に並べないこと（権限のない訪問者が行き止まりに落ちる）。 */
+   構成は「ヒーロー → コンテンツ2枚（CTA込み） → ログイン案内」の1カラム。
+   ★ 塗りのCTA（.landing-cta）は **登録不要で始められるコンテンツのカードに1つずつ**（2026-08-02〜）。
+   作問（/myproblems.html）とメンチンドリル（/chinitsu.html）は同格に扱う。
+   ログイン必須の導線をカードとして並べないこと（権限のない訪問者が行き止まりに落ちる）。
+
+   ★ PCは2カラム・スマホは縦積みだが **構造はどちらも同じ**。
+   スマホ用に別レイアウトを作らないこと（片方だけ直す事故が起きる）。
+
+   配色は 70 : 25 : 5 —— ベース(--color-bg) : カードの段差(--color-surface) : アクセント(--color-accent)。
+   **アクセントはCTAとアイコンにだけ使う**。枠線や見出しに広げるとCTAの目立ちが薄まる。
+   セクションの区切りは色を増やすのではなく、余白と surface の段差で作ること。 */
 .landing {
   text-align: center;
 }
 
 .landing-hero {
-  padding: 36px 0 8px;
+  padding: 40px 0 0;
 }
 
+/* 見出し → リード → 本文 でジャンプ率をはっきり落とす（動画で言うメリハリ） */
 .landing-title {
   margin: 0 0 12px;
-  font-size: clamp(1.7rem, 6.5vw, 2.4rem);
+  font-size: clamp(1.9rem, 7vw, 2.6rem);
   font-weight: bold;
   letter-spacing: 0.04em;
   color: var(--color-text-bright);
 }
 
 .landing-lead {
-  margin: 0 0 28px;
+  margin: 0 0 32px;
   font-size: clamp(0.95rem, 3.4vw, 1.05rem);
   line-height: 1.7;
   color: var(--color-text-secondary);
 }
 
-/* CTAは横並び。入らなければ折り返して縦積みになる（説明文は各CTAの直下に付く）。
-   2つのボタンは同じ大きさに揃える（片方だけ小さいと機能の格差に見えるため）ので、
-   列を等幅（flex: 1 1 0）にしてボタンを幅いっぱいに伸ばす */
-.landing-cta-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: center;
-  gap: 8px 20px;
-}
-
-/* ★ 幅は 380px 固定（伸縮させない）。主CTAの文言「今すぐメンチン何切るドリルを始める」が
-   1行に収まる幅で、縮めると片方だけ2行になって高さが揃わなくなる。
-   入らなくなったら縮まずに折り返して縦並びになる。**文言を長くするときはこの幅を見直すこと** */
-.landing-cta-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  flex: 0 0 380px;
-  max-width: 100%;
-}
-
-.landing-cta-item .landing-cta {
-  width: 100%;
-}
-
-/* 主CTA。既存の --color-primary 塗りより一段強く見せるためアクセント色を使う
-   （背景 #2e3440 に対して約6.2:1 = WCAG AA） */
+/* CTA。既存の --color-primary 塗りより一段強く見せるためアクセント色を使う
+   （背景 #2e3440 に対して約6.2:1 = WCAG AA）。
+   カードの中で最下部に置くので幅いっぱいに伸ばす */
 .landing-cta {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
+  width: 100%;
   min-height: 56px;
-  padding: 0 36px;
+  padding: 0 20px;
   border-radius: 10px;
   background: var(--color-accent);
   color: var(--color-bg);
@@ -184,105 +168,117 @@
   }
 }
 
-/* 副次CTA（作問画面）。主CTAと同格に見せないよう塗らずに枠線だけにする。
-   ★ .landing-cta の hover/active を上書きするので、必ずその後ろに置くこと */
-.landing-cta--sub {
-  background: transparent;
-  color: var(--color-accent);
-  box-shadow: inset 0 0 0 1px var(--color-accent);
-}
-
-@media (hover: hover) {
-  .landing-cta--sub:hover {
-    background: rgba(136, 192, 208, 0.12);
-  }
-}
-
-.landing-note {
-  margin: 14px 0 0;
-  font-size: 0.8rem;
-  color: var(--color-text-muted);
-}
-
-.landing-features {
+/* コンテンツ2枚（作問／メンチンドリル）。並び順は JSX の CONTENTS が持っているので、
+   CSSで order を触らないこと（PCの左右とスマホの上下が食い違う） */
+.landing-contents {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-top: 44px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-top: 40px;
   text-align: left;
 }
 
-.landing-feature {
-  padding: 18px 16px;
+/* ベース背景との段差（配色の25%ぶん）。区切り線ではなく面で分ける。
+   ★ 縦フレックスにして .landing-points を伸ばすことで、
+   要点の行数が左右で違ってもCTAの高さが揃う */
+.landing-content-card {
+  display: flex;
+  flex-direction: column;
+  padding: 20px 18px;
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: 12px;
   background: var(--color-surface);
 }
 
-.landing-feature-icon {
-  display: block;
-  margin-bottom: 10px;
-  color: var(--color-accent);
-}
-
-.landing-feature h2 {
-  margin: 0 0 6px;
-  font-size: 0.95rem;
+.landing-content-card h2 {
+  margin: 0 0 16px;
+  font-size: 1.15rem;
   font-weight: bold;
   color: var(--color-text-bright);
 }
 
-.landing-feature p {
-  margin: 0;
-  font-size: 0.82rem;
+.landing-points {
+  flex: 1;
+  margin: 0 0 20px;
+  padding: 0;
+  list-style: none;
+}
+
+.landing-points li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.landing-points li:last-child {
+  margin-bottom: 0;
+}
+
+/* アイコンは1行目の文字と高さを合わせる（li の先頭で上に浮かないように） */
+.landing-feature-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  color: var(--color-accent);
+}
+
+.landing-points strong {
+  display: block;
+  margin-bottom: 2px;
+  font-size: 0.95rem;
+  color: var(--color-text);
+}
+
+.landing-points span {
+  display: block;
+  max-width: 34em;
+  font-size: 0.9rem;
   line-height: 1.7;
   color: var(--color-text-muted);
 }
 
 .landing-secondary {
-  margin-top: 44px;
-  padding-top: 26px;
+  margin-top: 64px;
+  padding-top: 32px;
   border-top: 1px solid var(--color-border);
 }
 
+/* 見出しの大きさはコンテンツカード（.landing-content-card h2）と揃える。
+   ここは副次セクションなので、格の差は「色を落とす・段差を付けない」で表す */
 .landing-secondary h2 {
-  margin: 0 0 8px;
-  font-size: 1rem;
+  margin: 0 0 16px;
+  font-size: 1.15rem;
   font-weight: bold;
   color: var(--color-text);
 }
 
-.landing-secondary p {
-  max-width: 520px;
-  margin: 0 auto 16px;
-  font-size: 0.85rem;
-  line-height: 1.7;
-  color: var(--color-text-muted);
-}
-
-/* ログインでできることの一覧。ドリル（登録不要）との違いが伝わるよう具体的に書く。
-   ここにCTAを増やさないこと（主CTAはドリルの1つだけ） */
+/* ログインでできることの一覧。ドリル・作問（登録不要）との違いが伝わるよう具体的に書く。
+   ここにCTAを増やさないこと（塗りのCTAはコンテンツカードの2つだけ）。
+   ★ 上のコンテンツカードと同じ2カラムにして左右の端を揃える
+   （中央寄せの狭いブロックにすると、カードと左端がズレて座りが悪くなる） */
 .landing-benefits {
-  max-width: 520px;
-  margin: 0 auto 18px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin: 0 0 24px;
   padding: 0;
   list-style: none;
   text-align: left;
 }
 
 .landing-benefits li {
-  margin-bottom: 12px;
+  margin-bottom: 0;
 }
 
 .landing-benefits strong {
   display: block;
   margin-bottom: 2px;
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   color: var(--color-text);
 }
 
 .landing-benefits span {
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   line-height: 1.7;
   color: var(--color-text-muted);
 }
@@ -305,28 +301,34 @@
   }
 }
 
+/* スマホがメインターゲット。カードは縦積みになるが、**構造はPCと同じまま**にする */
 @media (max-width: 640px) {
   .landing-hero {
-    padding: 22px 0 8px;
+    padding: 24px 0 0;
   }
 
-  .landing-features {
+  .landing-contents {
     grid-template-columns: 1fr;
-    margin-top: 36px;
+    margin-top: 32px;
   }
 
-  .landing-cta {
-    width: 100%;
-    padding: 0 20px;
+  /* 本文を小さくしない（スマホの本文で 14px 台は読みにくい）。
+     文字を上げるぶん、行間が詰まって見えないよう .landing-points li の間隔も広めにしてある */
+  .landing-points strong {
+    font-size: 1rem;
   }
 
-  /* 幅いっぱいの縦積みにする（横並びのまま潰れると文言が読めなくなる） */
-  .landing-cta-item {
-    width: 100%;
+  .landing-points span {
+    font-size: 0.95rem;
   }
 
-  .landing-note {
-    margin-top: 8px;
+  .landing-secondary {
+    margin-top: 48px;
+    padding-top: 28px;
+  }
+
+  .landing-benefits {
+    grid-template-columns: 1fr;
   }
 }
 

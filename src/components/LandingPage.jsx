@@ -1,10 +1,10 @@
 /* アイコンは絵文字ではなくインラインSVGで持つ（環境差で字形が変わらない・色を継承できるため）。
-   外部アイコンライブラリは追加しない方針。stroke幅・角の丸めは3つで統一すること。 */
-function iconProps() {
+   外部アイコンライブラリは追加しない方針。stroke幅・角の丸めは全アイコンで統一すること。 */
+function iconProps(size = 20) {
   return {
     className: 'landing-feature-icon',
-    width: 26,
-    height: 26,
+    width: size,
+    height: size,
     viewBox: '0 0 24 24',
     fill: 'none',
     stroke: 'currentColor',
@@ -13,6 +13,38 @@ function iconProps() {
     strokeLinejoin: 'round',
     'aria-hidden': true,
   };
+}
+
+function IconLayout() {
+  return (
+    <svg {...iconProps()}>
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <rect x="14" y="14" width="7" height="7" rx="1" />
+    </svg>
+  );
+}
+
+function IconBook() {
+  return (
+    <svg {...iconProps()}>
+      <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+      <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+    </svg>
+  );
+}
+
+function IconShare() {
+  return (
+    <svg {...iconProps()}>
+      <circle cx="18" cy="5" r="3" />
+      <circle cx="6" cy="12" r="3" />
+      <circle cx="18" cy="19" r="3" />
+      <line x1="8.6" y1="13.5" x2="15.4" y2="17.5" />
+      <line x1="15.4" y1="6.5" x2="8.6" y2="10.5" />
+    </svg>
+  );
 }
 
 function IconShuffle() {
@@ -46,35 +78,69 @@ function IconReview() {
   );
 }
 
-const FEATURES = [
+/* 2つのコンテンツ。1枚のカードが「見出し → 要点3つ → CTA」で完結する形にしてある（2026-08-02〜）。
+   ★ CTAをヒーローではなくカードの中に置くのは、スマホで縦に積んだときに
+     「どの説明のボタンなのか」が離れないようにするため。ヒーローにCTA行を戻さないこと。
+   説明文（desc）は1行で収まる長さに保つ —— スマホで2行になると3項目で縦が伸びすぎる。 */
+const CONTENTS = [
   {
-    Icon: IconShuffle,
-    title: '無限ランダム出題',
-    desc: '手牌はその場で生成されるので出題が尽きません。答えを覚えてしまうこともありません。',
+    key: 'make',
+    href: '/myproblems.html',
+    title: '何切る問題をつくる',
+    ctaLabel: '問題をつくる',
+    points: [
+      {
+        Icon: IconLayout,
+        title: '局面をならべるだけ',
+        desc: '手牌・ドラ・巡目を選ぶだけ',
+      },
+      {
+        Icon: IconBook,
+        title: '保存して問題集にする',
+        desc: 'my問題集(β) で何度でも解き直せます',
+      },
+      {
+        Icon: IconShare,
+        title: 'Xで共有する',
+        desc: 'リンクひとつ。相手のログインも不要',
+      },
+    ],
   },
   {
-    Icon: IconTimer,
-    title: '90秒タイムアタック',
-    desc: '制限時間内の正答数を競います。その日のスコアはデイリーランキングに載ります。',
-  },
-  {
-    Icon: IconReview,
-    title: '間違えた手牌だけ復習',
-    desc: 'タイムアタックで誤答した手牌を、そのまま解き直せます。',
+    key: 'chinitsu',
+    href: '/chinitsu.html',
+    title: 'メンチン何切るドリル',
+    ctaLabel: 'ドリルを始める',
+    points: [
+      {
+        Icon: IconShuffle,
+        title: '無限ランダム出題',
+        desc: '手牌はその場で生成。出題が尽きません',
+      },
+      {
+        Icon: IconTimer,
+        title: '90秒タイムアタック',
+        desc: 'その日のスコアがランキングに載ります',
+      },
+      {
+        Icon: IconReview,
+        title: '間違えた手牌だけ復習',
+        desc: '誤答した手牌をそのまま解き直せます',
+      },
+    ],
   },
 ];
 
 /**
  * 未ログインでトップページに来た人向けのランディング。
- * 主目的は「無料ドリル（/chinitsu.html）へ送ること」なので、主CTA（塗り）は1つだけ。
+ * 構成は「ヒーロー → コンテンツ2枚（CTA込み） → ログイン案内」の1カラム。
+ * PCは2カラム・スマホは縦積みになるだけで、**構造はどちらも同じ**（出し分けをしないこと）。
  *
- * その隣に副次CTAとして作問画面（/myproblems.html）を置いている（2026-08-01〜）。
- * ★ ログイン不要で作れるようになったから並べられる導線であって、
- *   **行き止まりに落ちる導線（ログイン必須のもの）をここに増やさないこと**。
- *   格を分けるため副次側は枠線のみ（.landing-cta--sub）にしてある。
+ * ★ 塗りのCTA（.landing-cta）は **登録不要で始められるコンテンツのカードに1つずつ**。
+ *   **行き止まりに落ちる導線（ログイン必須のもの）をカードとして増やさないこと**。
  *
  * ログイン導線は最下部の副次セクションのまま。ドリルも作問も登録不要で始められるので、
- * 訪問者にとって最初の一歩はログインではないため（同格に並べると main CTA が薄まる）。
+ * 訪問者にとって最初の一歩はログインではないため（同格に並べるとCTAが薄まる）。
  */
 export default function LandingPage({ onLogin }) {
   return (
@@ -83,24 +149,24 @@ export default function LandingPage({ onLogin }) {
         <h1 className="landing-title">解いて、強くなる</h1>
         {/* 見出しに準じる短い一行なので句点は付けない */}
         <p className="landing-lead">一問一答形式の麻雀学習サイト</p>
-        <div className="landing-cta-row">
-          <div className="landing-cta-item">
-            <a className="landing-cta" href="/chinitsu.html">今すぐメンチン何切るドリルを始める</a>
-            <p className="landing-note">登録不要・そのまま遊べます</p>
-          </div>
-          <div className="landing-cta-item">
-            <a className="landing-cta landing-cta--sub" href="/myproblems.html">何切る問題をつくる</a>
-            <p className="landing-note">ログイン不要・作った問題はXで共有できます</p>
-          </div>
-        </div>
       </section>
 
-      <section className="landing-features">
-        {FEATURES.map(({ Icon, title, desc }) => (
-          <div className="landing-feature" key={title}>
-            <Icon />
+      <section className="landing-contents">
+        {CONTENTS.map(({ key, href, title, ctaLabel, points }) => (
+          <div className="landing-content-card" key={key}>
             <h2>{title}</h2>
-            <p>{desc}</p>
+            <ul className="landing-points">
+              {points.map(({ Icon, title: pointTitle, desc }) => (
+                <li key={pointTitle}>
+                  <Icon />
+                  <div>
+                    <strong>{pointTitle}</strong>
+                    <span>{desc}</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <a className="landing-cta" href={href}>{ctaLabel}</a>
           </div>
         ))}
       </section>
