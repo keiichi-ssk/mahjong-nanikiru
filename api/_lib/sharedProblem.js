@@ -60,7 +60,10 @@ export async function fetchSharedProblemResult(token) {
   //   新しい API キー（sb_secret_… / sb_publishable_…）
   //     … apikey だけ。**JWT ではないので Bearer に入れると PostgREST が解釈できず 401 になる**
   const isJwt = /^ey[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(key);
-  const headers = isJwt ? { apikey: key, Authorization: `Bearer ${key}` } : { apikey: key };
+  // ★ User-Agent は必ず名乗ること。新しい secret key は **User-Agent がブラウザに見えると
+  //   401 を返す**（鍵がブラウザに漏れて使われるのを防ぐ Supabase 側の仕様）
+  const headers = { apikey: key, 'User-Agent': 'zagakumahjong-server' };
+  if (isJwt) headers.Authorization = `Bearer ${key}`;
 
   let rows;
   try {
@@ -68,8 +71,22 @@ export async function fetchSharedProblemResult(token) {
       `${url}/rest/v1/user_problems?share_token=eq.${token}&select=${COLUMNS}&limit=1`,
       { headers },
     );
-    // 鍵の形式も添える（値は漏らさない）。401 のとき、形式の取り違えかを切り分けられる
-    if (!res.ok) return { problem: null, reason: `upstream-${res.status}-${isJwt ? 'jwt' : 'apikey'}` };
+    if (!res.ok) {
+      const kind = isJwt ? 'jwt' : 'apikey';
+      // 401 のときだけ、同じ URL に anon キー（既に設定済みの別の鍵）で投げてみて切り分ける。
+      //   anon が通る   → URL は正しい ＝ secret キーの値の問題
+      //   anon も落ちる → URL かプロジェクトの取り違え
+      if (res.status === 401) {
+        const anon = (process.env.VITE_SUPABASE_ANON_KEY ?? '').replace(/\s+/g, '');
+        if (anon) {
+          const probe = await fetch(`${url}/rest/v1/user_problems?select=id&limit=1`, {
+            headers: { apikey: anon, Authorization: `Bearer ${anon}`, 'User-Agent': 'zagakumahjong-server' },
+          }).catch(() => null);
+          return { problem: null, reason: `upstream-401-${kind}-anonprobe-${probe?.status ?? 'failed'}` };
+        }
+      }
+      return { problem: null, reason: `upstream-${res.status}-${kind}` };
+    }
     rows = await res.json();
   } catch (e) {
     // 例外の種類だけ返す（message には URL が入りうるので載せない）
