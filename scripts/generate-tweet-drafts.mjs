@@ -138,6 +138,28 @@ function draftHtml(d, i, tweetText, answerText, intentUrl) {
     </section>`;
 }
 
+// 生成した下書きのシェアURLを一度だけ叩き、本番のOGPカードをキャッシュに載せておく。
+// X のクローラーは og:image の取得に時間がかかると諦め、カードが画像なしの小さい表示になる。
+// /api/og はその手牌のカードを初回アクセス時にその場で生成するため約2秒（関数のコールドスタート時は
+// 5秒超）かかり、**投稿した瞬間がまさにその初回**に当たる。先に叩いて Vercel のエッジキャッシュに
+// 載せておけば X からは即座に返る。
+// X と同じ手順（中継ページのHTMLを読む → og:image を取りに行く）を踏むので、
+// カードが出せる状態かどうかの確認も兼ねる。ネットワークが無くても下書きは使えるよう、失敗しても止めない。
+async function warmUpCard(shareUrl) {
+  try {
+    const page = await fetch(shareUrl, { signal: AbortSignal.timeout(20000) });
+    if (!page.ok) return { shareUrl, ok: false, detail: `中継ページが ${page.status}` };
+    const imageUrl = (await page.text()).match(/property="og:image" content="([^"]+)"/)?.[1];
+    if (!imageUrl) return { shareUrl, ok: false, detail: 'og:image が見つからない' };
+    const image = await fetch(imageUrl, { signal: AbortSignal.timeout(20000) });
+    if (!image.ok) return { shareUrl, ok: false, detail: `カード画像が ${image.status}` };
+    await image.arrayBuffer(); // 最後まで受け取って初めてキャッシュに載る
+    return { shareUrl, ok: true };
+  } catch (e) {
+    return { shareUrl, ok: false, detail: e.message };
+  }
+}
+
 function previewPageHtml(cardsHtml) {
   return `<!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><title>Xシェア下書きプレビュー</title><style>
@@ -196,10 +218,12 @@ function previewPageHtml(cardsHtml) {
 const count = Number(process.argv[2]) || 5;
 const drafts = pickCandidates(count);
 
+const shareUrls = [];
 const cards = drafts.map((d, i) => {
   // 本文（クイズ）は buildShareUrl が組み立てたものをそのまま流用する（文言の二重管理を避けるため）
   const intentUrl = buildShareUrl(d.hand);
   const params = new URL(intentUrl).searchParams;
+  shareUrls.push(params.get('url'));
   // コピー用の本文には手牌付きリンク（/api/share?q=...）も含める。
   // Xが text の後ろに url を付けるのと同じ並びにしてあるので、投稿画面から投稿しても手コピーでも結果は同じ。
   // 「X投稿画面を開く」リンクは intentUrl のまま（url パラメータと本文の両方に入れるとURLが二重に出るため）
@@ -218,4 +242,15 @@ writeFileSync(outPath, previewPageHtml(cards.join('\n')));
 console.log(`${drafts.length}件の下書きを生成しました。プレビューをブラウザで開きます: ${outPath}`);
 if (process.platform === 'win32') {
   exec(`start "" "${outPath}"`);
+}
+
+console.log('OGPカードをウォームアップしています…（投稿時にXがカード画像を取りに来るのを待たせないため）');
+const warmed = await Promise.all(shareUrls.map(warmUpCard));
+const failed = warmed.filter(r => !r.ok);
+if (failed.length === 0) {
+  console.log(`✓ ${warmed.length}件のカードを準備しました。すぐに投稿して大丈夫です。`);
+} else {
+  console.log(`△ ${warmed.length - failed.length}/${warmed.length}件を準備しました。次のカードは準備できていません:`);
+  for (const f of failed) console.log(`  - ${f.shareUrl}（${f.detail}）`);
+  console.log('  投稿してもカード画像が出ないことがあります（本番URLへ接続できているか確認してください）。');
 }
