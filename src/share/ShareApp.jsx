@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import ProblemView from '../components/ProblemView'
+import AnswerTally from './AnswerTally'
 import { decodeProblemParam } from '../utils/problemShare'
 import { SITE_URL } from '../config/site'
 import { track, EVENTS } from '../utils/analytics'
@@ -42,6 +43,46 @@ async function loadProblem({ token, packed }) {
   return decodeProblemParam(packed)
 }
 
+// 一度回答した問題を覚えておく（同じ人が開き直すたびに数えないため）。
+// ★ これは「善意の人が二重に数えられない」ための仕組みで、荒らし対策ではない
+//   （API を直接叩けば回避できる。集計は参考情報なので、そこまでは作り込まない）
+const ANSWERED_KEY = 'sharedAnswered'
+
+function loadAnswered(token) {
+  try {
+    return JSON.parse(localStorage.getItem(ANSWERED_KEY) ?? '{}')[token] ?? null
+  } catch {
+    return null
+  }
+}
+
+function saveAnswered(token, answer) {
+  try {
+    const all = JSON.parse(localStorage.getItem(ANSWERED_KEY) ?? '{}')
+    all[token] = answer
+    localStorage.setItem(ANSWERED_KEY, JSON.stringify(all))
+  } catch {
+    /* プライベートモード等で保存できなくても、集計の表示自体は動く */
+  }
+}
+
+// 回答を送って集計を受け取る。answer を省くと数えずに集計だけ取る。
+// ★ 集計を「開いたとき」ではなく「回答したとき」に取るのは、先に渡すと
+//   画面で隠しても開発者ツールで答えが見えてしまうため
+async function postAnswer(token, answer) {
+  try {
+    const res = await fetch('/api/answer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(answer == null ? { t: token } : { t: token, answer }),
+    })
+    if (!res.ok) return null
+    return await res.json()
+  } catch {
+    return null   // 集計が出せなくても問題は解けるので、黙って諦める
+  }
+}
+
 export default function ShareApp() {
   // status: 'loading' | 'ready' | 'invalid'
   // ★ 「?p= が無い」は URL を見た時点で分かるので初期 state で決める。
@@ -50,6 +91,23 @@ export default function ShareApp() {
     const { token, packed } = readParams()
     return { status: token || packed ? 'loading' : 'invalid', problem: null }
   })
+  // 集計。null のあいだは何も出さない（回答するまで表示しない）
+  const [tally, setTally] = useState(null)
+  const [myAnswer, setMyAnswer] = useState(null)
+
+  // 集計が取れるのはトークン方式（DBに実体がある問題）だけ。
+  // ?p= の共有は問題がDBに無いので、集計の置き場所そのものが無い
+  const token = readParams().token
+
+  async function handleAnswered({ answer }) {
+    if (!token) return
+    setMyAnswer(answer)
+    // すでに回答済みなら数え直さず、集計だけ取り直す
+    const already = loadAnswered(token)
+    const result = await postAnswer(token, already ? null : answer)
+    if (!already) saveAnswered(token, answer)
+    if (result?.supported !== false) setTally(result)
+  }
 
   useEffect(() => {
     const params = readParams()
@@ -101,8 +159,10 @@ export default function ShareApp() {
               「東4局 3本場 9巡目」を自動で入れるので、盤面中央と同じ内容が
               盤面の上にもう一度並ぶ。タイトル自体は my問題集の一覧で
               問題を見分けるのに要るため、生成はやめずに表示だけ落としてある */}
-          {/* ラウンドの文脈が無いので standalone。正誤は記録しない（DBに問題行が無い） */}
-          <ProblemView standalone problem={problem} index={0} total={1} />
+          {/* ラウンドの文脈が無いので standalone。正誤は記録しない（DBに問題行が無い）。
+              onAnswered は「選んだ牌」を受け取るためのもの（集計用・default タイプのみ発火） */}
+          <ProblemView standalone problem={problem} index={0} total={1} onAnswered={handleAnswered} />
+          <AnswerTally tally={tally?.tally} total={tally?.total} myAnswer={myAnswer} />
           <footer className="share-footer">
             <p className="share-footer-lead">この問題は、誰かが作って共有したものです。</p>
             <a className="share-cta" href="/">自分でも問題を作ってみる</a>

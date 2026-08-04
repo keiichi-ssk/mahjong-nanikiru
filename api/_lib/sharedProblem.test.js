@@ -76,10 +76,15 @@ describe('fetchSharedProblemResult', () => {
     expect((await fetchSharedProblemResult(TOKEN)).reason).toBe('no-row');
   });
 
-  // 403 は GRANT 不足の症状（RLS で弾かれる場合は 0 件の正常応答になる）
-  it('403 のときは PostgreSQL のエラーコードまで返す', async () => {
+  // 403 は GRANT 不足の症状（RLS で弾かれる場合は 0 件の正常応答になるので区別できる）
+  it('403 は upstream-403 として返す', async () => {
     mockFetch(403, { code: '42501' });
-    expect((await fetchSharedProblemResult(TOKEN)).reason).toContain('42501');
+    expect((await fetchSharedProblemResult(TOKEN)).reason).toBe('upstream-403');
+  });
+
+  it('通信に失敗したら fetch-failed', async () => {
+    globalThis.fetch = vi.fn(async () => { throw new Error('boom'); });
+    expect((await fetchSharedProblemResult(TOKEN)).reason).toBe('fetch-failed');
   });
 });
 

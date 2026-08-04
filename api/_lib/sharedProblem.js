@@ -1,5 +1,6 @@
-// 共有された自作問題を「共有トークン」から1件だけ取り出す共通処理。
-// api/shared-problem.js（本体）・api/share-q.js（中継ページ）・api/og-problem.js（カード画像）が使う。
+// 共有された自作問題を「共有トークン」から取り出す／回答を集計する。
+// api/shared-problem.js（本体）・api/share-q.js（中継ページ）・api/og-problem.js（カード画像）・
+// api/answer.js（集計）が使う。
 //
 // ★★ このファイルはサーバー専用。src/ 側から import しないこと ★★
 //   サービスロールキーを使うので、ブラウザに渡るコードに混ぜると鍵が漏れる。
@@ -12,11 +13,14 @@
 //   user_problems の RLS は閉じたまま、ここで「トークン一致の1行・必要な列だけ」を返している。
 
 import { fromUserDb } from '../../src/utils/userProblemMapper.js';
+import { sbFetch, describeFailure } from './supabase.js';
 
 // share_token は uuid。形式を確かめてから問い合わせる（不正な文字列でDBを叩かない）
 const TOKEN_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // 共有相手に渡す列。**user_id を含めないこと**（誰が作ったかは渡さない）。
+// ★ answer_tally も含めない —— 回答する前に「みんなの答え」がブラウザへ届いてしまい、
+//   画面で隠しても開発者ツールで見えてしまう（集計は api/answer.js が回答と引き換えに返す）。
 // ⚠ 列を足すときは user_problems に実在することを確認する。存在しない列名を書くと
 //   PostgREST が 400 を返し、共有ページが丸ごと開けなくなる
 const COLUMNS = [
@@ -30,18 +34,6 @@ export function isShareToken(value) {
   return typeof value === 'string' && TOKEN_PATTERN.test(value);
 }
 
-// JWT に入っているロール名だけを取り出す（診断用。鍵の値そのものは扱わない）。
-// service_role なら RLS も GRANT も素通しになるので、403 が返るときは anon を掴んでいる疑いが濃い。
-// ★ atob を使うのは Edge Runtime（og-problem.js）でも動かすため。Buffer はあちらに無い
-function jwtRole(token) {
-  try {
-    const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-    return JSON.parse(atob(payload))?.role ?? 'norole';
-  } catch {
-    return 'unparsable';
-  }
-}
-
 /**
  * トークンに対応する問題を取りに行き、{ problem, reason } を返す。
  *
@@ -49,79 +41,70 @@ function jwtRole(token) {
  * 本番で切り分けるにはこれしか手がかりがない**。値そのものは漏らさず、
  * どの段階で止まったかだけを返す:
  *   invalid-token  … トークンの形式が uuid ではない
- *   not-configured … 環境変数（VITE_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY）が未設定
- *   upstream-4xx   … Supabase が拒否した（列名の誤り・鍵が無効など）
+ *   not-configured … 環境変数が未設定
+ *   fetch-failed   … 通信に失敗した
+ *   upstream-403   … GRANT 不足（RLS で弾かれる場合は 0 件の正常応答になる）
+ *   upstream-401   … 鍵が無効、または送り方が形式に合っていない
  *   no-row         … 接続はできたが、そのトークンの行が無い
  */
 export async function fetchSharedProblemResult(token) {
   if (!isShareToken(token)) return { problem: null, reason: 'invalid-token' };
 
-  // ★ 空白の除去は必須。Vercel の環境変数に値を貼り付けると改行や空白が混ざることがあり
-  //   （折り返し表示されたキーを手で選択コピーすると途中に改行が入る）、
-  //   そのままヘッダに渡すと fetch が「不正なヘッダ値」で例外を投げる。
-  //   URL も JWT も空白を含まない値なので、全部落としてしまって構わない。
-  const url = (process.env.VITE_SUPABASE_URL ?? '').replace(/\s+/g, '').replace(/\/+$/, '');
-  const key = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? '').replace(/\s+/g, '');
-  // 環境変数が未設定でも 500 で落とさない（呼び出し側が「見つからない」として扱える）
-  if (!url || !key) return { problem: null, reason: 'not-configured' };
-  if (!/^https:\/\/\S+$/.test(url)) return { problem: null, reason: 'bad-url' };
-
-  // ★ Supabase の鍵には2つの形式があり、送り方が違う（2026-08-04）:
-  //   従来の JWT（eyJ…の3部構成 / service_role・anon）
-  //     … apikey と Authorization: Bearer の両方に入れる
-  //   新しい API キー（sb_secret_… / sb_publishable_…）
-  //     … apikey だけ。**JWT ではないので Bearer に入れると PostgREST が解釈できず 401 になる**
-  const isJwt = /^ey[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(key);
-  // ★ User-Agent は必ず名乗ること。新しい secret key は **User-Agent がブラウザに見えると
-  //   401 を返す**（鍵がブラウザに漏れて使われるのを防ぐ Supabase 側の仕様）
-  const headers = { apikey: key, 'User-Agent': 'zagakumahjong-server' };
-  if (isJwt) headers.Authorization = `Bearer ${key}`;
-
-  let rows;
-  try {
-    const res = await fetch(
-      `${url}/rest/v1/user_problems?share_token=eq.${token}&select=${COLUMNS}&limit=1`,
-      { headers },
-    );
-    if (!res.ok) {
-      // 鍵の「種類」だけを添える。JWT ならロール名まで出す（値は決して載せない）
-      const kind = isJwt ? `jwt-${jwtRole(key)}` : 'apikey';
-      // PostgreSQL のエラーコードだけ拾う（42501 = permission denied ＝ GRANT 不足）
-      if (res.status === 403) {
-        const code = await res.json().then(b => b?.code ?? 'nocode').catch(() => 'nobody');
-        return { problem: null, reason: `upstream-403-${kind}-${code}` };
-      }
-      // 401 のときだけ、同じ URL に anon キー（既に設定済みの別の鍵）で投げてみて切り分ける。
-      //   anon が通る   → URL は正しい ＝ secret キーの値の問題
-      //   anon も落ちる → URL かプロジェクトの取り違え
-      if (res.status === 401) {
-        const anon = (process.env.VITE_SUPABASE_ANON_KEY ?? '').replace(/\s+/g, '');
-        if (anon) {
-          const probe = await fetch(`${url}/rest/v1/user_problems?select=id&limit=1`, {
-            headers: { apikey: anon, Authorization: `Bearer ${anon}`, 'User-Agent': 'zagakumahjong-server' },
-          }).catch(() => null);
-          return { problem: null, reason: `upstream-401-${kind}-anonprobe-${probe?.status ?? 'failed'}` };
-        }
-      }
-      return { problem: null, reason: `upstream-${res.status}-${kind}` };
-    }
-    rows = await res.json();
-  } catch (e) {
-    // 例外の種類だけ返す（message には URL が入りうるので載せない）
-    return { problem: null, reason: `fetch-failed-${e?.name ?? 'unknown'}` };
-  }
-
-  if (!Array.isArray(rows) || rows.length === 0) return { problem: null, reason: 'no-row' };
+  const { status, body } = await sbFetch(
+    `/rest/v1/user_problems?share_token=eq.${token}&select=${COLUMNS}&limit=1`,
+  );
+  if (status !== 200) return { problem: null, reason: describeFailure(status) };
+  if (!Array.isArray(body) || body.length === 0) return { problem: null, reason: 'no-row' };
 
   // ★★ isUserProblem を必ず付けること（2026-08-04）★★
   //   これが無いと出題側が公式問題とみなし、**スーツ置換されて牌姿が変わってしまう**
   //   （判定は problemDisplay.js の usesSuitRemap / usesBoardView が isUserProblem で行う）。
   //   自作問題を置換しないのは「実戦の局面を切り取って議論する」ためで、共有と一体の仕様。
   //   ?p= 方式の decodeProblemParam も同じ理由で付けている（problemShare.js）
-  return { problem: { ...fromUserDb(rows[0]), isUserProblem: true }, reason: null };
+  return { problem: { ...fromUserDb(body[0]), isUserProblem: true }, reason: null };
 }
 
 /** 問題だけが欲しい呼び出し向け（中継ページ・カード画像）。無ければ null。 */
 export async function fetchSharedProblem(token) {
   return (await fetchSharedProblemResult(token)).problem;
+}
+
+/**
+ * 回答を1件足して、更新後の集計を返す（{ tally, reason }）。
+ *
+ * ★ 加算は Postgres 側の関数 bump_answer_tally が1文で行う。
+ *   「読んで＋1して書き戻す」をここでやると、同時に回答されたぶんを数え落とす。
+ * ★ version（問題の骨格のハッシュ）が保存済みのものと違えば、関数側が集計を作り直す。
+ *   ＝ 作者が手牌を変えたら自動でリセットされ、解説だけ直したときは引き継がれる。
+ */
+export async function bumpAnswerTally(token, version, answer) {
+  if (!isShareToken(token)) return { tally: null, reason: 'invalid-token' };
+
+  const { status, body } = await sbFetch('/rest/v1/rpc/bump_answer_tally', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ p_token: token, p_version: version, p_answer: answer }),
+  });
+  if (status !== 200) return { tally: null, reason: describeFailure(status) };
+  // 対象の行が無ければ関数は null を返す
+  if (body === null) return { tally: null, reason: 'no-row' };
+  return { tally: body, reason: null };
+}
+
+/**
+ * 集計だけを読む（既に回答済みの人が開き直したとき用。カウントしない）。
+ * 保存されている version が渡されたものと違えば、その集計は別の問題のものなので空を返す。
+ */
+export async function fetchAnswerTally(token, version) {
+  if (!isShareToken(token)) return { tally: null, reason: 'invalid-token' };
+
+  const { status, body } = await sbFetch(
+    `/rest/v1/user_problems?share_token=eq.${token}&select=answer_tally,answer_version&limit=1`,
+  );
+  if (status !== 200) return { tally: null, reason: describeFailure(status) };
+  if (!Array.isArray(body) || body.length === 0) return { tally: null, reason: 'no-row' };
+
+  const row = body[0];
+  if (row.answer_version !== version) return { tally: {}, reason: null };
+  return { tally: row.answer_tally ?? {}, reason: null };
 }

@@ -524,7 +524,10 @@ function BetaoriView({ problem, onAnswer, savedAnswer, onPersist }) {
 // standalone … 共有ページ（share.html）のように「1問だけを単独で見せる」用途。
 //   ラウンドの文脈（カテゴリへ戻る・問題 n/m・前後のナビ）が存在しないので、それらを出さない。
 //   既定は false ＝ 出題フローの従来動作なので、App.jsx 側は無変更で動く
-export default function ProblemView({ problem, index, total, onBack, onPrev, onNext, onFinish, onAnswer, savedAnswer, onPersistAnswer, standalone = false }) {
+// onAnswered … 回答した「中身」を知りたい呼び出し向け（共有ページの集計が使う）。
+//   onAnswer が正誤しか渡さないのに対し、こちらは選んだ牌そのものを渡す。
+//   ★ default タイプでだけ呼ばれる（他タイプは回答の形が違うので集計の対象外）
+export default function ProblemView({ problem, index, total, onBack, onPrev, onNext, onFinish, onAnswer, onAnswered, savedAnswer, onPersistAnswer, standalone = false }) {
   // savedAnswer があれば回答済み状態（選択牌・リーチ・スーツ置換）を復元する。
   // 問題の切替は key（playingKey-currentIndex）による再マウントで行われるため、
   // ここでの useState 初期化だけで問題ごとの初期化が完結する
@@ -593,6 +596,8 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
     // これらのタイプは各 View 内で onAnswer / persist を行う
     if (problemType === 'naki-timing' || problemType === 'naki-choice' || problemType === 'betaori') return;
     onAnswer?.(problem.id, isCorrect);
+    // 選んだ牌そのものを渡す（共有ページの集計用）。復元時は発火しないので二重に数えない
+    onAnswered?.({ answer: selected, isCorrect });
     persistAnswer({ selected, selectedRiichi });
   }, [answered]); // eslint-disable-line react-hooks/exhaustive-deps
 

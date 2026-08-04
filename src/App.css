@@ -3334,6 +3334,152 @@
 /* .share-title は削除（2026-07-30）。共有ページにタイトルを出さなくなったため。
    理由は ShareApp.jsx のコメント参照（盤面中央と同じ「東4局 3本場 9巡目」が二重に出ていた） */
 
+/* ===== みんなの選択（共有ページの回答集計・AnswerTally.jsx）=====
+   ★ 回答したあとにだけ出す。開いた時点では取りに行かない（先に渡すと開発者ツールで答えが見える）。
+   ★ 1人目から表示する仕様なので、**回答者数を必ず併記する**こと
+     （「100%」だけだと、1人しか答えていないのに総意のように見えてしまう）。
+   ★ 正解を強調しないこと。ここは「他の人がどう考えたか」を見せる場所で、
+     正誤は ProblemView の解答パネルが担当する（役割を混ぜない） */
+.answer-tally {
+  max-width: 520px;
+  margin: 24px auto 0;
+  padding: 18px 16px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+
+.answer-tally-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.answer-tally-head h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: bold;
+  color: var(--color-text-bright);
+}
+
+.answer-tally-total {
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.answer-tally-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.answer-tally-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 6px;
+  border-radius: 8px;
+}
+
+/* 自分が選んだ行。色だけに頼らず「あなた」の文字も添える */
+.answer-tally-row.is-mine {
+  background: var(--color-surface-hover);
+}
+
+.tally-label {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 牌は白背景・角丸・36×49px の統一ルールどおり（CLAUDE.md） */
+.tally-tile {
+  box-sizing: border-box;
+  width: 36px;
+  height: 49px;
+  padding: 1px;
+  background: #fff;
+  border: 2px solid #ccc;
+  border-radius: 6px;
+  object-fit: contain;
+}
+
+.tally-tile-fallback {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.tally-ankan {
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+}
+
+.tally-bar {
+  flex: 1;
+  height: 8px;
+  min-width: 40px;
+  border-radius: 4px;
+  background: var(--color-bg);
+  overflow: hidden;
+}
+
+.tally-bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--color-primary-light);
+}
+
+/* 数字は桁が揃うようにする（行ごとに幅が動くと読みにくい） */
+.tally-pct,
+.tally-count {
+  flex-shrink: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.tally-pct {
+  width: 3.2em;
+  font-size: 0.95rem;
+  color: var(--color-text);
+}
+
+.tally-count {
+  width: 3.6em;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.tally-mine-mark {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-text-bright);
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+
+@media (max-width: 600px) {
+  .answer-tally {
+    padding: 16px 12px;
+  }
+
+  /* 幅が足りないぶんは件数を落とす（％で足りる）。
+     ★ 「あなた」バッジは消さないこと —— 消すと自分の行が背景色だけで示されることになり、
+       色を見分けにくい人に伝わらない（色だけに意味を持たせない） */
+  .tally-count {
+    display: none;
+  }
+}
+
 .share-footer {
   margin-top: 32px;
   padding-top: 22px;
