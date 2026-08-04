@@ -112,7 +112,13 @@ export async function fetchSharedProblemResult(token) {
   }
 
   if (!Array.isArray(rows) || rows.length === 0) return { problem: null, reason: 'no-row' };
-  return { problem: fromUserDb(rows[0]), reason: null };
+
+  // ★★ isUserProblem を必ず付けること（2026-08-04）★★
+  //   これが無いと出題側が公式問題とみなし、**スーツ置換されて牌姿が変わってしまう**
+  //   （判定は problemDisplay.js の usesSuitRemap / usesBoardView が isUserProblem で行う）。
+  //   自作問題を置換しないのは「実戦の局面を切り取って議論する」ためで、共有と一体の仕様。
+  //   ?p= 方式の decodeProblemParam も同じ理由で付けている（problemShare.js）
+  return { problem: { ...fromUserDb(rows[0]), isUserProblem: true }, reason: null };
 }
 
 /** 問題だけが欲しい呼び出し向け（中継ページ・カード画像）。無ければ null。 */
