@@ -10,7 +10,11 @@
 // 列を足したときは toUserDb にも足すこと。
 // 足し忘れは userProblemMapper.test.js の「toDb の列を取りこぼさない」テストが検出する。
 
-import { fromDb, toDb, newProblemBase } from './problemMapper'
+// ★ 相対 import には必ず .js を付けること。
+//   このファイルは api/ 配下（Vercel のサーバーレス関数）からも読まれる。Vite は拡張子を
+//   補ってくれるが **Node の ESM は補わない**ので、付け忘れると本番の API だけが 500 で落ちる
+//   （ローカルもテストも通ってしまうので気づきにくい）。依存先の problemMapper 側も同じ。
+import { fromDb, toDb, newProblemBase } from './problemMapper.js'
 
 // toDb が返すが user_problems には無い列。
 //   section    … category_id と二重管理になるため持たない（出題時に u:<category_id> として導出する）

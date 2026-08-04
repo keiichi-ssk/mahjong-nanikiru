@@ -2,8 +2,10 @@
 // アプリ（App.jsx）と管理画面（AdminApp.jsx）の両方で使う唯一の実装。
 // フィールドを追加するときはここだけを変更すれば両画面に反映される。
 
-import { normalizeMelds } from './problemConstants'
-import { normalizeTsumogiri } from './importBoard'
+// ★ 相対 import に .js を付けているのは、このファイルが api/ 配下からも読まれるため
+//   （Node の ESM は拡張子を補わない。付け忘れると本番の API だけ 500 になる）
+import { normalizeMelds } from './problemConstants.js'
+import { normalizeTsumogiri } from './importBoard.js'
 
 // other_discard は旧形式（単一オブジェクト）と新形式（配列・最大3人分）が混在するため、
 // 読み込み時に必ず配列へ正規化する（書き込みは常に配列）

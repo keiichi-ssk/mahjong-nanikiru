@@ -12,8 +12,10 @@
 // ★ BoardSnapshot は「アプリ側から見た盤面の素の姿」であって、牌譜フォーマットの写しではない。
 //   牌譜ごとの方言はアダプタ側で吸収し、この形には持ち込まないこと。
 
-import { sortTiles } from './tileUtils';
-import { normalizeMelds, relativeWind } from './problemConstants';
+// ★ 相対 import に .js を付けているのは、このファイルが api/ 配下からも読まれるため
+//   （Node の ESM は拡張子を補わない。付け忘れると本番の API だけ 500 になる）
+import { sortTiles } from './tileUtils.js';
+import { normalizeMelds, relativeWind } from './problemConstants.js';
 
 // 席は東南西北の4つ。BoardSnapshot は「誰が自分か」に依存せず絶対風で持つ
 export const WINDS = ['東', '南', '西', '北'];
