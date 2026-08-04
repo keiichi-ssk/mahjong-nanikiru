@@ -86,6 +86,11 @@ export async function fetchSharedProblemResult(token) {
     if (!res.ok) {
       // 鍵の「種類」だけを添える。JWT ならロール名まで出す（値は決して載せない）
       const kind = isJwt ? `jwt-${jwtRole(key)}` : 'apikey';
+      // PostgreSQL のエラーコードだけ拾う（42501 = permission denied ＝ GRANT 不足）
+      if (res.status === 403) {
+        const code = await res.json().then(b => b?.code ?? 'nocode').catch(() => 'nobody');
+        return { problem: null, reason: `upstream-403-${kind}-${code}` };
+      }
       // 401 のときだけ、同じ URL に anon キー（既に設定済みの別の鍵）で投げてみて切り分ける。
       //   anon が通る   → URL は正しい ＝ secret キーの値の問題
       //   anon も落ちる → URL かプロジェクトの取り違え
