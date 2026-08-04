@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { getTileImageUrl, getTileLabel, sortTiles, getDoraIndicator } from '../utils/tileUtils'
+import { getTileLabel, sortTiles } from '../utils/tileUtils'
 import { normalizeProblemType, parseAnswers } from '../utils/judgeUtils'
 import {
-  NAKI_TIMING_OPTIONS, MELD_TYPE_LABELS, MELD_TILE_COUNT, normalizeMelds, PROBLEM_TYPE_LABELS,
+  MELD_TYPE_LABELS, MELD_TILE_COUNT, normalizeMelds, PROBLEM_TYPE_LABELS,
 } from '../utils/problemConstants'
 import { parseTileNotation } from '../utils/importBoard'
 import { useIsNarrow } from '../utils/useMediaQuery'
@@ -10,7 +10,7 @@ import { questionImagePath, QUESTION_IMAGE_BUCKET } from '../utils/questionImage
 import { useDragReorder } from '../utils/useDragReorder'
 import {
   emptyDiscardBlock, toDiscardBlock, addDiscardTile, removeDiscardTile,
-  moveDiscardTile, clearDiscardTiles, toggleDiscardRiichi,
+  moveDiscardTile, toggleDiscardRiichi,
 } from '../utils/discardEdit'
 import QuestionImage from '../components/QuestionImage'
 import ShareButton from '../components/ShareButton'
@@ -23,13 +23,16 @@ import ResponsiveBoard from '../components/ResponsiveBoard'
 // このファイルは state とパネルの組み立てに専念する（部品は props で完結させ、state を持たせない）
 import {
   PALETTE_TABS, PANEL_TITLES, panelOfTab, answerPaletteMode, newAddingMeld,
-  SCORE_WINDS, DEFAULT_SCORES,
+  DEFAULT_SCORES,
 } from './editor/constants'
-import TileImg from './editor/TileImg'
-import { MeldPreview, MeldFromSelect, MeldTypeTabs, MeldAddingPanel } from './editor/MeldParts'
 import TilePalette from './editor/TilePalette'
-import { ScoreInputRow, ScoreSheet } from './editor/ScoreParts'
-import { WindSelector, TextCount } from './editor/FormParts'
+import { ScoreSheet } from './editor/ScoreParts'
+import { TextCount } from './editor/FormParts'
+import HandPanel from './editor/panels/HandPanel'
+import DoraPanel from './editor/panels/DoraPanel'
+import ScorePanel from './editor/panels/ScorePanel'
+import DiscardPanel from './editor/panels/DiscardPanel'
+import AnswerPanel from './editor/panels/AnswerPanel'
 
 // hideImage / hideReviewed / hideDelete / headerLead は自作問題の作成画面（MyProblemsApp）用の
 // オプション。既定値はすべて現行の管理画面の挙動なので、AdminApp 側は無変更で動く。
@@ -836,547 +839,69 @@ export default function ProblemEditor({
 
         {/* 手牌パネル（手牌・副露・出題注釈のタブから開く） */}
         {activePanel === 'hand' && (
-          <div className="palette-tab-content">
-            <div className="editor-section-label">テキスト一括入力</div>
-            <div className="tiles-text-input-row">
-              <input
-                type="text"
-                className="tiles-text-input"
-                value={tilesInput}
-                onChange={e => setTilesInput(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault()
-                    applyTilesText()
-                  }
-                }}
-                placeholder="例: 23467m234p234888s（Enterで適用）"
-              />
-              <button
-                className="tiles-text-apply-btn"
-                onClick={applyTilesText}
-              >
-                適用
-              </button>
-              <button
-                className="tiles-text-apply-btn tiles-text-clear-btn"
-                onClick={() => setTiles([])}
-              >
-                全削除
-              </button>
-            </div>
-
-            <div className="palette-tab-divider" />
-            <div className="editor-section-label">
-              副露（鳴き）<span className="tile-count">手牌 {tiles.length}枚</span>
-            </div>
-            {melds.length > 0 && (
-              <div className="editor-melds-inline">
-                {melds.map((meld, i) => (
-                  <div key={i} className="editor-meld-inline-item">
-                    <span className="editor-meld-inline-label">
-                      {MELD_TYPE_LABELS[meld.type]}
-                      <MeldFromSelect type={meld.type} value={meld.from} onChange={f => updateMeldFrom(i, f)} />
-                    </span>
-                    <MeldPreview meld={meld} />
-                    <button className="editor-meld-inline-remove" onClick={() => removeMeld(i)}>×</button>
-                  </div>
-                ))}
-              </div>
-            )}
-            {/* 副露の種類はサブタブで選ぶ。押した時点で入力が始まる（＝選択中の牌はクリア） */}
-            <MeldTypeTabs
-              active={addingMeld?.target === 'hand' ? addingMeld.type : null}
-              onSelect={startAddMeld}
-            />
-            {addingMeld?.target === 'hand' && (
-              <MeldAddingPanel
-                meld={addingMeld}
-                // 副露タブは入力待ちのままなのが正しい状態なので、解除ではなく牌のクリアにする
-                cancelLabel={paletteTab === 'meld' ? 'クリア' : 'キャンセル'}
-                onCancel={() => setAddingMeld(
-                  paletteTab === 'meld' ? newAddingMeld(addingMeld.type, 'hand') : null
-                )}
-                onRemoveTile={removeTileFromMeld}
-                onChangeFrom={changeAddingMeldFrom}
-              />
-            )}
-
-            {/* 注釈は手牌と一緒に書くことが多いのでこのパネルに置く（点数パネルには置かない）。
-                盤面ロック中はこのパネル自体が出ないので、正解設定パネルに同じものを出す */}
-            {noteEditor}
-          </div>
+          <HandPanel
+            tiles={tiles} setTiles={setTiles}
+            tilesInput={tilesInput} setTilesInput={setTilesInput} applyTilesText={applyTilesText}
+            melds={melds} updateMeldFrom={updateMeldFrom} removeMeld={removeMeld}
+            addingMeld={addingMeld} setAddingMeld={setAddingMeld} startAddMeld={startAddMeld}
+            removeTileFromMeld={removeTileFromMeld} changeAddingMeldFrom={changeAddingMeldFrom}
+            paletteTab={paletteTab} noteEditor={noteEditor}
+          />
         )}
 
-        {/* ドラパネル（ドラタブ・盤面の王牌クリックから開く）。
-            値の差し替えは下の牌パレットで行うので、ここは現在の値の確認だけ。
-            ★ 盤面の王牌に出るのは**ドラ表示牌**（1つ前の牌）なので、取り違えないよう両方並べる */}
-        {activePanel === 'dora' && (
-          <div className="palette-tab-content">
-            <div className="editor-section-label">いまのドラ</div>
-            <div className="editor-dora-row">
-              <span className="editor-current">ドラ</span>
-              {/* 押しても何も起きない見本なので button（TileImg）ではなく span で描く */}
-              <span className="tile-btn editor-tile editor-tile--static">
-                <img src={getTileImageUrl(dora)} alt={dora} width={30} height={41} />
-              </span>
-              <span className="editor-current">王牌に出る表示牌</span>
-              <span className="tile-btn editor-tile editor-tile--static">
-                <img src={getTileImageUrl(getDoraIndicator(dora))} alt={getDoraIndicator(dora)} width={30} height={41} />
-              </span>
-            </div>
-            <p className="editor-current">下の牌パレットをクリックするとドラが差し替わります。</p>
-          </div>
-        )}
+        {activePanel === 'dora' && <DoraPanel dora={dora} />}
 
-        {/* 点数パネル（タブ列には無く、盤面の点数チップから開く）。
-            ドラ・場風・局・自風・巡目は盤面の中央フィールドで直接設定するのでここには置かない
-            （盤面を見ながら設定できるほうが速く、右カラムの縦の長さも抑えられる） */}
         {activePanel === 'jokyo' && (
-          <div className="palette-tab-content">
-            {/* 自風だけはスマホでもここから設定する。盤面の自風バッジは点数チップの中の
-                小さいボタンなので、卓を縮小すると押しにくいため。
-                局・本場・巡目は盤面中央のセレクタで足りるので出さない（入口を増やさない） */}
-            {isNarrow && !boardLocked && (
-              <label className="score-edit-jikaze">
-                自風
-                <select
-                  className="editor-type-select"
-                  value={jikaze ?? ''}
-                  onChange={e => setJikaze(e.target.value === '' ? null : e.target.value)}
-                >
-                  <option value="">—</option>
-                  {SCORE_WINDS.map(w => (
-                    <option key={w} value={w}>{w}家</option>
-                  ))}
-                </select>
-              </label>
-            )}
-            <div className="editor-section-label">点数状況</div>
-            {/* 点数は常に既定値（全員25000）が入る仕様なので「未設定」の選択肢は置かない */}
-            {(() => {
-              const total = SCORE_WINDS.reduce((sum, w) => sum + (scores[w] ?? 0), 0) + (scores.kyotaku ?? 0)
-              const totalOk = total === 100000
-              return (
-                <div className="score-edit-area">
-                  {/* スマホは一覧＋ポップアップ。ScoreInputRow の2段レイアウトは
-                      右カラムの幅（500px）前提で、スマホでは横にはみ出すため */}
-                  {isNarrow
-                    ? [...SCORE_WINDS, 'kyotaku'].map(w => (
-                        <button
-                          key={w}
-                          className={
-                            'score-list-row' +
-                            (jikaze === w ? ' score-list-row--self' : '') +
-                            (activeScoreWind === w ? ' score-list-row--active' : '')
-                          }
-                          onClick={() => setScoreSheet(w)}
-                        >
-                          <span className="score-list-wind">
-                            {w === 'kyotaku' ? '供託' : `${w}家`}
-                            {jikaze === w && <span className="score-edit-self">自分</span>}
-                          </span>
-                          <span className="score-list-value">{(scores[w] ?? 0).toLocaleString()}</span>
-                          <span className="score-list-caret">›</span>
-                        </button>
-                      ))
-                    : (
-                      <>
-                        {SCORE_WINDS.map(w => (
-                          <ScoreInputRow
-                            key={w}
-                            label={`${w}家`}
-                            isSelf={jikaze === w}
-                            active={activeScoreWind === w}
-                            value={scores[w] ?? 0}
-                            onChange={v => setScores(prev => ({ ...prev, [w]: v }))}
-                            steps={[-10000, -1000, -100, 100, 1000, 10000]}
-                          />
-                        ))}
-                        <ScoreInputRow
-                          label="供託"
-                          isSelf={false}
-                          value={scores.kyotaku ?? 0}
-                          onChange={v => setScores(prev => ({ ...prev, kyotaku: v }))}
-                          steps={[-1000, 1000]}
-                        />
-                      </>
-                    )}
-                  <div className="score-edit-footer">
-                    <span className={`score-edit-total${totalOk ? '' : ' score-edit-total--warn'}`}>
-                      {totalOk
-                        ? `合計 ${total.toLocaleString()}点（供託込み） ✓`
-                        : `⚠ 合計 ${total.toLocaleString()}点（供託込み）— 100,000点になっていません`}
-                    </span>
-                    <button className="dora-clear" onClick={() => setScores({ ...DEFAULT_SCORES })}>
-                      全員25000に戻す
-                    </button>
-                  </div>
-                </div>
-              )
-            })()}
-          </div>
+          <ScorePanel
+            isNarrow={isNarrow} boardLocked={boardLocked}
+            jikaze={jikaze} setJikaze={setJikaze}
+            scores={scores} setScores={setScores}
+            activeScoreWind={activeScoreWind} setScoreSheet={setScoreSheet}
+          />
         )}
 
-        {/* 捨て牌パネル（自分を含む各家の河。データ構造の都合で変数名は otherDiscards のまま） */}
         {activePanel === 'sutehai' && (
-          <div className="palette-tab-content">
-            {otherDiscards.map((od, bi) => (
-              <div
-                key={bi}
-                className={`other-discard-block${activeSutehaiIdx === bi ? ' other-discard-block--active' : ''}`}
-                onClick={() => setSutehaiActiveIdx(bi)}
-              >
-                <div className="editor-section-label">
-                  家{otherDiscards.length > 1 ? `（${bi + 1}人目${activeSutehaiIdx === bi ? '・牌の追加先' : ''}）` : ''}
-                  <button
-                    className="dora-clear"
-                    onClick={e => { e.stopPropagation(); removeOtherDiscardBlock(bi) }}
-                  >
-                    この家を削除
-                  </button>
-                </div>
-                <WindSelector
-                  value={od.player}
-                  onChange={v => updateOtherDiscard(bi, o => ({ ...o, player: v }))}
-                  winds={['東', '南', '西', '北']}
-                  suffix="家"
-                  selfWind={jikaze}
-                />
-
-                <div className="editor-section-label">
-                  捨て牌（クリックでリーチ宣言牌に設定/解除、×で削除）
-                  {od.tiles.length > 0 && (
-                    <button
-                      className="dora-clear"
-                      onClick={() => updateOtherDiscard(bi, clearDiscardTiles)}
-                    >
-                      全削除
-                    </button>
-                  )}
-                </div>
-                <div
-                  className="other-discard-tiles-list"
-                  onDragOver={e => {
-                    // 牌の隙間・末尾の空き領域では末尾への挿入とみなす（牌上は各アイテム側で処理）
-                    if (sutehaiDrag?.block !== bi) return
-                    e.preventDefault()
-                    updateSutehaiDropIndex(od.tiles.length)
-                  }}
-                  onDrop={e => {
-                    e.preventDefault()
-                    if (sutehaiDrag?.block === bi && sutehaiDropIndex !== null) {
-                      moveOtherDiscardTile(bi, sutehaiDrag.index, sutehaiDropIndex)
-                    }
-                    setSutehaiDrag(null)
-                    setSutehaiDropIndex(null)
-                  }}
-                >
-                  {od.tiles.map((t, i) => (
-                    <div
-                      key={i}
-                      className={
-                        `other-discard-tile-item${od.riichiIndex === i ? ' other-discard-tile-item--riichi' : ''}` +
-                        `${sutehaiDrag?.block === bi && sutehaiDrag.index === i ? ' other-discard-tile-item--dragging' : ''}` +
-                        `${sutehaiDrag?.block === bi && sutehaiDropIndex === i ? ' other-discard-tile-item--drop-before' : ''}` +
-                        `${sutehaiDrag?.block === bi && sutehaiDropIndex === i + 1 && i === od.tiles.length - 1 ? ' other-discard-tile-item--drop-after' : ''}`
-                      }
-                      draggable
-                      onDragStart={e => {
-                        e.dataTransfer.effectAllowed = 'move'
-                        e.dataTransfer.setData('text/plain', '') // Firefoxはこれが無いとドラッグが始まらない
-                        setSutehaiDrag({ block: bi, index: i })
-                      }}
-                      onDragEnd={() => { setSutehaiDrag(null); setSutehaiDropIndex(null) }}
-                      onDragOver={e => {
-                        if (sutehaiDrag?.block !== bi) return
-                        e.preventDefault()
-                        e.stopPropagation()
-                        // カーソルが牌の左半分なら前、右半分なら後ろに挿入
-                        const rect = e.currentTarget.getBoundingClientRect()
-                        updateSutehaiDropIndex(e.clientX < rect.left + rect.width / 2 ? i : i + 1)
-                      }}
-                    >
-                      <button className="other-discard-tile-remove" onClick={() => removeOtherDiscardTile(bi, i)}>×</button>
-                      <div
-                        className={`other-discard-tile-img-wrap${od.riichiIndex === i ? ' tile-rotated' : ''}`}
-                        onClick={() => toggleOtherDiscardRiichi(bi, i)}
-                        title={getTileLabel(t)}
-                      >
-                        <img src={getTileImageUrl(t)} alt={getTileLabel(t)} />
-                      </div>
-                    </div>
-                  ))}
-                  {od.tiles.length === 0 && <span className="editor-empty">牌を追加してください</span>}
-                </div>
-
-                <div className="editor-section-label">副露（鳴き）</div>
-                {od.melds.length > 0 && (
-                  <div className="editor-melds-inline">
-                    {od.melds.map((meld, mi) => (
-                      <div key={mi} className="editor-meld-inline-item">
-                        <span className="editor-meld-inline-label">
-                          {MELD_TYPE_LABELS[meld.type]}
-                          <MeldFromSelect
-                            type={meld.type}
-                            value={meld.from}
-                            onChange={f => updateOtherDiscardMeldFrom(bi, mi, f)}
-                          />
-                        </span>
-                        <MeldPreview meld={meld} />
-                        <button className="editor-meld-inline-remove" onClick={() => removeOtherDiscardMeld(bi, mi)}>×</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {/* 手牌の副露と同じサブタブ。こちらは揃った時点で解除して捨て牌の送り先へ戻る */}
-                <MeldTypeTabs
-                  active={addingMeld?.target === bi ? addingMeld.type : null}
-                  onSelect={type => startAddOtherDiscardMeld(bi, type)}
-                />
-                {addingMeld?.target === bi && (
-                  <MeldAddingPanel
-                    meld={addingMeld}
-                    onCancel={() => setAddingMeld(null)}
-                    onRemoveTile={removeTileFromMeld}
-                    onChangeFrom={changeAddingMeldFrom}
-                  />
-                )}
-              </div>
-            ))}
-            {otherDiscards.length < 4 && (
-              <button className="other-discard-add-block" onClick={addOtherDiscardBlock}>
-                ＋ 家を追加（自分を含め最大4人）
-              </button>
-            )}
-            {otherDiscardIncomplete && (
-              <div className="other-discard-warning">
-                ⚠ 家と捨て牌の両方を設定してください。揃っていない家は（副露も含めて）保存されません。
-              </div>
-            )}
-            {otherDiscardDuplicatePlayer && (
-              <div className="other-discard-warning">
-                ⚠ 同じ家が複数設定されています。重複した家は最初の1つだけ保存されます。
-              </div>
-            )}
-          </div>
+          <DiscardPanel
+            otherDiscards={otherDiscards} jikaze={jikaze}
+            activeSutehaiIdx={activeSutehaiIdx} setSutehaiActiveIdx={setSutehaiActiveIdx}
+            updateOtherDiscard={updateOtherDiscard}
+            addOtherDiscardBlock={addOtherDiscardBlock}
+            removeOtherDiscardBlock={removeOtherDiscardBlock}
+            removeOtherDiscardTile={removeOtherDiscardTile}
+            moveOtherDiscardTile={moveOtherDiscardTile}
+            toggleOtherDiscardRiichi={toggleOtherDiscardRiichi}
+            sutehaiDrag={sutehaiDrag} setSutehaiDrag={setSutehaiDrag}
+            sutehaiDropIndex={sutehaiDropIndex} setSutehaiDropIndex={setSutehaiDropIndex}
+            updateSutehaiDropIndex={updateSutehaiDropIndex}
+            addingMeld={addingMeld} setAddingMeld={setAddingMeld}
+            startAddOtherDiscardMeld={startAddOtherDiscardMeld}
+            removeTileFromMeld={removeTileFromMeld}
+            changeAddingMeldFrom={changeAddingMeldFrom}
+            updateOtherDiscardMeldFrom={updateOtherDiscardMeldFrom}
+            removeOtherDiscardMeld={removeOtherDiscardMeld}
+            otherDiscardIncomplete={otherDiscardIncomplete}
+            otherDiscardDuplicatePlayer={otherDiscardDuplicatePlayer}
+          />
         )}
 
-        {/* 正解設定パネル（正解設定・解説に挿入のタブから開く） */}
         {activePanel === 'answer' && (
-          <div className="palette-tab-content">
-            {/* 通常（何切る） */}
-            {problemType === 'default' && (
-              <>
-                <div className="editor-section-label">正解牌（クリックで追加/解除・複数選択可）</div>
-                <div className="editor-tiles">
-                  {[...new Set(tiles)].map(t => (
-                    <TileImg
-                      key={t} tile={t}
-                      onClick={() => toggleAnswer(t)}
-                      className={`editor-tile ${answerList.includes(t) ? 'tile--answer' : ''}`}
-                    />
-                  ))}
-                </div>
-                {(() => {
-                  const counts = {}
-                  tiles.forEach(t => { counts[t] = (counts[t] ?? 0) + 1 })
-                  const quadTiles = Object.keys(counts).filter(t => counts[t] === 4)
-                  if (quadTiles.length === 0) return null
-                  return (
-                    <div className="editor-ankan-options">
-                      {quadTiles.map(t => (
-                        <button
-                          key={t}
-                          className={`editor-ankan-btn${answerList.includes(`ankan:${t}`) ? ' editor-ankan-btn--active' : ''}`}
-                          onClick={() => toggleAnswer(`ankan:${t}`)}
-                        >
-                          カン
-                          <img src={getTileImageUrl(t)} alt={getTileLabel(t)} />
-                        </button>
-                      ))}
-                    </div>
-                  )
-                })()}
-                <div className="editor-current">
-                  現在の正解: <strong>
-                    {answerList.length > 0
-                      ? answerList
-                          .map(a => a.startsWith('ankan:') ? `暗槓（${getTileLabel(a.slice(6))}）` : getTileLabel(a))
-                          .join('・')
-                      : '未設定'}
-                  </strong>
-                </div>
-                <div className="riichi-setting">
-                  <span className="riichi-setting-label">リーチ：</span>
-                  <button
-                    className={`riichi-setting-btn ${riichi === true  ? 'riichi-setting-btn--active' : ''}`}
-                    onClick={() => setRiichi(true)}
-                  >する</button>
-                  <button
-                    className={`riichi-setting-btn ${riichi === false ? 'riichi-setting-btn--active' : ''}`}
-                    onClick={() => setRiichi(false)}
-                  >しない</button>
-                  <button
-                    className={`riichi-setting-btn ${riichi === null  ? 'riichi-setting-btn--active' : ''}`}
-                    onClick={() => setRiichi(null)}
-                  >設定なし</button>
-                </div>
-              </>
-            )}
-
-            {/* リーチ判断 */}
-            {problemType === 'riichi-judgment' && (
-              <>
-                <div className="editor-section-label">正解（リーチ or ダマ）</div>
-                <div className="problem-type-selector">
-                  <button
-                    className={`problem-type-btn${riichi === true  ? ' problem-type-btn--active' : ''}`}
-                    onClick={() => setRiichi(true)}
-                  >リーチ</button>
-                  <button
-                    className={`problem-type-btn${riichi === false ? ' problem-type-btn--active' : ''}`}
-                    onClick={() => setRiichi(false)}
-                  >ダマ</button>
-                </div>
-                <div className="editor-current">
-                  現在の正解: <strong>{riichi === true ? 'リーチ' : riichi === false ? 'ダマ' : '未設定'}</strong>
-                </div>
-              </>
-            )}
-
-            {/* 鳴きタイミング */}
-            {problemType === 'naki-timing' && (
-              <>
-                <div className="editor-section-label">
-                  出た牌（他家の打牌）
-                  {discardedTile && (
-                    <button className="dora-clear" onClick={() => setDiscardedTile(null)}>クリア</button>
-                  )}
-                </div>
-                <div className="editor-current palette-tab-status">
-                  現在の出牌: <strong>{discardedTile ? getTileLabel(discardedTile) : '未設定'}</strong>
-                  {discardedTile && (
-                    <img
-                      src={getTileImageUrl(discardedTile)}
-                      alt={getTileLabel(discardedTile)}
-                      className="palette-tab-status-tile"
-                    />
-                  )}
-                </div>
-                <div className="palette-tab-divider" />
-                <div className="editor-section-label">正解タイミング</div>
-                <div className="naki-timing-selector">
-                  {NAKI_TIMING_OPTIONS.map(opt => (
-                    <button
-                      key={opt.value}
-                      className={`naki-timing-btn${answer === opt.value ? ' naki-timing-btn--active' : ''}`}
-                      onClick={() => setAnswer(opt.value)}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-                <div className="editor-current">
-                  現在の正解: <strong>{NAKI_TIMING_OPTIONS.find(o => o.value === answer)?.label ?? '未設定'}</strong>
-                </div>
-              </>
-            )}
-
-            {/* 鳴き選択 */}
-            {problemType === 'naki-choice' && (
-              <>
-                <div className="editor-section-label">選択肢（何が出たら鳴くか）</div>
-                {nakiChoices.length > 0 && (
-                  <div className="naki-choices-list">
-                    {nakiChoices.map((c, i) => (
-                      <div key={i} className="naki-choice-item">
-                        <TileImg tile={c.tile} size={32} onClick={() => {}} className="palette-tile" />
-                        <span className="naki-choice-tile-name">{getTileLabel(c.tile)}</span>
-                        <button
-                          className={`naki-choice-correct-btn${c.correct ? ' naki-choice-correct-btn--on' : ''}`}
-                          onClick={() => toggleNakiChoiceCorrect(i)}
-                        >
-                          {c.correct ? '正解' : '不正解'}
-                        </button>
-                        <button className="naki-choice-remove-btn" onClick={() => removeNakiChoice(i)}>×</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {nakiChoices.length === 0 && <span className="editor-empty">下のパレットから選択肢を追加してください</span>}
-              </>
-            )}
-
-            {/* ベタオリ（安全な順に並べる） */}
-            {problemType === 'betaori' && (
-              <>
-                <div className="editor-section-label">正解牌（安全な順にクリック・再クリックで解除。①が最も安全）</div>
-                <div className="editor-tiles">
-                  {[...new Set(tiles)].map(t => {
-                    const pos = answerList.indexOf(t)
-                    return (
-                      <span key={t} className="editor-order-tile">
-                        <TileImg
-                          tile={t}
-                          onClick={() => toggleAnswer(t)}
-                          className={`editor-tile ${pos >= 0 ? 'tile--answer' : ''}`}
-                        />
-                        {pos >= 0 && <span className="editor-order-badge">{pos + 1}</span>}
-                      </span>
-                    )
-                  })}
-                  {tiles.length === 0 && <span className="editor-empty">先に手牌を設定してください</span>}
-                </div>
-                <div className="editor-current">
-                  現在の正解（ドラッグで入れ替え・{answerList.length}枚 — 出題画面でもこの枚数を選ばせます）:
-                </div>
-                {answerList.length > 0 ? (
-                  <div className="editor-order-list" ref={answerOrderRef}>
-                    {answerList.map((a, i) => (
-                      <div
-                        key={a}
-                        data-drag-index={i}
-                        className={
-                          'editor-order-tile editor-order-tile--draggable' +
-                          (answerDragIndex === i ? ' editor-order-tile--dragging' : '') +
-                          (answerDropIndex === i ? ' editor-order-tile--drop-before' : '') +
-                          (answerDropIndex === i + 1 && i === answerList.length - 1 ? ' editor-order-tile--drop-after' : '')
-                        }
-                        {...answerDragHandlers}
-                      >
-                        <img src={getTileImageUrl(a)} alt={getTileLabel(a)} draggable={false} />
-                        <span className="editor-order-badge">{i + 1}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <span className="editor-empty">未設定（上の手牌をクリックして安全な順に追加）</span>
-                )}
-              </>
-            )}
-
-            <div className="palette-tab-divider" />
-            <div className="editor-section-label">
-              解説テキスト
-              {textLimits?.explanation && (
-                <TextCount len={explanation.length} max={textLimits.explanation} />
-              )}
-            </div>
-            <textarea
-              ref={explanationRef}
-              className="explanation-textarea"
-              value={explanation}
-              onChange={e => setExplanation(e.target.value)}
-              onFocus={() => { explanationTouchedRef.current = true; setPaletteMode('explanation') }}
-              placeholder="解説を入力してください（牌は下のパレットからカーソル位置に挿入できます）"
-              rows={3}
-              maxLength={textLimits?.explanation ?? undefined}
-            />
-
-            {/* 盤面ロック中は手牌パネルが無いので、注釈をここに出す */}
-            {boardLocked && noteEditor}
-          </div>
+          <AnswerPanel
+            problemType={problemType}
+            tiles={tiles} answerList={answerList} toggleAnswer={toggleAnswer}
+            riichi={riichi} setRiichi={setRiichi}
+            answer={answer} setAnswer={setAnswer}
+            discardedTile={discardedTile} setDiscardedTile={setDiscardedTile}
+            nakiChoices={nakiChoices}
+            toggleNakiChoiceCorrect={toggleNakiChoiceCorrect}
+            removeNakiChoice={removeNakiChoice}
+            answerOrderRef={answerOrderRef}
+            answerDragIndex={answerDragIndex} answerDropIndex={answerDropIndex}
+            answerDragHandlers={answerDragHandlers}
+            explanation={explanation} setExplanation={setExplanation}
+            explanationRef={explanationRef} explanationTouchedRef={explanationTouchedRef}
+            setPaletteMode={setPaletteMode}
+            textLimits={textLimits} boardLocked={boardLocked} noteEditor={noteEditor}
+          />
         )}
       </section>
 
