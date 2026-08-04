@@ -7,7 +7,7 @@
 //
 // ⚠ この API はローカルの Vite 開発サーバーでは動かない。変更したら push して本番で確認すること。
 
-import { fetchSharedProblem, isShareToken } from './_lib/sharedProblem.js';
+import { fetchSharedProblemResult, isShareToken } from './_lib/sharedProblem.js';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -19,9 +19,11 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'invalid token' });
   }
 
-  const problem = await fetchSharedProblem(token);
+  const { problem, reason } = await fetchSharedProblemResult(token);
   if (!problem) {
-    return res.status(404).json({ error: 'not found' });
+    // reason は「どの段階で止まったか」だけ（値は含まない）。
+    // api/ はローカルで動かないので、本番で切り分けるにはこれが唯一の手がかりになる
+    return res.status(404).json({ error: 'not found', reason });
   }
 
   // ★ キャッシュしない。この方式の目的が「編集したら同じURLで最新が見える」ことなので、

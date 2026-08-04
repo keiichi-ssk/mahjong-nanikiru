@@ -31,16 +31,23 @@ export function isShareToken(value) {
 }
 
 /**
- * トークンに対応する問題を返す。無い・壊れている・設定不足のときは null。
- * 返すのはアプリ内の problem オブジェクト（fromUserDb 済み）。
+ * トークンに対応する問題を取りに行き、{ problem, reason } を返す。
+ *
+ * reason は失敗した理由（成功時は null）。**api/ はローカルで動かせないので、
+ * 本番で切り分けるにはこれしか手がかりがない**。値そのものは漏らさず、
+ * どの段階で止まったかだけを返す:
+ *   invalid-token  … トークンの形式が uuid ではない
+ *   not-configured … 環境変数（VITE_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY）が未設定
+ *   upstream-4xx   … Supabase が拒否した（列名の誤り・鍵が無効など）
+ *   no-row         … 接続はできたが、そのトークンの行が無い
  */
-export async function fetchSharedProblem(token) {
-  if (!isShareToken(token)) return null;
+export async function fetchSharedProblemResult(token) {
+  if (!isShareToken(token)) return { problem: null, reason: 'invalid-token' };
 
   const url = process.env.VITE_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  // 環境変数が未設定でも 500 で落とさず null を返す（呼び出し側が「見つからない」として扱える）
-  if (!url || !key) return null;
+  // 環境変数が未設定でも 500 で落とさない（呼び出し側が「見つからない」として扱える）
+  if (!url || !key) return { problem: null, reason: 'not-configured' };
 
   let rows;
   try {
@@ -48,12 +55,17 @@ export async function fetchSharedProblem(token) {
       `${url}/rest/v1/user_problems?share_token=eq.${token}&select=${COLUMNS}&limit=1`,
       { headers: { apikey: key, Authorization: `Bearer ${key}` } },
     );
-    if (!res.ok) return null;
+    if (!res.ok) return { problem: null, reason: `upstream-${res.status}` };
     rows = await res.json();
   } catch {
-    return null;
+    return { problem: null, reason: 'fetch-failed' };
   }
 
-  if (!Array.isArray(rows) || rows.length === 0) return null;
-  return fromUserDb(rows[0]);
+  if (!Array.isArray(rows) || rows.length === 0) return { problem: null, reason: 'no-row' };
+  return { problem: fromUserDb(rows[0]), reason: null };
+}
+
+/** 問題だけが欲しい呼び出し向け（中継ページ・カード画像）。無ければ null。 */
+export async function fetchSharedProblem(token) {
+  return (await fetchSharedProblemResult(token)).problem;
 }
