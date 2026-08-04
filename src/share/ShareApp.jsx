@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import ProblemView from '../components/ProblemView'
 import AnswerTally from './AnswerTally'
 import { decodeProblemParam } from '../utils/problemShare'
+import { problemKey } from '../utils/problemKey'
 import { SITE_URL } from '../config/site'
 import { track, EVENTS } from '../utils/analytics'
 
@@ -46,9 +47,13 @@ async function loadProblem({ token, packed }) {
 // 一度回答した問題を覚えておく（同じ人が開き直すたびに数えないため）。
 // ★ これは「善意の人が二重に数えられない」ための仕組みで、荒らし対策ではない
 //   （API を直接叩けば回避できる。集計は参考情報なので、そこまでは作り込まない）
+//
+// ★★ 覚えるのは「トークン＋問題のバージョン」（2026-08-04 修正）★★
+//   トークンだけで覚えると、作者が手牌を変えて **別の問題になっても「もう答えた」扱い**になり、
+//   作り直された集計に1件も入らなくなる。バージョンが変われば改めて1回答えられる。
 const ANSWERED_KEY = 'sharedAnswered'
 
-function loadAnswered(token) {
+function loadAnsweredVersion(token) {
   try {
     return JSON.parse(localStorage.getItem(ANSWERED_KEY) ?? '{}')[token] ?? null
   } catch {
@@ -56,10 +61,10 @@ function loadAnswered(token) {
   }
 }
 
-function saveAnswered(token, answer) {
+function saveAnsweredVersion(token, version) {
   try {
     const all = JSON.parse(localStorage.getItem(ANSWERED_KEY) ?? '{}')
-    all[token] = answer
+    all[token] = version
     localStorage.setItem(ANSWERED_KEY, JSON.stringify(all))
   } catch {
     /* プライベートモード等で保存できなくても、集計の表示自体は動く */
@@ -102,10 +107,12 @@ export default function ShareApp() {
   async function handleAnswered({ answer }) {
     if (!token) return
     setMyAnswer(answer)
-    // すでに回答済みなら数え直さず、集計だけ取り直す
-    const already = loadAnswered(token)
+    // 「この問題のこの版に、もう答えたか」を見る。
+    // 手牌が変われば版も変わるので、作り直された集計にはきちんと1件入る
+    const version = await problemKey(problem)
+    const already = loadAnsweredVersion(token) === version
     const result = await postAnswer(token, already ? null : answer)
-    if (!already) saveAnswered(token, answer)
+    if (!already) saveAnsweredVersion(token, version)
     if (result?.supported !== false) setTally(result)
   }
 
