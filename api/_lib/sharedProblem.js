@@ -44,10 +44,16 @@ export function isShareToken(value) {
 export async function fetchSharedProblemResult(token) {
   if (!isShareToken(token)) return { problem: null, reason: 'invalid-token' };
 
-  const url = process.env.VITE_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  // ★ trim は必須。Vercel の環境変数にコピペすると末尾に改行や空白が入りがちで、
+  //   そのまま使うと fetch が「不正なヘッダ値」で例外を投げる（＝ fetch-failed になる）。
+  //   URL 側の末尾スラッシュも落としておく（`//rest/v1` になるのを防ぐ）
+  const url = (process.env.VITE_SUPABASE_URL ?? '').trim().replace(/\/+$/, '');
+  const key = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? '').trim();
   // 環境変数が未設定でも 500 で落とさない（呼び出し側が「見つからない」として扱える）
   if (!url || !key) return { problem: null, reason: 'not-configured' };
+  // trim しても直らない壊れ方（値の途中に改行がある等）は、原因が分かる形で止める
+  if (!/^https:\/\/[^\s]+$/.test(url)) return { problem: null, reason: 'bad-url' };
+  if (/\s/.test(key)) return { problem: null, reason: 'bad-key' };
 
   let rows;
   try {
@@ -57,8 +63,9 @@ export async function fetchSharedProblemResult(token) {
     );
     if (!res.ok) return { problem: null, reason: `upstream-${res.status}` };
     rows = await res.json();
-  } catch {
-    return { problem: null, reason: 'fetch-failed' };
+  } catch (e) {
+    // 例外の種類だけ返す（message には URL が入りうるので載せない）
+    return { problem: null, reason: `fetch-failed-${e?.name ?? 'unknown'}` };
   }
 
   if (!Array.isArray(rows) || rows.length === 0) return { problem: null, reason: 'no-row' };
