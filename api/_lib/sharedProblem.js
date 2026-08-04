@@ -44,16 +44,15 @@ export function isShareToken(value) {
 export async function fetchSharedProblemResult(token) {
   if (!isShareToken(token)) return { problem: null, reason: 'invalid-token' };
 
-  // ★ trim は必須。Vercel の環境変数にコピペすると末尾に改行や空白が入りがちで、
-  //   そのまま使うと fetch が「不正なヘッダ値」で例外を投げる（＝ fetch-failed になる）。
-  //   URL 側の末尾スラッシュも落としておく（`//rest/v1` になるのを防ぐ）
-  const url = (process.env.VITE_SUPABASE_URL ?? '').trim().replace(/\/+$/, '');
-  const key = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? '').trim();
+  // ★ 空白の除去は必須。Vercel の環境変数に値を貼り付けると改行や空白が混ざることがあり
+  //   （折り返し表示されたキーを手で選択コピーすると途中に改行が入る）、
+  //   そのままヘッダに渡すと fetch が「不正なヘッダ値」で例外を投げる。
+  //   URL も JWT も空白を含まない値なので、全部落としてしまって構わない。
+  const url = (process.env.VITE_SUPABASE_URL ?? '').replace(/\s+/g, '').replace(/\/+$/, '');
+  const key = (process.env.SUPABASE_SERVICE_ROLE_KEY ?? '').replace(/\s+/g, '');
   // 環境変数が未設定でも 500 で落とさない（呼び出し側が「見つからない」として扱える）
   if (!url || !key) return { problem: null, reason: 'not-configured' };
-  // trim しても直らない壊れ方（値の途中に改行がある等）は、原因が分かる形で止める
-  if (!/^https:\/\/[^\s]+$/.test(url)) return { problem: null, reason: 'bad-url' };
-  if (/\s/.test(key)) return { problem: null, reason: 'bad-key' };
+  if (!/^https:\/\/\S+$/.test(url)) return { problem: null, reason: 'bad-url' };
 
   let rows;
   try {
