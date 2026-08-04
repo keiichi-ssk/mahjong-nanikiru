@@ -21,6 +21,47 @@
     <meta property="og:image" content="https://zagakumahjong.com/ogp-home-2.png" />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
+    <!--
+      トップ（#root）が描画されるまでのローディング表示。chinitsu.html と同じ作り。
+      #root は空だと高さがほぼ0になり、その下に置いたサイト説明（.site-about）が
+      一瞬だけ画面の一番上に見えてしまう。それを塞ぐのがこのローディングの主目的で、
+      高さは .boot-loading 自身の min-height で確保する。
+      ※ #root 側に min-height を持たせてはいけない。マウント後も効き続けて、
+        中身が 100vh に満たないぶんが説明テキストの上の空白として残ってしまう。
+      index.css / App.css は本番では <link>、開発サーバーでは JS 経由で注入されるので、
+      開発時も確実に効くようここにインラインで書いている（CSSファイルには移さないこと）。
+      React の createRoot().render() はマウント時に #root の子要素を削除するため、
+      このローディングは JS 側で消す処理を書かなくても自動的に置き換わる。
+      背景色は index.css の --color-bg と同じ値。変えるときは両方そろえる。
+    -->
+    <style>
+      /* margin は index.css の * リセットに合わせる（開発時、CSS が来る前に
+         8px の白い枠が見えてしまうため） */
+      body { background: #2e3440; margin: 0; }
+      .boot-loading {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 14px;
+        color: #9fadbf;
+        font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+        font-size: 0.9rem;
+      }
+      .boot-loading-spinner {
+        width: 34px;
+        height: 34px;
+        border: 3px solid #434c5e;
+        border-top-color: #88c0d0;
+        border-radius: 50%;
+        animation: boot-spin 0.8s linear infinite;
+      }
+      @keyframes boot-spin { to { transform: rotate(360deg); } }
+      @media (prefers-reduced-motion: reduce) {
+        .boot-loading-spinner { animation-duration: 2.4s; }
+      }
+    </style>
     <!-- Google Analytics 4 -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-VQYJXV1K4H"></script>
     <script>
@@ -31,7 +72,12 @@
     </script>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot-loading">
+        <div class="boot-loading-spinner"></div>
+        <p>読み込んでいます…</p>
+      </div>
+    </div>
     <!--
       検索エンジン向けのサイト説明。トップページの中身は React（JS）描画のため、
       JSを実行しないクローラーが読めるテキストはここにしか無い。React側（LandingPage.jsx）へ
