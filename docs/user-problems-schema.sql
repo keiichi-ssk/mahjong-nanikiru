@@ -505,3 +505,99 @@ alter table public.user_problems
 --
 -- delete from public.user_problems   where title = 'テスト問題';
 -- delete from public.user_categories where name  = 'テストカテゴリ';
+
+
+-- ============================================================================
+-- 共有リンクのトークン化と、回答の集計（2026-08-04 実行済み）
+--
+-- 目的:
+--   (a) 共有した問題を作者があとから編集しても、配ったURLのまま最新が見えるようにする
+--   (b) 共有リンクを開いた人の「切った牌」を集計して見せる
+--
+-- 設計の要点:
+--   - 問題の中身はこれまでどおり user_problems にあり、共有URLは share_token を指すだけ。
+--     開く側は api/shared-problem 経由で読む（RLS は閉じたまま・サービスロールキーを使う）。
+--     「トークン一致の1行だけ返す」は RLS では安全に書けないため（条件次第で列挙できてしまう）
+--   - 集計は行を増やさず answer_tally（jsonb）に持つ。誰が答えたかは記録しない
+--   - answer_version は「問題の骨格（手牌・副露・ドラ・状況）のハッシュ」。
+--     src/utils/problemKey.js が計算する。**解説やタイトルは含めない**ので、
+--     文章を直しても集計は引き継がれ、手牌を変えたときだけ作り直される
+-- ============================================================================
+
+alter table public.user_problems add column share_token uuid;
+create unique index on public.user_problems (share_token);
+
+alter table public.user_problems add column answer_tally   jsonb not null default '{}'::jsonb;
+alter table public.user_problems add column answer_version text;
+
+-- api/ からサービスロールキーで読み書きするために必要。
+-- ⚠ service_role は RLS をバイパスするが、GRANT が無ければ **403** で弾かれる
+--   （RLS で弾かれた場合は 0 件の正常応答になるので、403 が出たら権限を疑うこと）
+grant select, update on public.user_problems to service_role;
+
+
+-- 回答を1件足して、更新後の集計を返す。
+--
+-- ★ 1つの文で読み書きするので、同時に回答されても数え落としが起きない
+--   （アプリ側で「読んで +1 して書き戻す」とロスト更新になる）
+-- ★ p_version が保存済みのものと違えば集計を作り直す
+--   ＝ 作者が手牌を変えたら自動リセット、解説だけ直したときは引き継ぐ
+create or replace function public.bump_answer_tally(
+  p_token   uuid,
+  p_version text,
+  p_answer  text
+)
+returns jsonb
+language sql
+as $$
+  update public.user_problems
+  set answer_tally = case
+        when answer_version is distinct from p_version
+          then jsonb_build_object(p_answer, 1)
+        else coalesce(answer_tally, '{}'::jsonb)
+             || jsonb_build_object(
+                  p_answer,
+                  coalesce((answer_tally ->> p_answer)::int, 0) + 1
+                )
+      end,
+      answer_version = p_version
+  where share_token = p_token
+  returning answer_tally;
+$$;
+
+-- 匿名ユーザーが直接呼べないようにする（呼ぶのは api/answer.js だけ）
+revoke all on function public.bump_answer_tally(uuid, text, text) from public, anon, authenticated;
+grant execute on function public.bump_answer_tally(uuid, text, text) to service_role;
+
+
+-- ---- 検証用 ----------------------------------------------------------------
+
+-- (1) 列が3つとも増えているか
+--
+-- select column_name, data_type
+--   from information_schema.columns
+--  where table_name = 'user_problems'
+--    and column_name in ('share_token', 'answer_tally', 'answer_version');
+
+-- (2) service_role に GRANT が出ているか（select と update が並べば OK）
+--
+-- select privilege_type
+--   from information_schema.role_table_grants
+--  where grantee = 'service_role' and table_name = 'user_problems';
+
+-- (3) 共有中の問題と、その集計を見る
+--
+-- select display_no, title, share_token, answer_version, answer_tally
+--   from public.user_problems
+--  where share_token is not null
+--  order by display_no;
+
+-- (4) 集計をリセットする（数字が荒らされたとき。生データは持たないのでリセットしか手が無い）
+--
+-- update public.user_problems
+--    set answer_tally = '{}'::jsonb, answer_version = null
+--  where share_token = '<トークン>';
+
+-- (5) 共有をやめる（既に配ったリンクを無効にする。トークンを消すだけでよい）
+--
+-- update public.user_problems set share_token = null where id = '<問題のid>';
