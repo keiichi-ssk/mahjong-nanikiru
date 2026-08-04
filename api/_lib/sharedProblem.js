@@ -30,6 +30,18 @@ export function isShareToken(value) {
   return typeof value === 'string' && TOKEN_PATTERN.test(value);
 }
 
+// JWT に入っているロール名だけを取り出す（診断用。鍵の値そのものは扱わない）。
+// service_role なら RLS も GRANT も素通しになるので、403 が返るときは anon を掴んでいる疑いが濃い。
+// ★ atob を使うのは Edge Runtime（og-problem.js）でも動かすため。Buffer はあちらに無い
+function jwtRole(token) {
+  try {
+    const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(payload))?.role ?? 'norole';
+  } catch {
+    return 'unparsable';
+  }
+}
+
 /**
  * トークンに対応する問題を取りに行き、{ problem, reason } を返す。
  *
@@ -72,7 +84,8 @@ export async function fetchSharedProblemResult(token) {
       { headers },
     );
     if (!res.ok) {
-      const kind = isJwt ? 'jwt' : 'apikey';
+      // 鍵の「種類」だけを添える。JWT ならロール名まで出す（値は決して載せない）
+      const kind = isJwt ? `jwt-${jwtRole(key)}` : 'apikey';
       // 401 のときだけ、同じ URL に anon キー（既に設定済みの別の鍵）で投げてみて切り分ける。
       //   anon が通る   → URL は正しい ＝ secret キーの値の問題
       //   anon も落ちる → URL かプロジェクトの取り違え
