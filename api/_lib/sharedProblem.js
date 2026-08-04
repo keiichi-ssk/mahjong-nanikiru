@@ -54,13 +54,22 @@ export async function fetchSharedProblemResult(token) {
   if (!url || !key) return { problem: null, reason: 'not-configured' };
   if (!/^https:\/\/\S+$/.test(url)) return { problem: null, reason: 'bad-url' };
 
+  // ★ Supabase の鍵には2つの形式があり、送り方が違う（2026-08-04）:
+  //   従来の JWT（eyJ…の3部構成 / service_role・anon）
+  //     … apikey と Authorization: Bearer の両方に入れる
+  //   新しい API キー（sb_secret_… / sb_publishable_…）
+  //     … apikey だけ。**JWT ではないので Bearer に入れると PostgREST が解釈できず 401 になる**
+  const isJwt = /^ey[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(key);
+  const headers = isJwt ? { apikey: key, Authorization: `Bearer ${key}` } : { apikey: key };
+
   let rows;
   try {
     const res = await fetch(
       `${url}/rest/v1/user_problems?share_token=eq.${token}&select=${COLUMNS}&limit=1`,
-      { headers: { apikey: key, Authorization: `Bearer ${key}` } },
+      { headers },
     );
-    if (!res.ok) return { problem: null, reason: `upstream-${res.status}` };
+    // 鍵の形式も添える（値は漏らさない）。401 のとき、形式の取り違えかを切り分けられる
+    if (!res.ok) return { problem: null, reason: `upstream-${res.status}-${isJwt ? 'jwt' : 'apikey'}` };
     rows = await res.json();
   } catch (e) {
     // 例外の種類だけ返す（message には URL が入りうるので載せない）
