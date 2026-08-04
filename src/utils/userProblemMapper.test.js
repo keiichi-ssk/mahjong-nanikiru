@@ -36,6 +36,15 @@ describe('toUserDb', () => {
     }
   });
 
+  // ★ 保存のたびに送ると、null で上書きして共有リンクと集計を壊す。
+  //   これらの更新は共有ボタンと api/answer だけが行う（userProblemMapper.js のコメント参照）
+  it('共有トークンと集計の列を含まない（保存で上書きしない）', () => {
+    const row = toUserDb({ ...sample, shareToken: 'tok', answerTally: { '1m': 3 } }, { categoryId: 'c1' });
+    expect(row).not.toHaveProperty('share_token');
+    expect(row).not.toHaveProperty('answer_tally');
+    expect(row).not.toHaveProperty('answer_version');
+  });
+
   it('category_id・title を持つ', () => {
     const row = toUserDb(sample, { categoryId: 'c1' });
     expect(row.category_id).toBe('c1');
@@ -100,6 +109,13 @@ describe('fromUserDb', () => {
   // 画面に出す番号。採番はDBのトリガーが行う
   it('display_no を displayNo として取り出す', () => {
     expect(fromUserDb({ id: 'p1', display_no: 12, tiles: [], melds: [] }).displayNo).toBe(12);
+  });
+
+  // 共有リンクのトークン。未共有の問題では null
+  it('share_token を shareToken として取り出す', () => {
+    const token = '22222222-2222-2222-2222-222222222222';
+    expect(fromUserDb({ id: 'p1', share_token: token, tiles: [], melds: [] }).shareToken).toBe(token);
+    expect(fromUserDb({ id: 'p1', tiles: [], melds: [] }).shareToken).toBeNull();
   });
 });
 

@@ -24,6 +24,11 @@ export const OMITTED_COLUMNS = ['id', 'section', 'image', 'reviewed', 'board_vie
 // user_id は含めない。
 // RLS の with check が守ってくれるとはいえ、更新のたびに送る必要がない値なので、
 // insert する側だけが付ける（誤って他人の id を混ぜる余地を無くす）
+//
+// ★★ share_token / answer_tally / answer_version も**意図的に含めない**（2026-08-04）★★
+//   いずれも編集画面から書き換える値ではない。問題を保存するたびに送ると、
+//   うっかり null で上書きしたときに **既に配った共有リンクが死に、集計も消える**。
+//   これらの更新は専用の処理（共有ボタン / api/answer）だけが行うこと。
 export function toUserDb(p, { categoryId = null } = {}) {
   const db = toDb(p)
   return {
@@ -60,6 +65,9 @@ export function fromUserDb(row) {
     categoryId: row.category_id ?? null,
     // 画面に出す番号。採番はDBのトリガーが行うので toUserDb には含めない
     displayNo:  row.display_no ?? null,
+    // 共有リンクのトークン。初めて共有したときに発行し、以後は使い回す
+    // （＝同じ問題は何度共有しても同じURLになり、編集しても既存リンクで最新が見える）
+    shareToken: row.share_token ?? null,
   }
 }
 

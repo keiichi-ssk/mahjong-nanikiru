@@ -9,7 +9,7 @@ import EditorGuide from './EditorGuide'
 import ShareButton from '../components/ShareButton'
 import { MAX_PROBLEMS, MAX_CATEGORIES, MAX_EXPLANATION, MAX_NOTE, insertErrorText } from './limits'
 import { snapshotToProblem } from '../utils/importBoard'
-import { openProblemShare } from '../utils/shareWindow'
+import { openProblemShare, openTokenShare } from '../utils/shareWindow'
 import { loadGuestDraft, saveGuestDraft, clearGuestDraft } from './guestDraft'
 import { useIsNarrow } from '../utils/useMediaQuery'
 import { track, EVENTS } from '../utils/analytics'
@@ -553,10 +553,48 @@ export default function MyProblemsApp() {
     await reload()
   }
 
-  // 一覧から直接 X へ共有する。問題の中身は URL に埋め込まれる（DBは公開しない）。
-  // タブを開く手順（ポップアップブロック対策）は openProblemShare が持つ
+  // 保存済みの問題に共有トークンを用意する（無ければ発行して返す）。
+  //
+  // ★ 既にあるトークンは**必ず使い回す**。作り直すと、前に配ったURLが古い内容を指したままになる。
+  //   `.is('share_token', null)` を付けているのは、別タブと同時に押されたときに
+  //   二重発行してURLが分裂するのを防ぐため（0行 = 誰かが先に発行済み → 読み直す）。
+  async function ensureShareToken(p) {
+    if (!p?.id) return null
+    if (p.shareToken) return p.shareToken
+
+    const token = crypto.randomUUID()
+    const { data, error } = await supabase
+      .from('user_problems')
+      .update({ share_token: token })
+      .eq('id', p.id)
+      .is('share_token', null)
+      .select('share_token')
+    if (error) return null
+    if (data && data.length > 0) return data[0].share_token
+
+    // 0行のときは「先に発行されていた」か「権限が無い」。読み直して確かめる
+    const { data: current } = await supabase
+      .from('user_problems')
+      .select('share_token')
+      .eq('id', p.id)
+      .maybeSingle()
+    return current?.share_token ?? null
+  }
+
+  // ★ 共有の入口はここ1つ。保存済みかどうかで方式が変わる:
+  //     保存済み … トークン方式（あとから編集しても、配ったURLのまま最新が見える）
+  //     未保存   … 従来どおり URL に問題の中身を埋める（編集しても反映されない）
+  //   タブを開く手順（ポップアップブロック対策）は shareWindow.js が持つ
+  async function shareAny(p) {
+    if (!p?.id) return openProblemShare(p)
+    const ok = await openTokenShare(() => ensureShareToken(p))
+    // 発行したてのトークンを手元にも反映する（次に共有するとき再発行しないように）
+    if (ok && !p.shareToken) await reload()
+    return ok
+  }
+
   async function shareProblem(p) {
-    if (!(await openProblemShare(p))) setStatus('共有リンクを作成できませんでした')
+    if (!(await shareAny(p))) setStatus('共有リンクを作成できませんでした')
   }
 
   async function deleteProblem(p) {
@@ -573,10 +611,9 @@ export default function MyProblemsApp() {
     await reload()
   }
 
-  // 一覧・エディタの共通の共有導線。問題の中身は URL に埋め込まれる（DBは公開しない）。
-  // タブを開く手順（ポップアップブロック対策）は openProblemShare が持つ
+  // エディタからの共有。方式の切り替えは shareAny が持つ（エラーの出し先だけが違う）
   async function shareFromEditor(p) {
-    if (!(await openProblemShare(p))) showSaveError('共有リンクを作成できませんでした')
+    if (!(await shareAny(p))) showSaveError('共有リンクを作成できませんでした')
   }
 
   if (authLoading) {

@@ -367,7 +367,21 @@ const SHARE_HASHTAGS = '#麻雀 #何切る #座学する麻雀';
  * 本文はハッシュタグだけで、局面は OGPカード（api/og-problem.js）が伝える。
  */
 export async function buildProblemShareUrl(problem) {
-  const shareUrl = `${SHARE_REDIRECT_URL}?p=${await encodeProblemParam(problem)}`;
+  return buildIntentUrl(`${SHARE_REDIRECT_URL}?p=${await encodeProblemParam(problem)}`);
+}
+
+/**
+ * 保存済みの問題を共有するURL（トークン方式）。
+ *
+ * ★ p= 方式との違いは「URLに問題の中身が入っていない」こと。開いた側が DB から引くので、
+ *   **作者があとから編集すると、配ったURLのままで最新の内容が見える**。
+ *   トークンは問題ごとに固定なので、同じ問題を何度共有しても同じURLになる。
+ */
+export function buildTokenShareUrl(token) {
+  return buildIntentUrl(`${SHARE_REDIRECT_URL}?t=${token}`);
+}
+
+function buildIntentUrl(shareUrl) {
   return `https://twitter.com/intent/tweet?text=${encodeURIComponent(SHARE_HASHTAGS)}&url=${encodeURIComponent(shareUrl)}`;
 }
 

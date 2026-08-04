@@ -20,6 +20,7 @@
 
 import { ImageResponse } from '@vercel/og';
 import { decodeProblemParam } from '../src/utils/problemShare.js';
+import { fetchSharedProblem, isShareToken } from './_lib/sharedProblem.js';
 import { getTileImageUrl, getDoraIndicator } from '../src/utils/tileUtils.js';
 import { seatWinds, collectCalledTiles, buildRiver } from '../src/utils/boardUtils.js';
 import { getMeldTileRole } from '../src/utils/problemConstants.js';
@@ -267,7 +268,12 @@ const rotatedNode = (angle, w, h, child) => ({
 export default async function handler(req) {
   const { origin, searchParams } = new URL(req.url);
 
-  const problem = await decodeProblemParam(searchParams.get('p'));
+  // 共有リンクは2種類。t=（保存済み・DBを引く）を優先し、無ければ p=（URLに中身が入っている旧方式）。
+  // t= の問題は作者があとから編集できるので、**画像を長期キャッシュしてはいけない**（下部参照）
+  const token = searchParams.get('t');
+  const problem = isShareToken(token)
+    ? await fetchSharedProblem(token)
+    : await decodeProblemParam(searchParams.get('p'));
   const hand = problem?.tiles?.length ? problem.tiles : FALLBACK_HAND;
 
   // 席（上家・対面・下家）に河を割り当てる。自風が未設定なら風で引けないので河は出さない
@@ -503,7 +509,13 @@ export default async function handler(req) {
       ],
     },
   );
-  // 同じ p なら常に同じ画像になるため長期キャッシュしてよい
-  image.headers.set('Cache-Control', 'public, max-age=31536000, immutable');
+  // p= は URL 自体が問題の中身なので、同じ p なら永久に同じ画像＝長期キャッシュしてよい。
+  // t= は作者が問題を編集すると中身が変わるので、長期キャッシュすると古い牌姿が残り続ける。
+  // ★ ただし X は取得したカード画像を自分側でもキャッシュするため、
+  //   **すでに流れた投稿のカードは編集しても更新されない**（こちらでは制御できない）。
+  image.headers.set(
+    'Cache-Control',
+    isShareToken(token) ? 'public, max-age=300' : 'public, max-age=31536000, immutable',
+  );
   return image;
 }

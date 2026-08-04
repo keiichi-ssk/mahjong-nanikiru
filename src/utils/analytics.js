@@ -17,7 +17,7 @@ export const EVENTS = {
   drillFinish: 'drill_finish',                 // score: 正解数
   problemSaved: 'problem_saved',               // kind: 'edit' | 'paifu' | 'restored'（保存に成功したときだけ）
   problemShared: 'problem_shared',             // source: shareSource() の戻り値
-  sharedProblemOpened: 'shared_problem_opened', // ok: true | false（共有リンクが開かれた。false は壊れたリンク）
+  sharedProblemOpened: 'shared_problem_opened', // ok: true|false（false は壊れたリンク）, via: 'token'|'param'
 };
 
 /**

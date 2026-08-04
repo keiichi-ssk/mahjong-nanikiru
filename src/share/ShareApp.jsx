@@ -15,28 +15,52 @@ import { track, EVENTS } from '../utils/analytics'
 // ★ デコードは非同期（DecompressionStream を使うため）。
 //   その間 status は 'loading' で、静的HTML側のスピナーから引き継いだ見た目を出す。
 
-// URL から共有パラメータを取り出す。マウント前に決まっている値なので初期 state に使う
-const readParam = () => new URLSearchParams(window.location.search).get('p')
+// URL から共有パラメータを取り出す。マウント前に決まっている値なので初期 state に使う。
+//
+// ★ 共有リンクには2種類ある（**どちらも生かし続けること**）:
+//   t= … 保存済みの問題。DBから引くので、作者が編集すると**このURLのまま最新が見える**
+//   p= … 未保存の問題。URLに中身が入っている（＝編集しても反映されない）。過去に配ったリンクもこれ
+const readParams = () => {
+  const q = new URLSearchParams(window.location.search)
+  return { token: q.get('t'), packed: q.get('p') }
+}
+
+// t= は API 経由で取る。ブラウザから直接 Supabase を引かないのは、
+// このページに supabase-js（201KB）を持ち込まないためと、
+// 「トークン一致の1行だけ」という制御が RLS では安全に書けないため（api/_lib/sharedProblem.js 参照）
+async function loadProblem({ token, packed }) {
+  if (token) {
+    try {
+      const res = await fetch(`/api/shared-problem?t=${encodeURIComponent(token)}`)
+      if (!res.ok) return null
+      const json = await res.json()
+      return json?.problem ?? null
+    } catch {
+      return null   // 通信断など。「読み込めませんでした」の画面に落とす
+    }
+  }
+  return decodeProblemParam(packed)
+}
 
 export default function ShareApp() {
   // status: 'loading' | 'ready' | 'invalid'
   // ★ 「?p= が無い」は URL を見た時点で分かるので初期 state で決める。
   //   effect の中で同期的に setState すると cascading render になる（lint も止める）
-  const [{ status, problem }, setResult] = useState(() => ({
-    status: readParam() ? 'loading' : 'invalid',
-    problem: null,
-  }))
+  const [{ status, problem }, setResult] = useState(() => {
+    const { token, packed } = readParams()
+    return { status: token || packed ? 'loading' : 'invalid', problem: null }
+  })
 
   useEffect(() => {
-    const param = readParam()
-    if (!param) return undefined   // 初期 state で invalid にしてある
+    const params = readParams()
+    if (!params.token && !params.packed) return undefined   // 初期 state で invalid にしてある
     let cancelled = false
-    // デコードは非同期（DecompressionStream）なので、ここでの setState は同期実行にならない
-    decodeProblemParam(param).then(p => {
+    // 取得は非同期（API呼び出し／DecompressionStream）なので、ここでの setState は同期実行にならない
+    loadProblem(params).then(p => {
       if (!cancelled) {
         // 共有リンクが実際に開かれた回数（＝拡散の効き具合）。壊れたリンクも ok:false で数え、
         // 「共有したのに解けなかった」ケースが起きていないかを見られるようにする
-        track(EVENTS.sharedProblemOpened, { ok: !!p })
+        track(EVENTS.sharedProblemOpened, { ok: !!p, via: params.token ? 'token' : 'param' })
         setResult(p ? { status: 'ready', problem: p } : { status: 'invalid', problem: null })
       }
     })

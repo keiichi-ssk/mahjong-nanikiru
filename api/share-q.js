@@ -15,20 +15,37 @@
 
 import { decodeProblemParam } from '../src/utils/problemShare.js';
 import { SITE_URL } from '../src/config/site.js';
+import { fetchSharedProblem, isShareToken } from './_lib/sharedProblem.js';
 
 // URL に入る形式（base64url）と、実用上ありえない長さを弾く
 const PARAM_PATTERN = /^[A-Za-z0-9\-_]{1,4000}$/;
+
+// 共有リンクは2種類ある。**どちらも生かし続けること**:
+//   t= … 保存済みの問題（DBを引く）。作者が編集すると、このURLのまま最新が見える
+//   p= … 未保存の問題（URLに中身が入っている）。過去に配ったリンクもここで開ける
+async function resolveTarget(req) {
+  const token = typeof req.query.t === 'string' ? req.query.t : '';
+  if (isShareToken(token) && (await fetchSharedProblem(token))) {
+    return { path: `share.html?t=${token}`, image: `api/og-problem?t=${token}` };
+  }
+
+  const raw = typeof req.query.p === 'string' ? req.query.p : '';
+  if (PARAM_PATTERN.test(raw) && (await decodeProblemParam(raw)) !== null) {
+    return { path: `share.html?p=${raw}`, image: `api/og-problem?p=${raw}` };
+  }
+
+  // どちらでもない（壊れたリンク・削除された問題）はトップへ誘導する
+  return { path: '', image: 'ogp.png' };
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
     return res.status(405).end();
   }
 
-  const raw = typeof req.query.p === 'string' ? req.query.p : '';
-  const safeP = PARAM_PATTERN.test(raw) && (await decodeProblemParam(raw)) !== null ? raw : null;
-
-  const targetUrl = safeP ? `${SITE_URL}/share.html?p=${safeP}` : `${SITE_URL}/`;
-  const imageUrl  = safeP ? `${SITE_URL}/api/og-problem?p=${safeP}` : `${SITE_URL}/ogp.png`;
+  const { path, image } = await resolveTarget(req);
+  const targetUrl = `${SITE_URL}/${path}`;
+  const imageUrl  = `${SITE_URL}/${image}`;
 
   const html = `<!doctype html>
 <html lang="ja">
