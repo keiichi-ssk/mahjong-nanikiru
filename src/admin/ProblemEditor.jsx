@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { getTileLabel, sortTiles, getDoraIndicator, getDoraFromIndicator } from '../utils/tileUtils'
 import { normalizeProblemType, parseAnswers } from '../utils/judgeUtils'
+import { pruneAnswers } from '../utils/answerEdit'
 import {
   MELD_TYPE_LABELS, MELD_TILE_COUNT, normalizeMelds, PROBLEM_TYPE_LABELS,
 } from '../utils/problemConstants'
@@ -191,15 +192,12 @@ export default function ProblemEditor({
   }
 
   function removeTile(index) {
-    setTiles(prev => {
-      const removed = prev[index]
-      const next    = prev.filter((_, i) => i !== index)
-      // 手牌から消えた牌は正解リストからも外す（複数正解のうち該当分だけ）
-      if (!next.includes(removed)) {
-        setAnswer(a => parseAnswers(a).filter(tok => tok !== removed).join(','))
-      }
-      return next
-    })
+    // ⚠️ setTiles の updater の中で setAnswer を呼ばないこと（StrictMode で2回走る）。
+    //    次の手牌は updater の外で求める
+    const next = tiles.filter((_, i) => i !== index)
+    setTiles(next)
+    // 手牌から消えた牌は正解リストからも外す（暗槓は4枚を切った時点で外れる）
+    setAnswer(a => pruneAnswers(a, next))
     // 手牌を編集し始めたので、パレットからの追加先も手牌に合わせる
     setPaletteMode('hand')
   }
@@ -340,7 +338,11 @@ export default function ProblemEditor({
   function applyTilesText() {
     const parsed = parseTileNotation(tilesInput)
     if (parsed.length === 0) return
-    setTiles(sortTiles(parsed))
+    const next = sortTiles(parsed)
+    setTiles(next)
+    // 入れ替えた手牌に無い正解は落とす。残すと出題画面で選べない正解になり、
+    // 管理画面でも手牌クリックで解除できなくなる（前問から引き継いだ正解で起きやすい）
+    setAnswer(a => pruneAnswers(a, next))
     setTilesInput('')
   }
 

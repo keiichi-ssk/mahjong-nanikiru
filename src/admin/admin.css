@@ -599,6 +599,60 @@ html {
   box-shadow: 0 0 8px rgba(46, 204, 113, 0.5);
 }
 
+/* ===== 現在の正解（× で解除できるチップ） =====
+   手牌を差し替えると、手牌に無い牌が正解に取り残されることがある。
+   正解牌リストは手牌から描かれるので、その牌を解除できる入口はこの × だけ */
+.answer-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.answer-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px 3px 10px;
+  border: 1px solid #2ecc71;
+  border-radius: 14px;
+  background: rgba(46, 204, 113, 0.12);
+  color: #eee;
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+/* 手牌に無い正解（取り残し）。出題画面で選べない正解なので目立たせる */
+.answer-chip--missing {
+  border-color: #e74c3c;
+  background: rgba(231, 76, 60, 0.14);
+}
+
+.answer-chip-warn { color: #e74c3c; }
+
+.answer-chip-remove {
+  position: relative;
+  background: none;
+  border: none;
+  color: #aaa;
+  padding: 0 4px;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* 小さいので当たり判定を44px相当まで広げる（transform は使わない） */
+.answer-chip-remove::after {
+  content: '';
+  position: absolute;
+  inset: -12px -8px;
+}
+
+@media (hover: hover) {
+  .answer-chip-remove:hover { color: #e74c3c; }
+}
+
 /* ベタオリの正解順バッジ（牌の右上に重ねる） */
 .editor-order-tile {
   position: relative;
@@ -632,6 +686,33 @@ html {
   height: auto;
   display: block;
   pointer-events: none;
+}
+
+/* 手牌に無い正解（手牌を差し替えたときの取り残し）。右下の × でだけ解除できる */
+.editor-order-tile--missing { border-color: #e74c3c; }
+
+.editor-order-remove {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid #e74c3c;
+  border-radius: 9px;
+  background: #2a1a1a;
+  color: #e74c3c;
+  font-size: 0.75rem;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: none;
+}
+
+/* 18px は小さすぎるので当たり判定を広げる（牌のドラッグ開始は onPointerDown 側で止めている） */
+.editor-order-remove::after {
+  content: '';
+  position: absolute;
+  inset: -12px;
 }
 
 /* 掴んでいる牌は薄く表示（捨て牌のドラッグと同じ操作感） */

@@ -1,7 +1,25 @@
 import { getTileImageUrl, getTileLabel } from '../../../utils/tileUtils'
 import { NAKI_TIMING_OPTIONS } from '../../../utils/problemConstants'
+import { keepAnswerToken } from '../../../utils/answerEdit'
 import TileImg from '../TileImg'
 import { TextCount } from '../FormParts'
+
+function answerTokenLabel(token) {
+  return token.startsWith('ankan:') ? `暗槓（${getTileLabel(token.slice(6))}）` : getTileLabel(token)
+}
+
+// 現在の正解1つぶん。手牌に無い牌（手牌を差し替えたときの取り残し）は
+// 正解牌リストに出ないため、解除できる入口はこの × だけになる
+function AnswerChip({ token, tiles, onRemove }) {
+  const missing = !keepAnswerToken(token, tiles)
+  return (
+    <span className={`answer-chip${missing ? ' answer-chip--missing' : ''}`}>
+      {answerTokenLabel(token)}
+      {missing && <span className="answer-chip-warn" title="手牌にありません">⚠</span>}
+      <button className="answer-chip-remove" onClick={onRemove} title="この正解を外す">×</button>
+    </span>
+  )
+}
 
 // 正解設定パネル（正解設定・解説に挿入のタブから開く）。
 // 問題タイプごとに中身が変わり、末尾の解説テキストだけが共通。
@@ -51,15 +69,16 @@ export default function AnswerPanel({
               </div>
             )
           })()}
-          <div className="editor-current">
-            現在の正解: <strong>
-              {answerList.length > 0
-                ? answerList
-                    .map(a => a.startsWith('ankan:') ? `暗槓（${getTileLabel(a.slice(6))}）` : getTileLabel(a))
-                    .join('・')
-                : '未設定'}
-            </strong>
-          </div>
+          <div className="editor-current">現在の正解（× で解除）:</div>
+          {answerList.length > 0 ? (
+            <div className="answer-chips">
+              {answerList.map(a => (
+                <AnswerChip key={a} token={a} tiles={tiles} onRemove={() => toggleAnswer(a)} />
+              ))}
+            </div>
+          ) : (
+            <div className="editor-current"><strong>未設定</strong></div>
+          )}
           <div className="riichi-setting">
             <span className="riichi-setting-label">リーチ：</span>
             <button
@@ -192,6 +211,7 @@ export default function AnswerPanel({
                   data-drag-index={i}
                   className={
                     'editor-order-tile editor-order-tile--draggable' +
+                    (keepAnswerToken(a, tiles) ? '' : ' editor-order-tile--missing') +
                     (answerDragIndex === i ? ' editor-order-tile--dragging' : '') +
                     (answerDropIndex === i ? ' editor-order-tile--drop-before' : '') +
                     (answerDropIndex === i + 1 && i === answerList.length - 1 ? ' editor-order-tile--drop-after' : '')
@@ -200,6 +220,17 @@ export default function AnswerPanel({
                 >
                   <img src={getTileImageUrl(a)} alt={getTileLabel(a)} draggable={false} />
                   <span className="editor-order-badge">{i + 1}</span>
+                  {/* 手牌にある牌は上の正解牌リストのクリックで解除できるので、
+                      ここに × を出すのは解除する手段が無い取り残しのときだけにする。
+                      onPointerDown を止めないと押した時点でドラッグが始まる */}
+                  {!keepAnswerToken(a, tiles) && (
+                    <button
+                      className="editor-order-remove"
+                      onPointerDown={e => e.stopPropagation()}
+                      onClick={() => toggleAnswer(a)}
+                      title="手牌にありません（クリックで正解から外す）"
+                    >×</button>
+                  )}
                 </div>
               ))}
             </div>
