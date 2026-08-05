@@ -31,9 +31,11 @@ const GOLDEN_RANGES = [
   { book: '新科学する麻雀実践編', major: '対副露押し引き',   min: 37, max: 44 },
   { book: '新科学する麻雀実践編', major: 'メンゼンイーシャンテン', min: 45, max: 45 },
   { book: '新科学する麻雀実践編', major: 'ベタオリの技術',   min: 46, max: 46 },
+  // カテゴリ分けをしない書籍は「書籍＝大カテゴリ」の1件だけを持つ
+  { book: '麻雀 定石「何切る」301選', major: '麻雀 定石「何切る」301選', min: 47, max: 47 },
 ];
 
-describe('getBookLabel / getMajorCategory: 全46件のゴールデン突合', () => {
+describe('getBookLabel / getMajorCategory: 全47件のゴールデン突合', () => {
   for (const { book, major, min, max } of GOLDEN_RANGES) {
     it(`${min}〜${max} は ${book} / ${major}`, () => {
       for (let id = min; id <= max; id++) {
@@ -45,10 +47,10 @@ describe('getBookLabel / getMajorCategory: 全46件のゴールデン突合', ()
 
   it('範囲外は「その他」', () => {
     expect(getBookLabel('0')).toBe('その他');
-    expect(getBookLabel('47')).toBe('その他');
+    expect(getBookLabel('48')).toBe('その他');
     expect(getBookLabel('99')).toBe('その他');
     expect(getMajorCategory('0')).toBe('その他');
-    expect(getMajorCategory('47')).toBe('その他');
+    expect(getMajorCategory('48')).toBe('その他');
   });
 });
 
@@ -66,6 +68,7 @@ describe('sectionLabel', () => {
     expect(sectionLabel('24')).toBe('鳴きを考慮した手作り字牌編');
     expect(sectionLabel('25')).toBe('第1章');
     expect(sectionLabel('46')).toBe('第22章');
+    expect(sectionLabel('47')).toBe('全問');
   });
 
   it('未知のIDは文字列のまま返す', () => {
@@ -88,6 +91,7 @@ describe('getSituationText', () => {
     expect(getSituationText('18')).toBeNull();
     expect(getSituationText('25')).toBeNull();
     expect(getSituationText('46')).toBeNull();
+    expect(getSituationText('47')).toBeNull();
   });
 });
 
@@ -95,9 +99,12 @@ describe('groupByBook: CategoryList 互換の戻り値形状', () => {
   it('{label, majorGroups:[{label, sections}]} の形で、sections は入力値をそのまま含む', () => {
     const result = groupByBook(['1', '5', '25']);
 
-    expect(result).toHaveLength(2);
+    expect(result).toHaveLength(3);
     expect(result[0].label).toBe('現代麻雀技術論');
     expect(result[1].label).toBe('新科学する麻雀実践編');
+    expect(result[2].label).toBe('麻雀 定石「何切る」301選');
+    // 該当する問題が1問も無い書籍は majorGroups が空になる（画面は「非公開のコンテンツです」）
+    expect(result[2].majorGroups).toEqual([]);
 
     expect(result[0].majorGroups).toEqual([
       { label: 'テンパイの技術', sections: ['1'] },
@@ -193,8 +200,12 @@ describe('isSectionAllowed: 権限判定', () => {
 });
 
 describe('BOOKS: categories.json からの導出', () => {
-  it('書籍2冊が定義順に並ぶ', () => {
-    expect(BOOKS.map(b => b.label)).toEqual(['現代麻雀技術論', '新科学する麻雀実践編']);
+  it('書籍3冊が定義順に並ぶ', () => {
+    expect(BOOKS.map(b => b.label)).toEqual([
+      '現代麻雀技術論',
+      '新科学する麻雀実践編',
+      '麻雀 定石「何切る」301選',
+    ]);
   });
 
   it('大カテゴリのラベルと並びが現行と一致する', () => {
@@ -212,6 +223,9 @@ describe('BOOKS: categories.json からの導出', () => {
       'メンゼンイーシャンテン',
       'ベタオリの技術',
     ]);
+    expect(BOOKS[2].majorCategories.map(m => m.label)).toEqual([
+      '麻雀 定石「何切る」301選',
+    ]);
   });
 
   it('categoryIds がゴールデンの範囲と一致する', () => {
@@ -224,13 +238,14 @@ describe('BOOKS: categories.json からの導出', () => {
     );
   });
 
-  it('ALL_MAJOR_CATEGORIES は全10大カテゴリの複合キーを持つ', () => {
-    expect(ALL_MAJOR_CATEGORIES).toHaveLength(10);
+  it('ALL_MAJOR_CATEGORIES は全11大カテゴリの複合キーを持つ', () => {
+    expect(ALL_MAJOR_CATEGORIES).toHaveLength(11);
     expect(ALL_MAJOR_CATEGORIES.map(c => c.key)).toContain('現代麻雀技術論::テンパイの技術');
     expect(ALL_MAJOR_CATEGORIES.map(c => c.key)).toContain('新科学する麻雀実践編::テンパイの技術');
     expect(ALL_MAJOR_CATEGORIES.map(c => c.key)).toContain('新科学する麻雀実践編::メンゼンイーシャンテン');
+    expect(ALL_MAJOR_CATEGORIES.map(c => c.key)).toContain('麻雀 定石「何切る」301選::麻雀 定石「何切る」301選');
     // キーに重複が無い
-    expect(new Set(ALL_MAJOR_CATEGORIES.map(c => c.key)).size).toBe(10);
+    expect(new Set(ALL_MAJOR_CATEGORIES.map(c => c.key)).size).toBe(11);
   });
 });
 
