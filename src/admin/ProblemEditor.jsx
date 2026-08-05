@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { getTileLabel, sortTiles } from '../utils/tileUtils'
+import { getTileLabel, sortTiles, getDoraIndicator, getDoraFromIndicator } from '../utils/tileUtils'
 import { normalizeProblemType, parseAnswers } from '../utils/judgeUtils'
 import {
   MELD_TYPE_LABELS, MELD_TILE_COUNT, normalizeMelds, PROBLEM_TYPE_LABELS,
@@ -495,7 +495,9 @@ export default function ProblemEditor({
     switch (effectiveMode) {
       case 'hand':        addTile(tile); break
       case 'meld':        addTileToMeld(tile); break
-      case 'dora':        setDora(tile); break
+      // ★ パレットで選ぶのは**ドラ表示牌**（王牌に出る牌）。problem.dora は
+      //   ドラそのものを持つので、1つ進めてから保存する（表示側は getDoraIndicator で戻す）
+      case 'dora':        setDora(getDoraFromIndicator(tile)); break
       case 'note':        insertNoteTileCode(tile); break
       case 'explanation': insertTileCode(tile); break
       case 'sutehai':     addOtherDiscardTile(tile); break
@@ -584,7 +586,8 @@ export default function ProblemEditor({
   const paletteStatus = {
     hand:        `手牌: ${tiles.length}枚`,
     meld:        addingMeld ? `${meldTargetLabel}の${MELD_TYPE_LABELS[addingMeld.type]}: ${addingMeld.tiles.length} / ${MELD_TILE_COUNT[addingMeld.type]}枚` : '',
-    dora:        `ドラ: ${dora ? getTileLabel(dora) : 'なし'}`,
+    // パレットで選ぶのは表示牌なので、選んだ牌と結果のドラを両方出す
+    dora:        dora ? `ドラ表示牌: ${getTileLabel(getDoraIndicator(dora))} → ドラ: ${getTileLabel(dora)}` : 'ドラ: なし',
     note:        '注釈のカーソル位置に挿入',
     explanation: '解説のカーソル位置に挿入',
     sutehai:     activeSutehaiIdx >= 0

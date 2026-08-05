@@ -583,7 +583,7 @@ html {
 /* ドラパネルの見本のように、押しても何も起きない牌（span で描くもの） */
 .editor-tile--static { cursor: default; }
 
-/* ドラパネル。「ドラ」と「王牌に出る表示牌」を並べて取り違えを防ぐ */
+/* ドラパネル。パレットで選ぶのは表示牌なので、ここには変換後のドラだけを出す */
 .editor-dora-row {
   display: flex;
   align-items: center;

@@ -421,7 +421,7 @@ export default function BoardView({
                     type="button"
                     className={`board-dead-wall-btn${activeArea === 'dora' ? ' board-dead-wall-btn--active' : ''}`}
                     onClick={() => onSelectArea('dora')}
-                    title="ドラを設定（下のパレットから牌を選ぶ）"
+                    title="ドラを設定（下のパレットからドラ表示牌を選ぶ）"
                   >
                     <BoardDeadWall indicator={doraIndicator} />
                   </button>

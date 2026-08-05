@@ -12,10 +12,11 @@ export const TILE_GROUPS = [
 // boardOnly のタブは盤面ロック中（牌譜モード）に出さない。
 // 出牌・選択肢はタブに出さず、問題タイプから自動的に選ばれる
 // （ドラは盤面の王牌クリックだけだと気づけないので 2026-08-01 にタブへ出した）
+// ★ dora タブでパレットから選ぶのは**ドラ表示牌**（王牌に出る牌）。ラベルもそう名乗る
 export const PALETTE_TABS = [
   { key: 'hand',        label: '手牌',           panel: 'hand',    mode: 'hand',        boardOnly: true },
   { key: 'meld',        label: '副露',           panel: 'hand',    mode: 'meld',        boardOnly: true },
-  { key: 'dora',        label: 'ドラ',           panel: 'dora',    mode: 'dora',        boardOnly: true },
+  { key: 'dora',        label: 'ドラ表示牌',     panel: 'dora',    mode: 'dora',        boardOnly: true },
   { key: 'sutehai',     label: '捨て牌',         panel: 'sutehai', mode: 'sutehai',     boardOnly: true },
   { key: 'answer',      label: '正解設定',       panel: 'answer',  mode: null },
   { key: 'note',        label: '出題注釈に挿入', panel: null,      mode: 'note' },
@@ -26,7 +27,7 @@ export const PALETTE_TABS = [
 export const PANEL_TITLES = {
   hand:    '手牌',
   jokyo:   '点数',
-  dora:    'ドラ',
+  dora:    'ドラ表示牌',
   sutehai: '捨て牌',
   answer:  '正解設定',
 }
