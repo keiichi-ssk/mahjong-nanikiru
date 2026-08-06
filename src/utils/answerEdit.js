@@ -27,9 +27,23 @@ export function keepAnswerToken(token, tiles = []) {
   return true;
 }
 
+// 手牌を根拠に正解を検査してよいか。
+// ★ 手牌が空の問題（画像だけの問題）では検査しない（2026-08-06）。
+//   正解は牌パレットから直接付けるので、手牌に無いことが正常な状態になる。
+//   ここで検査すると、付けた正解が消えたり全部が警告表示になったりする
+function checkable(tiles) {
+  return (tiles ?? []).length > 0;
+}
+
+// 「手牌にあるはずなのに無い」正解か（作問画面が警告表示に使う）
+export function isOrphanAnswer(token, tiles = []) {
+  if (!checkable(tiles)) return false;
+  return !keepAnswerToken(token, tiles);
+}
+
 // 手牌に無い牌の正解を落とす。複数正解・ベタオリの順序はそのまま保つ
 export function pruneAnswers(answer, tiles = []) {
-  return parseAnswers(answer)
-    .filter(token => keepAnswerToken(token, tiles))
-    .join(',');
+  const list = parseAnswers(answer);
+  if (!checkable(tiles)) return list.join(',');
+  return list.filter(token => keepAnswerToken(token, tiles)).join(',');
 }

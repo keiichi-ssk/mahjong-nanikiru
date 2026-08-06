@@ -601,3 +601,36 @@ grant execute on function public.bump_answer_tally(uuid, text, text) to service_
 -- (5) 共有をやめる（既に配ったリンクを無効にする。トークンを消すだけでよい）
 --
 -- update public.user_problems set share_token = null where id = '<問題のid>';
+
+
+-- ============================================================
+-- 管理者は問題数の上限を受けない（2026-08-06 実行済み）
+--
+--   書籍の画像問題を数十問まとめて登録するため、insert ポリシーの件数条件に
+--   is_admin() の OR を足した。**一般ユーザーは従来どおり 20 問まで**
+--   （limits.js の MAX_PROBLEMS も 20 のまま。管理者だけ UI 側でも上限を出さない）。
+--
+--   ★ 上限の値そのものを変えるときは limits.js と両方直すこと（片方だけだと
+--     「UIでは追加できるのに保存だけ失敗する」等の分かりにくい状態になる）。
+-- ============================================================
+
+drop policy if exists "own problems insert" on public.user_problems;
+
+create policy "own problems insert" on public.user_problems
+  for insert
+  with check (
+    auth.uid() = user_id
+    and (
+      category_id is null
+      or exists (
+        select 1 from public.user_categories c
+         where c.id = category_id and c.user_id = auth.uid()
+      )
+    )
+    -- ★ 管理者（運営者本人）は件数上限の対象外
+    and (public.my_user_problem_count() < 20 or public.is_admin())
+  );
+
+-- 検証: 管理者で 21 問目を追加できること／一般ユーザーでは 20 問で止まること
+--
+-- select public.my_user_problem_count(), public.is_admin();

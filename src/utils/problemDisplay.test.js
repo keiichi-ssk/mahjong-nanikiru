@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { usesBoardView, usesSuitRemap } from './problemDisplay';
+import { usesBoardView, usesSuitRemap, showsSituation } from './problemDisplay';
 
 describe('usesBoardView', () => {
   it('自作問題は盤面で出す', () => {
@@ -18,9 +18,36 @@ describe('usesBoardView', () => {
     expect(usesBoardView({ id: 1, boardView: null })).toBe(false);
   });
 
+  // 画像が局面を示しているので、盤面を並べると同じ情報が二重に出る
+  it('問題画像がある問題は盤面を出さない（自作・公式とも）', () => {
+    expect(usesBoardView({ isUserProblem: true, questionImageUrl: 'u-abc.png' })).toBe(false);
+    expect(usesBoardView({ id: 1, boardView: true, questionImageUrl: '12.png' })).toBe(false);
+    // 画像が無ければ従来どおり
+    expect(usesBoardView({ isUserProblem: true, questionImageUrl: null })).toBe(true);
+  });
+
   it('problem が無くても落ちない', () => {
     expect(usesBoardView(null)).toBe(false);
     expect(usesBoardView(undefined)).toBe(false);
+  });
+});
+
+// 画像に卓がそのまま写っているので、状況（局・巡目・ドラ・点数）を並べても二重になる
+describe('showsSituation', () => {
+  it('問題画像がある問題では状況・ドラ・点数を出さない', () => {
+    expect(showsSituation({ id: 1, questionImageUrl: '12.png' })).toBe(false);
+    expect(showsSituation({ isUserProblem: true, questionImageUrl: 'u-abc.webp' })).toBe(false);
+  });
+
+  it('画像が無ければ従来どおり出す', () => {
+    expect(showsSituation({ id: 1 })).toBe(true);
+    expect(showsSituation({ id: 1, questionImageUrl: null })).toBe(true);
+    expect(showsSituation({ isUserProblem: true })).toBe(true);
+  });
+
+  it('problem が無くても落ちない', () => {
+    expect(showsSituation(null)).toBe(false);
+    expect(showsSituation(undefined)).toBe(false);
   });
 });
 

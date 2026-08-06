@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { keepAnswerToken, pruneAnswers } from './answerEdit';
+import { keepAnswerToken, pruneAnswers, isOrphanAnswer } from './answerEdit';
 
 // 手牌を差し替えたときに正解が取り残される事故（出題画面で選べない正解ができる）の再発防止。
 // 詳細は answerEdit.js の冒頭コメントを参照
@@ -77,8 +77,30 @@ describe('pruneAnswers', () => {
     expect(pruneAnswers(undefined, ['1m'])).toBe('');
   });
 
-  it('手牌が空なら牌の正解は全部落ちる', () => {
-    expect(pruneAnswers('3m,6m', [])).toBe('');
-    expect(pruneAnswers('3m,6m')).toBe('');
+  // 画像だけの問題は手牌を持たず、正解はパレットから直接付ける。
+  // ここで落とすと、付けた正解が消えてしまう
+  it('手牌が空の問題では何も落とさない', () => {
+    expect(pruneAnswers('3m,6m', [])).toBe('3m,6m');
+    expect(pruneAnswers('3m,6m')).toBe('3m,6m');
+    expect(pruneAnswers('ankan:5s', [])).toBe('ankan:5s');
+  });
+});
+
+describe('isOrphanAnswer（作問画面の警告表示）', () => {
+  it('手牌にある牌は取り残しではない', () => {
+    expect(isOrphanAnswer('1m', ['1m', '2m'])).toBe(false);
+  });
+
+  it('手牌があるのにそこに無い牌は取り残し', () => {
+    expect(isOrphanAnswer('9s', ['1m', '2m'])).toBe(true);
+  });
+
+  it('手牌が空の問題では警告しない（画像だけの問題）', () => {
+    expect(isOrphanAnswer('9s', [])).toBe(false);
+    expect(isOrphanAnswer('9s')).toBe(false);
+  });
+
+  it('牌コードでないトークンは取り残し扱いしない', () => {
+    expect(isOrphanAnswer('early', ['1m'])).toBe(false);
   });
 });

@@ -40,11 +40,16 @@ export function panelOfTab(tab, locked) {
   return PALETTE_TABS.find(t => t.key === tab)?.panel ?? tab
 }
 
-// 正解設定タブの送り先は問題タイプで決まる（鳴き系だけ専用の送り先がある）
+// 正解設定タブの送り先は問題タイプで決まる。
+// ★ 何切る・ベタオリの正解は**パレットから選ぶ**（2026-08-06〜）。
+//   以前は手牌の牌をクリックする方式だったが、それだと手牌が空の問題（画像だけの問題）に
+//   正解を設定できなかった。「牌を選ぶ操作は常にパレット」に揃える意味もある。
+//   リーチ判断は正解が牌ではないので、従来どおり解説への挿入に使う
 export function answerPaletteMode(problemType) {
   if (problemType === 'naki-timing') return 'depai'
   if (problemType === 'naki-choice') return 'nakiChoice'
-  return 'explanation'
+  if (problemType === 'riichi-judgment') return 'explanation'
+  return 'answer'
 }
 
 // タブ → パレットの牌の送り先。タブを押したときと、前の問題から引き継いだタブで

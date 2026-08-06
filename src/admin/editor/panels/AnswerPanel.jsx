@@ -1,6 +1,6 @@
 import { getTileImageUrl, getTileLabel } from '../../../utils/tileUtils'
 import { NAKI_TIMING_OPTIONS } from '../../../utils/problemConstants'
-import { keepAnswerToken } from '../../../utils/answerEdit'
+import { isOrphanAnswer } from '../../../utils/answerEdit'
 import TileImg from '../TileImg'
 import { TextCount } from '../FormParts'
 
@@ -8,10 +8,11 @@ function answerTokenLabel(token) {
   return token.startsWith('ankan:') ? `暗槓（${getTileLabel(token.slice(6))}）` : getTileLabel(token)
 }
 
-// 現在の正解1つぶん。手牌に無い牌（手牌を差し替えたときの取り残し）は
-// 正解牌リストに出ないため、解除できる入口はこの × だけになる
+// 現在の正解1つぶん。× で解除する（正解の追加は下の牌パレットから）。
+// 手牌がある問題で、その手牌に無い牌が残っている場合だけ警告を出す
+// （手牌が空の問題＝画像だけの問題では警告しない）
 function AnswerChip({ token, tiles, onRemove }) {
-  const missing = !keepAnswerToken(token, tiles)
+  const missing = isOrphanAnswer(token, tiles)
   return (
     <span className={`answer-chip${missing ? ' answer-chip--missing' : ''}`}>
       {answerTokenLabel(token)}
@@ -39,16 +40,10 @@ export default function AnswerPanel({
       {/* 通常（何切る） */}
       {problemType === 'default' && (
         <>
-          <div className="editor-section-label">正解牌（クリックで追加/解除・複数選択可）</div>
-          <div className="editor-tiles">
-            {[...new Set(tiles)].map(t => (
-              <TileImg
-                key={t} tile={t}
-                onClick={() => toggleAnswer(t)}
-                className={`editor-tile ${answerList.includes(t) ? 'tile--answer' : ''}`}
-              />
-            ))}
-          </div>
+          {/* ★ 正解の牌は下の牌パレットから選ぶ（2026-08-06〜）。
+              手牌の牌をクリックする方式だと、手牌が空の問題（画像だけの問題）に
+              正解を設定できなかった。ここに牌を並べ直さないこと */}
+          <div className="editor-section-label">正解牌（下の牌パレットをクリックで追加/解除・複数選択可）</div>
           {(() => {
             const counts = {}
             tiles.forEach(t => { counts[t] = (counts[t] ?? 0) + 1 })
@@ -183,23 +178,9 @@ export default function AnswerPanel({
       {/* ベタオリ（安全な順に並べる） */}
       {problemType === 'betaori' && (
         <>
-          <div className="editor-section-label">正解牌（安全な順にクリック・再クリックで解除。①が最も安全）</div>
-          <div className="editor-tiles">
-            {[...new Set(tiles)].map(t => {
-              const pos = answerList.indexOf(t)
-              return (
-                <span key={t} className="editor-order-tile">
-                  <TileImg
-                    tile={t}
-                    onClick={() => toggleAnswer(t)}
-                    className={`editor-tile ${pos >= 0 ? 'tile--answer' : ''}`}
-                  />
-                  {pos >= 0 && <span className="editor-order-badge">{pos + 1}</span>}
-                </span>
-              )
-            })}
-            {tiles.length === 0 && <span className="editor-empty">先に手牌を設定してください</span>}
-          </div>
+          {/* ★ 何切ると同じく、正解の牌は下の牌パレットから選ぶ（2026-08-06〜）。
+              ここに手牌を並べ直さないこと */}
+          <div className="editor-section-label">正解牌（下の牌パレットを安全な順にクリック・再クリックで解除。①が最も安全）</div>
           <div className="editor-current">
             現在の正解（ドラッグで入れ替え・{answerList.length}枚 — 出題画面でもこの枚数を選ばせます）:
           </div>
@@ -211,7 +192,7 @@ export default function AnswerPanel({
                   data-drag-index={i}
                   className={
                     'editor-order-tile editor-order-tile--draggable' +
-                    (keepAnswerToken(a, tiles) ? '' : ' editor-order-tile--missing') +
+                    (isOrphanAnswer(a, tiles) ? ' editor-order-tile--missing' : '') +
                     (answerDragIndex === i ? ' editor-order-tile--dragging' : '') +
                     (answerDropIndex === i ? ' editor-order-tile--drop-before' : '') +
                     (answerDropIndex === i + 1 && i === answerList.length - 1 ? ' editor-order-tile--drop-after' : '')
@@ -220,22 +201,19 @@ export default function AnswerPanel({
                 >
                   <img src={getTileImageUrl(a)} alt={getTileLabel(a)} draggable={false} />
                   <span className="editor-order-badge">{i + 1}</span>
-                  {/* 手牌にある牌は上の正解牌リストのクリックで解除できるので、
-                      ここに × を出すのは解除する手段が無い取り残しのときだけにする。
-                      onPointerDown を止めないと押した時点でドラッグが始まる */}
-                  {!keepAnswerToken(a, tiles) && (
-                    <button
-                      className="editor-order-remove"
-                      onPointerDown={e => e.stopPropagation()}
-                      onClick={() => toggleAnswer(a)}
-                      title="手牌にありません（クリックで正解から外す）"
-                    >×</button>
-                  )}
+                  {/* パレットの同じ牌を押しても解除できるが、並びを見ながら外せるよう
+                      ここにも × を置く。onPointerDown を止めないと押した時点でドラッグが始まる */}
+                  <button
+                    className="editor-order-remove"
+                    onPointerDown={e => e.stopPropagation()}
+                    onClick={() => toggleAnswer(a)}
+                    title="この正解を外す"
+                  >×</button>
                 </div>
               ))}
             </div>
           ) : (
-            <span className="editor-empty">未設定（上の手牌をクリックして安全な順に追加）</span>
+            <span className="editor-empty">未設定（下の牌パレットを安全な順にクリック）</span>
           )}
         </>
       )}

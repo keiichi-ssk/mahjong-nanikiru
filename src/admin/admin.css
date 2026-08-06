@@ -691,9 +691,10 @@ html {
   pointer-events: none;
 }
 
-/* 手牌に無い正解（手牌を差し替えたときの取り残し）。右下の × でだけ解除できる */
+/* 手牌に無い正解（手牌を差し替えたときの取り残し）。手牌が空の問題では出さない */
 .editor-order-tile--missing { border-color: #e74c3c; }
 
+/* 正解1つを外す × 。並びを見ながら消せるよう常に出す */
 .editor-order-remove {
   position: absolute;
   right: -6px;
@@ -701,14 +702,21 @@ html {
   width: 18px;
   height: 18px;
   padding: 0;
-  border: 1px solid #e74c3c;
+  border: 1px solid #555;
   border-radius: 9px;
-  background: #2a1a1a;
-  color: #e74c3c;
+  background: #222;
+  color: #aaa;
   font-size: 0.75rem;
   line-height: 1;
   cursor: pointer;
   touch-action: none;
+}
+
+/* 取り残しの正解は × も赤くする */
+.editor-order-tile--missing .editor-order-remove { border-color: #e74c3c; color: #e74c3c; }
+
+@media (hover: hover) {
+  .editor-order-remove:hover { border-color: #e74c3c; color: #e74c3c; }
 }
 
 /* 18px は小さすぎるので当たり判定を広げる（牌のドラッグ開始は onPointerDown 側で止めている） */

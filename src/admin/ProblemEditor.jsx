@@ -60,6 +60,8 @@ import AnswerPanel from './editor/panels/AnswerPanel'
 //   makeImageFilename … 問題画像の保存名を作る関数 (ext) => string。渡さなければ <問題id>.<ext>。
 //                  自作問題は id が保存時採番の uuid なので、id に依らない名前を渡してもらう
 //   imageNote    … 画像欄の下に出す注意書き（自作問題では「共有には含まれない」ことを伝える）
+//   transformImage … アップロード前にファイルを変換する関数 (File) => Promise<File>。
+//                  自作問題は縮小して上げる（shrinkImageFile）。公式問題は渡さない＝原寸のまま
 //   initialPaletteTab / onPaletteTabChange …
 //                  開いている送り先タブを呼び出し側に覚えさせるための組。問題を選び直すと
 //                  この画面は key ごと作り直されるため、渡さないと毎回「手牌」に戻る。
@@ -71,7 +73,7 @@ export default function ProblemEditor({
   hideDisabled = false, paletteAside = null, textLimits = null, hideBoardView = false,
   onShare = null, saveLabel = '保存', hideSaveNext = false,
   initialPaletteTab = null, onPaletteTabChange = null,
-  makeImageFilename = null, imageNote = null,
+  makeImageFilename = null, imageNote = null, transformImage = null,
 }) {
   // 手牌が未設定（新規追加直後）の問題は、手牌・正解・状況設定（ドラ・場風・自風・巡目）を
   // ひとつ前の問題から引き継いでおく。手牌がすでにある問題は自分自身の値を優先する。
@@ -146,9 +148,11 @@ export default function ProblemEditor({
   const explanationTouchedRef = useRef(false)
   const noteTouchedRef        = useRef(false)
 
-  async function handleImageUpload(file) {
-    if (!file) return
+  async function handleImageUpload(original) {
+    if (!original) return
     setImageUploading(true)
+    // アップロード前の変換（自作問題は縮小する。渡されなければ元のまま）
+    const file = transformImage ? await transformImage(original) : original
     const ext = file.name.split('.').pop()
     // 公式問題は <id>.<ext>（id は DB 採番済み）。自作問題は保存するまで id が無いので、
     // 呼び出し側が id に依らない名前を作る（makeImageFilename）
@@ -397,6 +401,10 @@ export default function ProblemEditor({
   // 副露だけ設定しても「家＋捨て牌」が揃わない限り保存されない（保存条件は捨て牌ベースのまま）
   // 正解の配列表現（表示・選択状態の判定用。answer 本体はカンマ区切り文字列のまま）
   const answerList = parseAnswers(answer)
+  // パレット下のステータスに出す読める表記（暗槓は「暗槓（五萬）」）
+  const answerLabels = answerList.map(a =>
+    a.startsWith('ankan:') ? `暗槓（${getTileLabel(a.slice(6))}）` : getTileLabel(a)
+  )
 
   // ベタオリの正解順プレビューのドラッグ並べ替え
   function moveAnswer(from, to) {
@@ -467,6 +475,8 @@ export default function ProblemEditor({
     ...(boardLocked ? [] : ['hand', 'meld', 'dora', 'sutehai']),
     'note',
     'explanation',
+    // 正解をパレットから選ぶのは牌を答えるタイプだけ（鳴き系は専用の送り先を持つ）
+    ...(problemType === 'default' || problemType === 'betaori' ? ['answer'] : []),
     ...(problemType === 'naki-timing' ? ['depai'] : []),
     ...(problemType === 'naki-choice' ? ['nakiChoice'] : []),
   ]
@@ -514,6 +524,7 @@ export default function ProblemEditor({
       // ★ パレットで選ぶのは**ドラ表示牌**（王牌に出る牌）。problem.dora は
       //   ドラそのものを持つので、1つ進めてから保存する（表示側は getDoraIndicator で戻す）
       case 'dora':        setDora(getDoraFromIndicator(tile)); break
+      case 'answer':      toggleAnswer(tile); break
       case 'note':        insertNoteTileCode(tile); break
       case 'explanation': insertTileCode(tile); break
       case 'sutehai':     addOtherDiscardTile(tile); break
@@ -605,6 +616,10 @@ export default function ProblemEditor({
     meld:        addingMeld ? `${meldTargetLabel}の${MELD_TYPE_LABELS[addingMeld.type]}: ${addingMeld.tiles.length} / ${MELD_TILE_COUNT[addingMeld.type]}枚` : '',
     // パレットで選ぶのは表示牌なので、選んだ牌と結果のドラを両方出す
     dora:        dora ? `ドラ表示牌: ${getTileLabel(getDoraIndicator(dora))} → ドラ: ${getTileLabel(dora)}` : 'ドラ: なし',
+    // 正解はパレットのクリックでトグルする。ベタオリは押した順が答えの順になる
+    answer:      answerList.length === 0
+      ? (problemType === 'betaori' ? '安全な順にクリック（①が最も安全）' : '正解にする牌をクリック')
+      : `正解: ${answerLabels.slice(0, 6).join('・')}${answerLabels.length > 6 ? ` ほか${answerLabels.length - 6}` : ''}`,
     note:        '注釈のカーソル位置に挿入',
     explanation: '解説のカーソル位置に挿入',
     sutehai:     activeSutehaiIdx >= 0

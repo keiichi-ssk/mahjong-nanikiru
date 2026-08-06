@@ -12,6 +12,7 @@ import { snapshotToProblem } from '../utils/importBoard'
 import { openProblemShare, openTokenShare } from '../utils/shareWindow'
 import { loadGuestDraft, saveGuestDraft, clearGuestDraft } from './guestDraft'
 import { questionImagePath, QUESTION_IMAGE_BUCKET } from '../utils/questionImage'
+import { shrinkImageFile } from '../utils/imageResize'
 import { useIsNarrow } from '../utils/useMediaQuery'
 import { track, EVENTS } from '../utils/analytics'
 import {
@@ -102,6 +103,8 @@ function makeUserImageFilename(ext) {
 //   共有してから気づくと手遅れなので、画像欄にその場で書いておく
 const IMAGE_PROPS_ON = {
   makeImageFilename: makeUserImageFilename,
+  // 牌譜のスクショは1枚1〜2MB あるので、上げる前に縮小する（Storage の無料枠と表示速度のため）
+  transformImage: shrinkImageFile,
   imageNote: '※ この画像は共有されません（X で共有しても相手には表示されません）',
 }
 const IMAGE_PROPS_OFF = { hideImage: true }
@@ -241,8 +244,10 @@ export default function MyProblemsApp() {
       .then(({ data }) => { if (!cancelled) setAdminCheck({ email, isAdmin: !!data?.is_admin }) })
     return () => { cancelled = true }
   }, [email])
-  const canUseImage = !!email && adminCheck?.email === email && adminCheck.isAdmin
-  const imageProps = canUseImage ? IMAGE_PROPS_ON : IMAGE_PROPS_OFF
+  //   ★ 管理者は件数上限（MAX_PROBLEMS）の対象外でもある。書籍の画像問題をまとめて
+  //     登録するためで、DB 側の insert ポリシーも `or public.is_admin()` を許している
+  const isAdminUser = !!email && adminCheck?.email === email && adminCheck.isAdmin
+  const imageProps = isAdminUser ? IMAGE_PROPS_ON : IMAGE_PROPS_OFF
 
   // ===== 牌譜のドラフト（描画時に導出する） =====
   // 選べる局面は「局 × 席 × 絞り込み」で変わるので、state はそのままにして
@@ -421,6 +426,66 @@ export default function MyProblemsApp() {
     setSelectedProbId(id)
     setView('editor')
     setSidebarOpen(false)
+  }
+
+  // ===== 画像から一括作成（管理者のみ） =====
+  //
+  // 画像1枚＝1問。手牌・正解はあとから作問画面で入れる。
+  // 画像そのものが局面を示しているので、出題画面では盤面も状況表示も出さない
+  // （problemDisplay.js の usesBoardView / showsSituation）。そのため
+  // 手牌が未入力でも画像を見て考えられる＝**非表示にはしない**（2026-08-06 の判断）。
+  // 直列に処理するのは display_no（DBトリガーが採番）をファイル名の順に並べるため。
+  // 並列にすると採番順が乱れて、本の問題番号と対応しなくなる
+  const [importing, setImporting] = useState(null) // { done, total } | null
+  const importFileRef = useRef(null)
+
+  async function importOneImage(original) {
+    // 上げる前に縮小する（単体アップロードと同じ変換。失敗したら元のまま上げる）
+    const file = await shrinkImageFile(original)
+    const ext = (file.name.split('.').pop() || 'png').toLowerCase()
+    const filename = makeUserImageFilename(ext)
+    // upsert:false ＝ 同名があれば失敗させる（uuid なので実際には衝突しない）
+    const { error: upErr } = await supabase.storage
+      .from(QUESTION_IMAGE_BUCKET).upload(filename, file, { upsert: false })
+    if (upErr) return false
+
+    // タイトルは元のファイル名から作る（縮小で .webp に変わっても元の名前を残す）
+    const title = original.name.replace(/\.[^.]+$/, '')
+    const problem = { ...makeNewUserProblem(), title, questionImageUrl: filename }
+    const row = { ...toUserDb(problem, { categoryId: activeCatValue }), user_id: userId }
+    const { data, error } = await supabase.from('user_problems').insert(row).select('id')
+    if (error || !data || data.length === 0) {
+      // 問題を作れなかった画像は Storage に残さない（孤児ファイルになる）
+      await supabase.storage.from(QUESTION_IMAGE_BUCKET).remove([filename])
+      return false
+    }
+    return true
+  }
+
+  async function importImages(fileList) {
+    if (!userId) return
+    // ファイル名順に並べる（数字混じりの名前を人間の期待どおりに並べるため numeric: true）
+    const files = [...(fileList ?? [])]
+      .filter(f => f.type.startsWith('image/'))
+      .sort((a, b) => a.name.localeCompare(b.name, 'ja', { numeric: true }))
+    if (files.length === 0) return
+
+    setImporting({ done: 0, total: files.length })
+    const failed = []
+    let added = 0
+    for (const file of files) {
+      // 1件が失敗しても止めない（残りを取りこぼさないため。失敗はまとめて報告する）
+      const ok = await importOneImage(file)
+      if (ok) added += 1
+      else failed.push(file.name)
+      setImporting(prev => (prev ? { ...prev, done: prev.done + 1 } : null))
+    }
+    setImporting(null)
+    await reload()
+    const failText = failed.length === 0
+      ? ''
+      : `（失敗 ${failed.length}件: ${failed.slice(0, 3).join(' / ')}${failed.length > 3 ? ' ほか' : ''}）`
+    setStatus(`${added}問を追加しました ✓${failText}`)
   }
 
   async function addProblem() {
@@ -770,8 +835,9 @@ export default function MyProblemsApp() {
     )
   }
 
-  // 上限に達しているか（DB 側の RLS と同じ値。limits.js を参照）
-  const probFull = problems.length >= MAX_PROBLEMS
+  // 上限に達しているか（DB 側の RLS と同じ値。limits.js を参照）。
+  // 管理者は insert ポリシー側でも上限の対象外なので、UI でも止めない
+  const probFull = !isAdminUser && problems.length >= MAX_PROBLEMS
   const catFull  = categories.length >= MAX_CATEGORIES
 
   const visibleProblems = activeCatId === UNCATEGORIZED
@@ -938,7 +1004,7 @@ export default function MyProblemsApp() {
             <span className="mp-prob-head-label">
               問題
               <span className={`mp-limit-badge${probFull ? ' mp-limit--full' : ''}`}>
-                {problems.length} / {MAX_PROBLEMS}
+                {isAdminUser ? problems.length : `${problems.length} / ${MAX_PROBLEMS}`}
               </span>
             </span>
             <div className="mp-prob-head-actions">
@@ -967,10 +1033,32 @@ export default function MyProblemsApp() {
               >
                 牌譜から
               </button>
+              {/* 画像から一括作成（管理者のみ）。1枚＝1問を非表示で作り、
+                  手牌・正解はあとから作問画面で入れる */}
+              {isAdminUser && (
+                <>
+                  <input
+                    ref={importFileRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="paifu-file-input"
+                    onChange={e => { importImages(e.target.files); e.target.value = '' }}
+                  />
+                  <button
+                    className="mp-add-btn mp-add-btn--sm mp-desktop-only"
+                    onClick={() => importFileRef.current?.click()}
+                    disabled={!activeCatId || !!importing}
+                    title="画像を複数選ぶと、1枚につき1問を非表示で作ります"
+                  >
+                    {importing ? `取り込み中 ${importing.done}/${importing.total}` : '画像から一括'}
+                  </button>
+                </>
+              )}
               <button
                 className="mp-add-btn mp-add-btn--sm"
                 onClick={addProblem}
-                disabled={!activeCatId || probFull}
+                disabled={!activeCatId || probFull || !!importing}
               >
                 ＋ 新しい問題
               </button>

@@ -3,7 +3,7 @@ import TileButton from './TileButton';
 import { getTileLabel, getTileImageUrl, compareTiles, randomSuitMap, remapProblem, getDoraIndicator } from '../utils/tileUtils';
 import { getSituationText } from '../utils/categoryUtils';
 import { normalizeProblemType, isRiichiJudgmentProblem, judgeAnswer, judgeNakiTiming, judgeNakiChoice, judgeBetaori, parseAnswers } from '../utils/judgeUtils';
-import { usesBoardView, usesSuitRemap } from '../utils/problemDisplay';
+import { usesBoardView, usesSuitRemap, showsSituation } from '../utils/problemDisplay';
 import { buildProblemShareUrl } from '../utils/problemShare';
 import ResponsiveBoard from './ResponsiveBoard';
 import ShareButton from './ShareButton';
@@ -552,6 +552,9 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
   // 卓には局・巡目・ドラ・点数・各家の河が全部入っているので、
   // 従来のヘッダー表示と他家の捨て牌は出さず、卓に一本化する
   const showBoard = usesBoardView(problem);
+  // 状況（局・巡目・ドラ・点数）を文字とチップで出すか。問題画像がある問題では出さない
+  // （画像の中に卓がそのまま写っているので、同じ情報が二重になる）
+  const showSituation = showsSituation(problem);
   // 子のビューに渡す問題。盤面が他家の捨て牌を描くので、そちらからは外して二重表示を防ぐ
   const pv = showBoard ? { ...p, otherDiscards: null } : p;
 
@@ -674,7 +677,7 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
         />
       )}
 
-      {!showBoard && (() => {
+      {!showBoard && showSituation && (() => {
         const hasSituationFields = p.bakaze || p.jikaze || p.junme != null;
         const situationText = hasSituationFields
           ? [
@@ -698,7 +701,7 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
         );
       })()}
 
-      {!showBoard && <ScoreDisplay scores={p.scores} jikaze={p.jikaze} />}
+      {!showBoard && showSituation && <ScoreDisplay scores={p.scores} jikaze={p.jikaze} />}
 
       <ExplanationText text={p.note} className="problem-note" />
 

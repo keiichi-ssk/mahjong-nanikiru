@@ -4,7 +4,11 @@
 /**
  * 麻雀卓の形（BoardView）で出題するか。
  *
- * 判定の材料は2つだけ:
+ * 判定の材料:
+ *   - 問題画像つき … **盤面を出さない**（2026-08-06）。画像そのものが局面を示しているので、
+ *     卓を並べると同じ情報が二重になり、画面も無駄に縦長になる。
+ *     ※ 共有先には画像を渡さない仕様（api/_lib/sharedProblem.js）なので、
+ *       共有ページでは画像なしの問題として扱われ、従来どおり盤面が出る
  *   - 自作問題（my問題集）… 作問画面が盤面なので、出題も同じ見え方に揃える
  *   - 公式問題 … 管理画面の「盤面で出題」（problems.board_view）を立てた問題だけ
  *
@@ -14,7 +18,23 @@
  */
 export function usesBoardView(problem) {
   if (!problem) return false;
+  if (problem.questionImageUrl) return false;
   return !!(problem.isUserProblem || problem.boardView);
+}
+
+/**
+ * 状況表示（局・自風・巡目・ドラ表示牌・点数）を出すか。
+ *
+ * 問題画像がある問題では出さない（2026-08-06）。画像に卓がそのまま写っていて
+ * ドラも点数もその中にあるため、周りに同じ情報を並べても読む場所が増えるだけになる。
+ * 盤面（usesBoardView）を出さないのと同じ理由。
+ *
+ * 対象は ProblemView の problem-info-row（状況テキスト＋ドラ表示牌）と ScoreDisplay。
+ * **条件をコンポーネントに書き戻さないこと。**
+ */
+export function showsSituation(problem) {
+  if (!problem) return false;
+  return !problem.questionImageUrl;
 }
 
 /**
