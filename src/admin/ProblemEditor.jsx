@@ -23,7 +23,7 @@ import ResponsiveBoard from '../components/ResponsiveBoard'
 // 定数と表示部品は src/admin/editor/ に切り出してある。
 // このファイルは state とパネルの組み立てに専念する（部品は props で完結させ、state を持たせない）
 import {
-  PALETTE_TABS, PANEL_TITLES, panelOfTab, answerPaletteMode, newAddingMeld,
+  PALETTE_TABS, PANEL_TITLES, panelOfTab, modeOfTab, newAddingMeld,
   DEFAULT_SCORES,
 } from './editor/constants'
 import TilePalette from './editor/TilePalette'
@@ -57,12 +57,17 @@ import AnswerPanel from './editor/panels/AnswerPanel'
 //                  押すとログインに進むので「ログインして保存」に差し替える
 //   hideSaveNext … 「保存して次へ」を隠す。次の問題という概念が無い場面（ゲスト・牌譜の下書き）用。
 //                  hasNext=false でも disabled のボタンが残ると何が押せるのか分かりにくいため
+//   initialPaletteTab / onPaletteTabChange …
+//                  開いている送り先タブを呼び出し側に覚えさせるための組。問題を選び直すと
+//                  この画面は key ごと作り直されるため、渡さないと毎回「手牌」に戻る。
+//                  管理画面は続けて同じ作業（正解設定など）をすることが多いので前のタブで開く
 export default function ProblemEditor({
   problem, prevProblem, onSave, onSaveAndNext, onDelete, hasNext,
   hideImage = false, hideReviewed = false, hideDelete = false, headerLead = null,
   saveStatus = null, lockBoard = false, concealedCounts = null,
   hideDisabled = false, paletteAside = null, textLimits = null, hideBoardView = false,
   onShare = null, saveLabel = '保存', hideSaveNext = false,
+  initialPaletteTab = null, onPaletteTabChange = null,
 }) {
   // 手牌が未設定（新規追加直後）の問題は、手牌・正解・状況設定（ドラ・場風・自風・巡目）を
   // ひとつ前の問題から引き継いでおく。手牌がすでにある問題は自分自身の値を優先する。
@@ -440,8 +445,13 @@ export default function ProblemEditor({
   // 「盤面を縮小して出す」「ヘッダー行を先頭へ移す」「タブを減らす」の3つだけ
   const isNarrow = useIsNarrow()
 
-  const [paletteTab,  setPaletteTab]  = useState(lockBoard ? 'answer' : 'hand')
-  const [paletteMode, setPaletteMode] = useState(lockBoard ? 'explanation' : 'hand')
+  // 盤面ロック中は手牌タブが無いので正解設定から始める。
+  // 呼び出し側が前に開いていたタブを覚えていれば、そのタブで開き直す（送り先もタブに合わせる）
+  const initialTab = initialPaletteTab ?? (lockBoard ? 'answer' : 'hand')
+  const [paletteTab,  setPaletteTab]  = useState(initialTab)
+  const [paletteMode, setPaletteMode] = useState(
+    () => modeOfTab(initialTab, problemType, lockBoard ? 'explanation' : 'hand')
+  )
 
   // 送り先として成立するモードの一覧（タブ列には出さないモードも含む妥当性チェック用）。
   // 送り先はタブのクリック・盤面の王牌クリック・textarea のフォーカスから設定されるので、
@@ -478,11 +488,9 @@ export default function ProblemEditor({
   // タブの切り替え。送り先も一緒に決まる（同じ操作の入口を2つ作らない）
   function selectPaletteTab(key) {
     setPaletteTab(key)
-    setPaletteMode(
-      key === 'answer' ? answerPaletteMode(problemType)
-      : key === 'jokyo' ? 'dora'
-      : PALETTE_TABS.find(t => t.key === key)?.mode ?? fallbackMode
-    )
+    setPaletteMode(modeOfTab(key, problemType, fallbackMode))
+    // 次の問題を同じタブで開けるよう呼び出し側にも伝える
+    onPaletteTabChange?.(key)
     // 入力途中の副露はタブをまたいで持ち越さない。副露タブはポンから始める
     setAddingMeld(key === 'meld' ? newAddingMeld('pon', 'hand') : null)
     // 「〜に挿入」タブは牌がどこへ入るかを見せるため、その欄へカーソルを置く。
@@ -557,6 +565,7 @@ export default function ProblemEditor({
       // 点数はタブ列に無いので selectPaletteTab を通さず直接開く
       setPaletteTab('jokyo')
       setPaletteMode('dora')
+      onPaletteTabChange?.('jokyo')
       setAddingMeld(null)
       setActiveScoreWind(index ?? null)
       // スマホは点数タブが一覧なので、家が分かっているならそのままポップアップまで開く

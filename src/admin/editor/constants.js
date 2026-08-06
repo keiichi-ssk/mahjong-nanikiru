@@ -47,6 +47,14 @@ export function answerPaletteMode(problemType) {
   return 'explanation'
 }
 
+// タブ → パレットの牌の送り先。タブを押したときと、前の問題から引き継いだタブで
+// 開き直すときの両方で使う（送り先の導出を2箇所に書かないこと）
+export function modeOfTab(tab, problemType, fallbackMode) {
+  if (tab === 'answer') return answerPaletteMode(problemType)
+  if (tab === 'jokyo')  return 'dora'
+  return PALETTE_TABS.find(t => t.key === tab)?.mode ?? fallbackMode
+}
+
 // 副露を新規作成するときの鳴いた元（チーは上家固定・暗槓は無し）
 export function defaultMeldFrom(type) {
   return getMeldFromOptions(type)[0] ?? null

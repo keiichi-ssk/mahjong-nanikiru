@@ -39,6 +39,10 @@ export default function AdminApp() {
   // 成功は数秒で自動的に消し、失敗は消さない（消えると読み逃すため）
   const [editorStatus, setEditorStatus]   = useState(null)
   const editorStatusTimer                 = useRef(null)
+  // 編集画面で開いている送り先タブ。問題を選び直すと ProblemEditor は key ごと
+  // 作り直されるため、ここで覚えておかないと毎回「手牌」に戻る
+  // （続けて同じ作業をすることが多いので、前の問題で開いていたタブのまま開く）
+  const [paletteTab, setPaletteTab]   = useState('hand')
   const [activeTab, setActiveTab]     = useState('problems')
   const [addForm, setAddForm]         = useState({ book: '', major: '', section: '' })
   const [allowedUsers, setAllowedUsers] = useState([])
@@ -556,6 +560,8 @@ export default function AdminApp() {
             onDelete={handleDelete}
             onShare={handleShare}
             hasNext={catIdx < catProblems.length - 1}
+            initialPaletteTab={paletteTab}
+            onPaletteTabChange={setPaletteTab}
             // 保存の結果は保存ボタンの隣に出す（サイドバーだと遠くて気づけない）
             saveStatus={editorStatus && (
               <span className={editorStatus.error ? 'editor-save-err' : 'editor-save-ok'}>
