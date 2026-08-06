@@ -11,6 +11,7 @@ import { MAX_PROBLEMS, MAX_CATEGORIES, MAX_EXPLANATION, MAX_NOTE, insertErrorTex
 import { snapshotToProblem } from '../utils/importBoard'
 import { openProblemShare, openTokenShare } from '../utils/shareWindow'
 import { loadGuestDraft, saveGuestDraft, clearGuestDraft } from './guestDraft'
+import { questionImagePath, QUESTION_IMAGE_BUCKET } from '../utils/questionImage'
 import { useIsNarrow } from '../utils/useMediaQuery'
 import { track, EVENTS } from '../utils/analytics'
 import {
@@ -88,11 +89,28 @@ async function signIn() {
   if (error) console.error('OAuth error:', error)
 }
 
+// 自作問題の画像ファイル名。user_problems.id は保存時に採番される uuid なので、
+// id に依存しない名前にして「まだ保存していない問題」にも画像を付けられるようにする。
+// 公式問題（<数値id>.<ext>）と同じバケットを使うので、接頭辞で名前空間を分ける
+function makeUserImageFilename(ext) {
+  return `u-${crypto.randomUUID()}.${ext}`
+}
+
+// 画像を使える人（管理者）に渡す ProblemEditor の props。
+// 使えない人には hideImage を渡して画像欄ごと隠す。
+// ★ 共有先で画像は出さない仕様（api/_lib/sharedProblem.js が question_image_url を返さない）。
+//   共有してから気づくと手遅れなので、画像欄にその場で書いておく
+const IMAGE_PROPS_ON = {
+  makeImageFilename: makeUserImageFilename,
+  imageNote: '※ この画像は共有されません（X で共有しても相手には表示されません）',
+}
+const IMAGE_PROPS_OFF = { hideImage: true }
+
 // 1問ぶんの編集ペイン。
 // 番号・タイトル・カテゴリは**左の一覧から**変更するので、ここでは持たない
 // （同じ設定の入口が2つあると、どちらが有効か分からなくなるため）。
 // 保存時は問題が元々持っている値をそのまま引き継ぐ。
-function ProblemPane({ problem, hasNext, onSave, onSaveAndNext, onShare, saveStatus, menuButton }) {
+function ProblemPane({ problem, hasNext, onSave, onSaveAndNext, onShare, saveStatus, menuButton, imageProps }) {
   // buildSaveData は {...problem} を土台にするので title / categoryId は自動で残る
   return (
     <ProblemEditor
@@ -102,7 +120,7 @@ function ProblemPane({ problem, hasNext, onSave, onSaveAndNext, onShare, saveSta
       //   前の手牌が入っていると毎回消す手間になる（未設定なら既定値＝東1局・南家・9巡目・ドラ北が入る）
       prevProblem={null}
       hasNext={hasNext}
-      hideImage
+      {...imageProps}
       hideReviewed
       hideDelete
       hideBoardView
@@ -207,6 +225,24 @@ export default function MyProblemsApp() {
   // user_problems / user_categories の RLS は auth.uid() だけを見ている。
   // 作れる件数の上限は DB 側（RLS の with check）で強制する
   const userId  = session?.user?.id ?? null
+
+  // ★ 問題画像のアップロードだけは管理者（＝書籍の画像を扱う本人）に限る。
+  //   ここは UI ゲートで、実効防御は Storage 側のポリシー（question-images への書き込みは
+  //   DB関数 is_admin() が true の人だけ）。allowed_users は「自分の行だけ SELECT 可」なので
+  //   一般ユーザーがこれを引いても 0 行（＝ false）になる
+  //   結果は「どのメールについての判定か」ごと持つ（AdminApp の adminCheck と同じ形）。
+  //   別のアカウントでログインし直したときに、前のユーザーの判定が残らないようにするため
+  const email = session?.user?.email ?? null
+  const [adminCheck, setAdminCheck] = useState(null) // { email, isAdmin } | null
+  useEffect(() => {
+    if (!email) return
+    let cancelled = false
+    supabase.from('allowed_users').select('is_admin').eq('email', email).maybeSingle()
+      .then(({ data }) => { if (!cancelled) setAdminCheck({ email, isAdmin: !!data?.is_admin }) })
+    return () => { cancelled = true }
+  }, [email])
+  const canUseImage = !!email && adminCheck?.email === email && adminCheck.isAdmin
+  const imageProps = canUseImage ? IMAGE_PROPS_ON : IMAGE_PROPS_OFF
 
   // ===== 牌譜のドラフト（描画時に導出する） =====
   // 選べる局面は「局 × 席 × 絞り込み」で変わるので、state はそのままにして
@@ -606,6 +642,14 @@ export default function MyProblemsApp() {
       .select('id')
     if (error) { setStatus(`削除に失敗しました: ${error.message}`); return }
     if (!data || data.length === 0) { setStatus('削除できませんでした（権限の可能性）'); return }
+    // 問題画像はベストエフォートで削除（失敗しても問題の削除自体は成立している）
+    const imagePath = questionImagePath(p.questionImageUrl)
+    if (imagePath) {
+      supabase.storage.from(QUESTION_IMAGE_BUCKET).remove([imagePath])
+        .then(({ error: imgErr }) => {
+          if (imgErr) console.warn('[deleteProblem] 問題画像の削除に失敗:', imgErr)
+        })
+    }
     if (selectedProbId === p.id) setSelectedProbId(null)
     setStatus('問題を削除しました ✓')
     await reload()
@@ -642,6 +686,7 @@ export default function MyProblemsApp() {
             problem={guestPaifu ? (draftProblem ?? makeNewUserProblem()) : guestProblem}
             prevProblem={null}
             hasNext={false}
+            // 未ログインの作問。画像は Storage に置くので保存できるログイン後だけの機能
             hideImage
             hideReviewed
             hideDelete
@@ -1059,7 +1104,7 @@ export default function MyProblemsApp() {
             problem={guestProblem}
             prevProblem={null}
             hasNext={false}
-            hideImage
+            {...imageProps}
             hideReviewed
             hideDelete
             hideBoardView
@@ -1106,7 +1151,7 @@ export default function MyProblemsApp() {
             problem={draftProblem ?? makeNewUserProblem()}
             prevProblem={null}
             hasNext={false}
-            hideImage
+            {...imageProps}
             hideReviewed
             hideDelete
             hideBoardView
@@ -1162,6 +1207,7 @@ export default function MyProblemsApp() {
             onSaveAndNext={saveProblemAndNext}
             onShare={shareFromEditor}
             menuButton={menuButton}
+            imageProps={imageProps}
             saveStatus={editorStatus && (
               <span className={editorStatus.error ? 'editor-save-err' : 'editor-save-ok'}>
                 {editorStatus.text}

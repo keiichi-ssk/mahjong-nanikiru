@@ -21,12 +21,17 @@ const TOKEN_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]
 // 共有相手に渡す列。**user_id を含めないこと**（誰が作ったかは渡さない）。
 // ★ answer_tally も含めない —— 回答する前に「みんなの答え」がブラウザへ届いてしまい、
 //   画面で隠しても開発者ツールで見えてしまう（集計は api/answer.js が回答と引き換えに返す）。
+// ★ question_image_url も含めない（2026-08-06）——
+//   問題画像は限定公開バケットにあり、未ログインの閲覧者は署名付きURLを作れないので
+//   そもそも表示できない。それ以上に、**画像付き問題を共有しても画像は公開しない**のが
+//   決めた仕様（書籍由来の画像をインターネットに出さないため）。列ごと渡さないことで、
+//   共有先に画像のファイル名すら知らせない
 // ⚠ 列を足すときは user_problems に実在することを確認する。存在しない列名を書くと
 //   PostgREST が 400 を返し、共有ページが丸ごと開けなくなる
 const COLUMNS = [
   'id', 'title', 'display_no', 'category_id',
   'tiles', 'answer', 'dora', 'riichi', 'explanation', 'disabled', 'melds',
-  'problem_type', 'discarded_tile', 'naki_choices', 'question_image_url',
+  'problem_type', 'discarded_tile', 'naki_choices',
   'bakaze', 'kyoku', 'honba', 'jikaze', 'junme', 'note', 'other_discard', 'scores',
 ].join(',');
 

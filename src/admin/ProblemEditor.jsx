@@ -57,6 +57,9 @@ import AnswerPanel from './editor/panels/AnswerPanel'
 //                  押すとログインに進むので「ログインして保存」に差し替える
 //   hideSaveNext … 「保存して次へ」を隠す。次の問題という概念が無い場面（ゲスト・牌譜の下書き）用。
 //                  hasNext=false でも disabled のボタンが残ると何が押せるのか分かりにくいため
+//   makeImageFilename … 問題画像の保存名を作る関数 (ext) => string。渡さなければ <問題id>.<ext>。
+//                  自作問題は id が保存時採番の uuid なので、id に依らない名前を渡してもらう
+//   imageNote    … 画像欄の下に出す注意書き（自作問題では「共有には含まれない」ことを伝える）
 //   initialPaletteTab / onPaletteTabChange …
 //                  開いている送り先タブを呼び出し側に覚えさせるための組。問題を選び直すと
 //                  この画面は key ごと作り直されるため、渡さないと毎回「手牌」に戻る。
@@ -68,6 +71,7 @@ export default function ProblemEditor({
   hideDisabled = false, paletteAside = null, textLimits = null, hideBoardView = false,
   onShare = null, saveLabel = '保存', hideSaveNext = false,
   initialPaletteTab = null, onPaletteTabChange = null,
+  makeImageFilename = null, imageNote = null,
 }) {
   // 手牌が未設定（新規追加直後）の問題は、手牌・正解・状況設定（ドラ・場風・自風・巡目）を
   // ひとつ前の問題から引き継いでおく。手牌がすでにある問題は自分自身の値を優先する。
@@ -146,7 +150,9 @@ export default function ProblemEditor({
     if (!file) return
     setImageUploading(true)
     const ext = file.name.split('.').pop()
-    const filename = `${problem.id}.${ext}`
+    // 公式問題は <id>.<ext>（id は DB 採番済み）。自作問題は保存するまで id が無いので、
+    // 呼び出し側が id に依らない名前を作る（makeImageFilename）
+    const filename = makeImageFilename ? makeImageFilename(ext) : `${problem.id}.${ext}`
     const { error } = await supabase.storage.from(QUESTION_IMAGE_BUCKET).upload(filename, file, { upsert: true })
     if (error) {
       alert(`アップロード失敗: ${error.message}`)
@@ -838,6 +844,7 @@ export default function ProblemEditor({
                 <button className="dora-clear" onClick={handleImageDelete}>画像を削除</button>
               )}
             </div>
+            {imageNote && <p className="editor-current editor-image-note">{imageNote}</p>}
           </>
         ) : (
           <button className="editor-image-open" onClick={() => setImageOpen(true)}>＋ 問題画像を追加（任意）</button>
