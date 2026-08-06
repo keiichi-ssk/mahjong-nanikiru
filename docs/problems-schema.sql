@@ -88,3 +88,39 @@ comment on column public.problems.board_view is
 -- (4) board_view 列が入ったか（既存行がすべて false であること）
 --
 -- select board_view, count(*) from public.problems group by board_view;
+
+
+-- ------------------------------------------------------------
+-- 8. 「麻雀 定石「何切る」301選」の枠を301問ぶん用意する（2026-08-06 実行済み）
+--
+--    書籍の問題を1問ずつ埋めていくため、空の問題を先に作って id を確保した。
+--    id が実質の問題番号になる（管理画面の一覧は order('id')）。
+--
+--    ★ 差分だけを入れる形にしてあるので**再実行しても安全**
+--      （301問に達していれば generate_series が0行になり、何も起きない）。
+--
+--    ★ disabled = true で作るのが要点。中身が空の問題が出題画面に出ないようにする
+--      （App.jsx が filter(p => !p.disabled) で除外する）。
+--      問題を作り終えたものから管理画面で「非表示」を外していく。
+--
+--    列の指定が section と disabled だけで済むのは、他の列に既定値があるため
+--    （tiles は '{}'::text[]、melds / naki_choices は '[]'::jsonb、
+--       problem_type は 'default'）。NOT NULL でデフォルトが無いのは section だけ。
+--
+--    実行時: 既に30問（id 624〜653）が入っていたので271件を追加し、id 654〜924 になった。
+-- ------------------------------------------------------------
+
+insert into public.problems (section, disabled)
+select '47', true
+from generate_series(1, 301 - (select count(*) from public.problems where section = '47'));
+
+-- 検証
+--
+-- select count(*) as 合計,
+--        count(*) filter (where disabled) as 非表示,
+--        min(id) as 最小id, max(id) as 最大id
+--   from public.problems where section = '47';
+--
+-- 作り終えた問題を出題対象にする（管理画面の「非表示」チェックを外すのと同じ）
+--
+-- update public.problems set disabled = false where id = <問題のid>;
