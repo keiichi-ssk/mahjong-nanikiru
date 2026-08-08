@@ -44,13 +44,17 @@ export function decodeHandParam(param) {
   return sortTiles(ranks.map(r => `${r}${suit}`));
 }
 
-// X（旧Twitter）の投稿画面を開くURL。投稿文はネタバレなし（手牌と問いかけのみ）
+// X（旧Twitter）の投稿画面を開くURL。投稿文はネタバレなし（手牌と問いかけのみ）。
+// 「答えはリンク先で」の1行は必ず残すこと（2026-08-08〜）。リンク先の /chinitsu.html?q=… は
+// 同じ手牌が出題され回答すると解答パネルに最善打牌と待ちが出るため、答えを後からリプで
+// 補う運用（付け忘れが起きる）をやめ、読み手が自分で答え合わせできることを本文で示している。
 export function buildShareUrl(hand) {
   const text = [
     '【メンチン何切る】',
     handToNotation(hand),
     '',
     '何を切って何待ち？',
+    '答えはリンク先で',
     '',
     '#麻雀 #何切る #メンチン何切るドリル',
   ].join('\n');

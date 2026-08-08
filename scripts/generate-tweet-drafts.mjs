@@ -26,7 +26,9 @@ const TILES_DIR = path.resolve('public/tiles');
 // 2 にすると両面・シャンポンまで通り、1種類待ちだけが落ちる
 const MIN_WAIT_KINDS = 2;
 
-// クイズ投稿の「答え（数時間後にリプする解説）」を組み立てる。
+// クイズ投稿の「答え」を組み立てる。
+// 本文に「答えはリンク先で解くと分かります」を入れた（2026-08-08）ため、これは
+// **投稿前に自分で答えを確かめるためのもの**で、リプは任意になった（付け忘れても導線は切れない）。
 // 判定エンジン(computeBestDiscards/analyzeDiscard)で最善打牌と待ちを算出し、麻雀表記に変換する。
 // 全最善打牌の待ちが同じなら1行にまとめ、異なれば打牌ごとに列挙する（待ちの合算をしない）。
 function buildAnswerText(hand) {
@@ -45,8 +47,8 @@ function buildAnswerText(hand) {
     body = lines.map(l => `${handToNotation([l.tile])}切り → ${l.waitsText}（${l.kinds}面）`).join('\n')
       + `\n各${maxUkeire}枚`;
   }
-  // 解説リプにはURLを含めない（本文ツイートと同じOGPカードが二重表示されるのを避けるため。
-  // 同じツリーなので試せる導線は本文ツイート側のカード＆リンクから辿れる）
+  // 答えにはURLを含めない（リプするとき、本文ツイートと同じOGPカードが二重表示されるのを
+  // 避けるため。同じツリーなので試せる導線は本文ツイート側のカード＆リンクから辿れる）
   return `【答え】\n${body}`;
 }
 
@@ -129,10 +131,10 @@ function draftHtml(d, i, tweetText, answerText, intentUrl) {
         </div>
       </div>
       <div class="block">
-        <div class="block-label">② 解説（数時間後にリプ）</div>
+        <div class="block-label">② 答え（自分の確認用・必要ならリプ）</div>
         <pre class="tweet-text">${escapeHtml(answerText)}</pre>
         <div class="btn-row">
-          <button class="copy-btn" onclick="copyPre(this)">解説をコピー</button>
+          <button class="copy-btn" onclick="copyPre(this)">答えをコピー</button>
         </div>
       </div>
     </section>`;
@@ -228,7 +230,7 @@ const cards = drafts.map((d, i) => {
   // Xが text の後ろに url を付けるのと同じ並びにしてあるので、投稿画面から投稿しても手コピーでも結果は同じ。
   // 「X投稿画面を開く」リンクは intentUrl のまま（url パラメータと本文の両方に入れるとURLが二重に出るため）
   const tweetText = `${params.get('text')}\n${params.get('url')}`;
-  // 解説（数時間後にリプする答え）はこのスクリプトで生成する
+  // 答え（投稿前の確認用。リプするかは任意）はこのスクリプトで生成する
   const answerText = buildAnswerText(d.hand);
   return draftHtml(d, i, tweetText, answerText, intentUrl);
 });
