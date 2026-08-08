@@ -54,7 +54,7 @@ export function buildShareUrl(hand) {
     handToNotation(hand),
     '',
     '何を切って何待ち？',
-    '答えはリンク先で',
+    '答えはリンク先で確認できます',
     '',
     '#麻雀 #何切る #メンチン何切るドリル',
   ].join('\n');

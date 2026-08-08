@@ -51,7 +51,8 @@ describe('buildShareUrl', () => {
     expect(decodeURIComponent(url)).toContain('一一二三四五五六七八九九九九');
   });
 
-  // 答えを後からリプで補う運用をやめた代わりの導線なので、消えていないことを固定する
+  // 答えを後からリプで補う運用をやめた代わりの導線なので、消えていないことを固定する。
+  // 語尾は調整されうるので、行そのものではなく「答えはリンク先で」の部分だけを見る
   it('答えがリンク先で分かることを本文に含む', () => {
     expect(decodeURIComponent(buildShareUrl(HAND_M))).toContain('答えはリンク先で');
   });
