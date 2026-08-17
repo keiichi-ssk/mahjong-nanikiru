@@ -817,14 +817,40 @@
   flex-shrink: 0;
 }
 
-.question-count-value {
-  font-size: 0.85rem;
+/* 直接入力欄。スピナーは幅を食って押しづらいので消し、キーボード入力に寄せる */
+.question-count-input {
+  font-size: 0.95rem;
   font-weight: bold;
   color: var(--color-accent);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  flex-shrink: 0;
+  width: 3.6em;
+  height: 34px;
+  padding: 0 6px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.question-count-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+.question-count-input::-webkit-outer-spin-button,
+.question-count-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.question-count-total {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
   white-space: nowrap;
   flex-shrink: 0;
-  min-width: 76px;
-  text-align: right;
   font-variant-numeric: tabular-nums;
 }
 

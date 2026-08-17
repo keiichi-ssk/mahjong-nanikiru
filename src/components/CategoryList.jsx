@@ -195,6 +195,8 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
   }
   // 出題数。null = 全問（選択カテゴリが変わっても常に全問に追従する）
   const [questionCount, setQuestionCount] = useState(null);
+  // 直接入力の途中経過（空文字や桁の打ちかけ）。null = 入力中でないので実際の出題数を表示する
+  const [countInput, setCountInput] = useState(null);
   // 未ログイン時の「非公開のコンテンツ」タブが選択されているか（選択時のみ下に文言を出す）
   const [lockedTabSelected, setLockedTabSelected] = useState(false);
   // 既定と違う開閉状態にトグルされた大カテゴリ（"書籍::大カテゴリ" キーの集合）。
@@ -258,6 +260,11 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
     if (!checkedSections.has(p.section)) return false;
     return isProblemIncluded(p);
   }).length;
+
+  // 出題数の確定。総数以上なら「全問」（null）に寄せてスライダーと整合させる
+  function applyQuestionCount(v) {
+    setQuestionCount(v >= totalSelectedProblems ? null : Math.max(1, v));
+  }
 
   function filterLabel() {
     if (unansweredOnlyMode && wrongOnlyMode) return '未回答・不正解';
@@ -433,15 +440,33 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
                   max={totalSelectedProblems}
                   value={effectiveCount}
                   onChange={(e) => {
-                    const v = Number(e.target.value);
-                    setQuestionCount(v >= totalSelectedProblems ? null : v);
+                    setCountInput(null);
+                    applyQuestionCount(Number(e.target.value));
                   }}
                   aria-label="出題数"
                   style={{ '--track-fill': `linear-gradient(to right, var(--color-primary) ${trackPct}%, var(--color-border-strong) ${trackPct}%)` }}
                 />
-                <span className="question-count-value">
-                  {questionCount === null ? `全問（${totalSelectedProblems}）` : `${effectiveCount}問`}
-                </span>
+                <input
+                  type="number"
+                  className="question-count-input"
+                  inputMode="numeric"
+                  min={1}
+                  max={totalSelectedProblems}
+                  value={countInput ?? effectiveCount}
+                  onChange={(e) => {
+                    const raw = e.target.value;
+                    setCountInput(raw);
+                    const v = Number(raw);
+                    // 空欄や不正値は入力途中とみなして出題数を動かさない（blur で戻す）
+                    if (raw !== '' && Number.isInteger(v) && v >= 1) {
+                      applyQuestionCount(v);
+                    }
+                  }}
+                  onBlur={() => setCountInput(null)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                  aria-label="出題数"
+                />
+                <span className="question-count-total">/ {totalSelectedProblems}問</span>
               </div>
             )}
             <button
