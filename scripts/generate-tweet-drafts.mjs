@@ -4,6 +4,7 @@
 // そのままコピペで使える投稿文＋シェアURLを出力する。自動投稿はしない（下書きのみ）。
 // 受け入れの広さで優劣は付けない（条件を満たせば広くても狭くても採用する）。
 // 手牌は文字表記だけだと分かりにくいため、実際の牌画像を並べたHTMLプレビューも生成しブラウザで開く。
+// あわせて**ツイートに添付するカード画像（/api/og のPNG）も落として保存する**（理由は fetchCardImage のコメント）。
 // 実行: npm run tweet-drafts [件数（省略時5）]
 
 import { register } from 'node:module';
@@ -15,8 +16,9 @@ import { exec } from 'node:child_process';
 register('./esm-resolve-js-loader.mjs', import.meta.url);
 
 const { generateChinitsuHand, analyzeDiscard, isWinningHand, computeBestDiscards } = await import('../src/utils/chinitsuUtils.js');
-const { buildShareUrl, handToNotation } = await import('../src/utils/chinitsuShare.js');
+const { buildShareUrl, handToNotation, encodeHandParam } = await import('../src/utils/chinitsuShare.js');
 const { getTileImageUrl, sortTiles } = await import('../src/utils/tileUtils.js');
+const { SITE_URL } = await import('../src/config/site.js');
 
 const SAMPLE_SIZE = 20000;
 const SUITS = ['m', 'p', 's'];
@@ -117,7 +119,29 @@ function tileImgTag(tile) {
   return `<span class="tile"><img src="${uri}" alt="${tile}" /></span>`;
 }
 
-function draftHtml(d, i, tweetText, answerText, intentUrl) {
+// 添付画像のブロック。取得に失敗していたら、その旨と再取得用のURLを出す（下書き自体は使えるため）
+function cardBlockHtml(card) {
+  if (!card.ok) {
+    return `
+      <div class="block">
+        <div class="block-label">② 添付画像</div>
+        <p class="card-error">画像を取得できませんでした（${escapeHtml(card.detail)}）。
+        次のURLをブラウザで開いて手動で保存してください:<br />
+        <a class="card-link" href="${card.imageUrl}" target="_blank" rel="noopener noreferrer">${escapeHtml(card.imageUrl)}</a></p>
+      </div>`;
+  }
+  return `
+      <div class="block">
+        <div class="block-label">② 添付画像（これをツイートに添付する）</div>
+        <img class="card-preview" src="${card.relPath}" alt="OGPカード" />
+        <div class="btn-row">
+          <a class="open-btn" href="${card.relPath}" download="${card.fileName}">画像を保存</a>
+          <span class="card-path">${escapeHtml(card.absPath)}</span>
+        </div>
+      </div>`;
+}
+
+function draftHtml(d, i, tweetText, answerText, intentUrl, card) {
   return `
     <section class="card">
       <h2>候補${i + 1}　受け入れ${d.maxUkeire}枚・${d.waitKinds}面待ち</h2>
@@ -130,8 +154,9 @@ function draftHtml(d, i, tweetText, answerText, intentUrl) {
           <a class="open-btn" href="${intentUrl}" target="_blank" rel="noopener noreferrer">X投稿画面を開く</a>
         </div>
       </div>
+${cardBlockHtml(card)}
       <div class="block">
-        <div class="block-label">② 答え（自分の確認用・必要ならリプ）</div>
+        <div class="block-label">③ 答え（自分の確認用・必要ならリプ）</div>
         <pre class="tweet-text">${escapeHtml(answerText)}</pre>
         <div class="btn-row">
           <button class="copy-btn" onclick="copyPre(this)">答えをコピー</button>
@@ -140,25 +165,31 @@ function draftHtml(d, i, tweetText, answerText, intentUrl) {
     </section>`;
 }
 
-// 生成した下書きのシェアURLを一度だけ叩き、本番のOGPカードをキャッシュに載せておく。
-// X のクローラーは og:image の取得に時間がかかると諦め、カードが画像なしの小さい表示になる。
-// /api/og はその手牌のカードを初回アクセス時にその場で生成するため約2秒（関数のコールドスタート時は
-// 5秒超）かかり、**投稿した瞬間がまさにその初回**に当たる。先に叩いて Vercel のエッジキャッシュに
-// 載せておけば X からは即座に返る。
-// X と同じ手順（中継ページのHTMLを読む → og:image を取りに行く）を踏むので、
-// カードが出せる状態かどうかの確認も兼ねる。ネットワークが無くても下書きは使えるよう、失敗しても止めない。
-async function warmUpCard(shareUrl) {
+// 手牌のOGPカード画像（/api/og が返すPNG）を落としてローカルに保存する。
+//
+// 【なぜ画像を保存するのか（2026-08-22〜）】
+// 以前は X のリンクカードに画像を出させる方式だったが、**予約投稿だと投稿の瞬間にカード画像が
+// 出ない事故が起きた**（2026-08-15〜19の投稿。後から自然に表示されたものもあれば、画像なしの
+// 小さいカードのまま固まったものもある）。原因はサーバー側ではなく X 側で、/api/og はその手牌の
+// カードを初回アクセス時にその場で生成するため約2秒かかり、X のクローラーが待ちきれずに諦めていた。
+// 先にキャッシュを温める対策も入れていたが、①温めてから投稿までに数日空くとキャッシュが消える
+// ②Vercelのエッジキャッシュはリージョンごとで、日本から温めても米国のクローラーには効かない、
+// の2点で確実性が足りなかった。
+// そこで**画像をツイートに直接添付する運用に変更した**。添付画像は X のサーバーへ直接アップロード
+// されるので、クロールもタイムアウトも介在しない。
+// ※ アプリ内の「この問題をXでシェア」ボタン（buildShareUrl）は従来どおりカード方式のままなので、
+//    /api/share と /api/og は消さないこと。
+//
+// ネットワークが無くても下書き自体は使えるよう、失敗しても処理は止めない。
+async function fetchCardImage(hand, filePath) {
+  const imageUrl = `${SITE_URL}/api/og?q=${encodeHandParam(hand)}`;
   try {
-    const page = await fetch(shareUrl, { signal: AbortSignal.timeout(20000) });
-    if (!page.ok) return { shareUrl, ok: false, detail: `中継ページが ${page.status}` };
-    const imageUrl = (await page.text()).match(/property="og:image" content="([^"]+)"/)?.[1];
-    if (!imageUrl) return { shareUrl, ok: false, detail: 'og:image が見つからない' };
-    const image = await fetch(imageUrl, { signal: AbortSignal.timeout(20000) });
-    if (!image.ok) return { shareUrl, ok: false, detail: `カード画像が ${image.status}` };
-    await image.arrayBuffer(); // 最後まで受け取って初めてキャッシュに載る
-    return { shareUrl, ok: true };
+    const res = await fetch(imageUrl, { signal: AbortSignal.timeout(20000) });
+    if (!res.ok) return { imageUrl, ok: false, detail: `カード画像が ${res.status}` };
+    writeFileSync(filePath, Buffer.from(await res.arrayBuffer()));
+    return { imageUrl, ok: true };
   } catch (e) {
-    return { shareUrl, ok: false, detail: e.message };
+    return { imageUrl, ok: false, detail: e.message };
   }
 }
 
@@ -200,9 +231,31 @@ function previewPageHtml(cardsHtml) {
     display: inline-block; padding: 8px 16px; background: #5e81ac; color: #eceff4;
     border-radius: 8px; text-decoration: none; font-weight: bold; font-size: 0.9rem;
   }
+  .card-preview {
+    display: block; width: 100%; max-width: 480px; height: auto;
+    border-radius: 8px; margin-bottom: 8px;
+  }
+  .card-path { font-size: 0.75rem; color: #9fadbf; word-break: break-all; }
+  .card-error { margin: 0; font-size: 0.85rem; color: #ebcb8b; }
+  .card-link { color: #88c0d0; }
+  .howto {
+    background: #3b4252; border-left: 4px solid #88c0d0; border-radius: 6px;
+    padding: 12px 16px; margin-bottom: 20px; font-size: 0.9rem; line-height: 1.7;
+  }
+  .howto ol { margin: 6px 0 0; padding-left: 1.2em; }
 </style></head>
 <body>
   <h1>Xシェア下書きプレビュー</h1>
+  <div class="howto">
+    <strong>投稿手順（画像添付方式・2026-08-22〜）</strong>
+    <ol>
+      <li>「本文をコピー」で本文＋リンクをコピーし、Xの投稿（予約）画面に貼る</li>
+      <li>「画像を保存」でカード画像を保存し、同じ投稿に<strong>添付する</strong></li>
+      <li>そのまま投稿するか、予約日時を設定する</li>
+    </ol>
+    画像を添付するとXのリンクカードは出ませんが、そのぶん画像が確実に・大きく表示されます
+    （カード方式は予約投稿だと画像が出ないことがあったため切り替えました）。
+  </div>
   ${cardsHtml}
   <script>
     function copyPre(btn) {
@@ -220,39 +273,56 @@ function previewPageHtml(cardsHtml) {
 const count = Number(process.argv[2]) || 5;
 const drafts = pickCandidates(count);
 
-const shareUrls = [];
-const cards = drafts.map((d, i) => {
-  // 本文（クイズ）は buildShareUrl が組み立てたものをそのまま流用する（文言の二重管理を避けるため）
-  const intentUrl = buildShareUrl(d.hand);
-  const params = new URL(intentUrl).searchParams;
-  shareUrls.push(params.get('url'));
-  // コピー用の本文には手牌付きリンク（/api/share?q=...）も含める。
-  // Xが text の後ろに url を付けるのと同じ並びにしてあるので、投稿画面から投稿しても手コピーでも結果は同じ。
-  // 「X投稿画面を開く」リンクは intentUrl のまま（url パラメータと本文の両方に入れるとURLが二重に出るため）
-  const tweetText = `${params.get('text')}\n${params.get('url')}`;
-  // 答え（投稿前の確認用。リプするかは任意）はこのスクリプトで生成する
-  const answerText = buildAnswerText(d.hand);
-  return draftHtml(d, i, tweetText, answerText, intentUrl);
-});
-
-mkdirSync(OUT_DIR, { recursive: true });
 // 過去のプレビューを上書きしないよう、生成時刻をファイル名に付ける（preview-2026-07-24_15-30-12.html）
 const stamp = new Date().toLocaleString('sv-SE').replace(' ', '_').replace(/:/g, '-');
+const cardsDirName = `cards-${stamp}`;
+const cardsDir = path.join(OUT_DIR, cardsDirName);
+mkdirSync(cardsDir, { recursive: true });
+
+// 添付用のカード画像を先に落とす（プレビューHTMLに埋め込むため、HTMLの組み立てより前に行う）
+console.log('添付用のカード画像を取得しています…');
+const cardResults = await Promise.all(drafts.map((d, i) => {
+  const fileName = `${i + 1}-${encodeHandParam(d.hand)}.png`;
+  const filePath = path.join(cardsDir, fileName);
+  return fetchCardImage(d.hand, filePath).then(r => ({
+    ...r,
+    fileName,
+    absPath: filePath,
+    // プレビューHTMLは OUT_DIR 直下にあるので、そこからの相対パスで参照する
+    relPath: `${cardsDirName}/${fileName}`,
+  }));
+}));
+
+const cards = drafts.map((d, i) => {
+  // 本文（クイズ）は buildShareUrl が組み立てたものをそのまま流用する（文言の二重管理を避けるため）。
+  // ただし**リンク先URLだけは下書き側で差し替える**: 画像添付方式ではカードを出さないので、
+  // カード用の中継ページ（/api/share）を経由する必要がなく、生のリンクとして本文に見えるぶん
+  // 遊べるページを直接指したほうが自然でリダイレクトも1回減る。
+  // アプリ内のシェアボタン（buildShareUrl）は従来どおり /api/share のままにしてある。
+  const pageUrl = `${SITE_URL}/chinitsu.html?q=${encodeHandParam(d.hand)}`;
+  const text = new URL(buildShareUrl(d.hand)).searchParams.get('text');
+  // Xが text の後ろに url を付けるのと同じ並びにしてあるので、投稿画面から投稿しても手コピーでも結果は同じ
+  const tweetText = `${text}\n${pageUrl}`;
+  // 「X投稿画面を開く」リンクも同じ直リンクに揃える（本文コピーと食い違わないように）
+  const intentUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(pageUrl)}`;
+  // 答え（投稿前の確認用。リプするかは任意）はこのスクリプトで生成する
+  const answerText = buildAnswerText(d.hand);
+  return draftHtml(d, i, tweetText, answerText, intentUrl, cardResults[i]);
+});
+
 const outPath = path.join(OUT_DIR, `preview-${stamp}.html`);
 writeFileSync(outPath, previewPageHtml(cards.join('\n')));
+
+const failed = cardResults.filter(r => !r.ok);
+if (failed.length === 0) {
+  console.log(`✓ ${cardResults.length}件のカード画像を保存しました: ${cardsDir}`);
+} else {
+  console.log(`△ ${cardResults.length - failed.length}/${cardResults.length}件のカード画像を保存しました。次の画像は取得できていません:`);
+  for (const f of failed) console.log(`  - ${f.imageUrl}（${f.detail}）`);
+  console.log('  プレビューに再取得用のURLを載せてあります（本番URLへ接続できているか確認してください）。');
+}
 
 console.log(`${drafts.length}件の下書きを生成しました。プレビューをブラウザで開きます: ${outPath}`);
 if (process.platform === 'win32') {
   exec(`start "" "${outPath}"`);
-}
-
-console.log('OGPカードをウォームアップしています…（投稿時にXがカード画像を取りに来るのを待たせないため）');
-const warmed = await Promise.all(shareUrls.map(warmUpCard));
-const failed = warmed.filter(r => !r.ok);
-if (failed.length === 0) {
-  console.log(`✓ ${warmed.length}件のカードを準備しました。すぐに投稿して大丈夫です。`);
-} else {
-  console.log(`△ ${warmed.length - failed.length}/${warmed.length}件を準備しました。次のカードは準備できていません:`);
-  for (const f of failed) console.log(`  - ${f.shareUrl}（${f.detail}）`);
-  console.log('  投稿してもカード画像が出ないことがあります（本番URLへ接続できているか確認してください）。');
 }
