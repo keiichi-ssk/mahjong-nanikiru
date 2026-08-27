@@ -5,6 +5,7 @@ import ChinitsuAnswerResult from './ChinitsuAnswerResult';
 import ShareButton from './ShareButton';
 import { generateChinitsuHand, evaluateAnswer } from '../utils/chinitsuUtils';
 import { saveChinitsuRound, loadChinitsuRound } from '../utils/chinitsuStorage';
+import { useChinitsuKeys } from '../utils/chinitsuKeys';
 import { decodeHandParam, buildShareUrl } from '../utils/chinitsuShare';
 import { track, EVENTS } from '../utils/analytics';
 
@@ -143,6 +144,23 @@ export default function ChinitsuTrainer({ onBack, onTimeAttack, reviewHands = nu
     });
   }
 
+  // Backspace 用の取り消し。待ちが1枚以上あれば最後に選んだ1枚を、無ければ切る牌の選択を取り消す
+  // （どちらを取り消すかの判定は chinitsuKeys.js が持つ）
+  function undoWait() {
+    if (answered) return;
+    setRound(r => {
+      const next = new Set(r.selectedWaits);
+      const last = [...next].pop();
+      if (last !== undefined) next.delete(last);
+      return { ...r, selectedWaits: next };
+    });
+  }
+
+  function undoDiscard() {
+    if (answered) return;
+    setRound(r => ({ ...r, discardedIndex: null }));
+  }
+
   // 回答（ツモ／ノーテン／テンパイ）を評価し、結果表示・成績へ反映する。
   // 判定と結果生成は evaluateAnswer（純粋関数）が担い、ここは副作用の配線だけ。
   // 復習モードの手牌はメモリ上の reviewQueue で管理し、正誤に関わらず goNext で先へ進む
@@ -225,6 +243,23 @@ export default function ChinitsuTrainer({ onBack, onTimeAttack, reviewHands = nu
     }
     setResult(null);
   }
+
+  // キーボード操作（マウス操作と同じコールバックを呼ぶだけ。割り当ては chinitsuKeys.js）
+  useChinitsuKeys({
+    enabled: true,
+    answered,
+    hasDiscard: discardedIndex != null,
+    waitCount: selectedWaits.size,
+    handDigits: hand.map(t => Number(t[0])),
+    onDiscard: digit => selectDiscard(hand.findIndex(t => Number(t[0]) === digit)),
+    onWait: digit => toggleWait(`${digit}${hand[0][1]}`),
+    onTsumo: () => submitAnswer('tsumo'),
+    onNoten: () => submitAnswer('noten'),
+    onSubmit: () => submitAnswer('tenpai'),
+    onNext: goNext,
+    onUndoWait: undoWait,
+    onUndoDiscard: undoDiscard,
+  });
 
   return (
     <div className="problem-view">

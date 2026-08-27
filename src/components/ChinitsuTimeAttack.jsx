@@ -8,6 +8,7 @@ import { buildTimeAttackShareUrl } from '../utils/chinitsuShare';
 import { fetchTodayRanking, submitScore } from '../utils/leaderboardApi';
 import { rankForScore, MAX_NAME_LENGTH } from '../utils/leaderboardUtils';
 import { track, EVENTS } from '../utils/analytics';
+import { useChinitsuKeys } from '../utils/chinitsuKeys';
 
 // 前回入力したニックネームを localStorage から復元する（任意入力・公開ページでも動く）
 const PLAYER_NAME_KEY = 'chinitsuPlayerName';
@@ -185,6 +186,41 @@ export default function ChinitsuTimeAttack({ onBack, onPractice, onReview }) {
     else setMissedHands(m => [...m, hand]);
     setResult(res);
   }
+
+  // Backspace 用の取り消し。待ちが1枚以上あれば最後に選んだ1枚を、無ければ切る牌の選択を取り消す
+  // （どちらを取り消すかの判定は chinitsuKeys.js が持つ）
+  function undoWait() {
+    if (!answering) return;
+    setRound(r => {
+      const next = new Set(r.selectedWaits);
+      const last = [...next].pop();
+      if (last !== undefined) next.delete(last);
+      return { ...r, selectedWaits: next };
+    });
+  }
+
+  function undoDiscard() {
+    if (!answering) return;
+    setRound(r => ({ ...r, discardedIndex: null }));
+  }
+
+  // キーボード操作（マウス操作と同じコールバックを呼ぶだけ。割り当ては chinitsuKeys.js）。
+  // 開始前・結果画面では無効にする（結果画面のニックネーム入力を邪魔しないため）
+  useChinitsuKeys({
+    enabled: phase === 'playing',
+    answered: result !== null,
+    hasDiscard: discardedIndex != null,
+    waitCount: selectedWaits.size,
+    handDigits: hand.map(t => Number(t[0])),
+    onDiscard: digit => selectDiscard(hand.findIndex(t => Number(t[0]) === digit)),
+    onWait: digit => toggleWait(`${digit}${hand[0][1]}`),
+    onTsumo: () => submitAnswer('tsumo'),
+    onNoten: () => submitAnswer('noten'),
+    onSubmit: () => submitAnswer('tenpai'),
+    onNext: goNext,
+    onUndoWait: undoWait,
+    onUndoDiscard: undoDiscard,
+  });
 
   if (phase === 'ready') {
     return (

@@ -2499,6 +2499,125 @@
   height: auto;
 }
 
+/* メンチンドリルの回答段階の見出し（① 切る牌 → ② 待ち牌）。
+   いま操作する段階＝1〜9キーが効く方を左の色バーと明るい文字で示す。
+   段階の判定は ChinitsuAnswerInput（切る牌を選んだかどうかだけ）。 */
+.chinitsu-step {
+  margin: 8px 0 12px;
+  padding-left: 8px;
+  border-left: 3px solid transparent;
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+}
+
+.chinitsu-step--active {
+  border-left-color: var(--color-accent);
+  color: var(--color-text-bright);
+}
+
+.chinitsu-step-check {
+  color: var(--color-success);
+}
+
+/* ツモ／ノーテンのボタンに添えるキー。ボタンごとの色に馴染ませる。
+   キーボードのない環境では出さない */
+.chinitsu-btn-key {
+  flex-shrink: 0;
+  margin-left: 5px;
+  padding: 1px 7px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  color: inherit;
+  font-size: 0.7rem;
+  font-weight: normal;
+  opacity: 0.75;
+}
+
+.chinitsu-step-note {
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+}
+
+/* メンチンドリルのキー操作ヒント（PCのみ）。
+   キー割り当ての実装は src/utils/chinitsuKeys.js。文言を変えたら両方そろえること */
+.chinitsu-key-hint {
+  margin: 8px 0 0;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+/* 見出し。inline-block にすると既定の三角マーカーが消えるので自前で付ける */
+.chinitsu-key-hint > summary {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.chinitsu-key-hint > summary::after {
+  content: ' ▸';
+}
+
+.chinitsu-key-hint[open] > summary::after {
+  content: ' ▾';
+}
+
+@media (hover: hover) {
+  .chinitsu-key-hint > summary:hover {
+    background: var(--color-surface);
+    color: var(--color-text);
+  }
+}
+
+/* キーと動作の対応表。dt / dd を2列グリッドに並べる */
+.chinitsu-key-hint dl {
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  gap: 5px 12px;
+  margin: 6px 0 0;
+  padding: 8px 14px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-surface);
+  text-align: left;
+}
+
+.chinitsu-key-hint dt {
+  justify-self: end;
+  white-space: nowrap;
+}
+
+.chinitsu-key-hint dd {
+  margin: 0;
+  color: var(--color-text);
+}
+
+.chinitsu-key-hint kbd {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 1px 5px;
+  border: 1px solid var(--color-border-strong);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* スマホにはキーボードが無いので、キー前提の案内は出さない（ブレークポイントは他と同じ600px）。
+   段階の色バー自体は「次に何をするか」の案内としてスマホでも有効なので残す */
+@media (max-width: 600px) {
+  .chinitsu-key-hint,
+  .chinitsu-btn-key,
+  .chinitsu-step-note {
+    display: none;
+  }
+}
+
 /* ===== フッター（公開ページへの実リンク） ===== */
 .app-footer {
   margin-top: 36px;
