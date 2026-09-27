@@ -634,3 +634,19 @@ create policy "own problems insert" on public.user_problems
 -- 検証: 管理者で 21 問目を追加できること／一般ユーザーでは 20 問で止まること
 --
 -- select public.my_user_problem_count(), public.is_admin();
+
+
+-- ============================================================
+-- カンドラ列を追加する（2026-09-27）
+--
+--   kan_dora … カンドラ**そのもの**（表示牌ではない）の配列。例 '["5m","2z"]'
+--              無い＝ null。牌譜から取り込んだ問題で、その局面までにカンが入っていたときだけ値を持つ。
+--   ★ problems にも同じ列を足す（problems-schema.sql の 9.）。toDb を共有しているため。
+--   ★ 既存の GRANT はテーブル単位なので追加の GRANT は不要。
+-- ============================================================
+
+alter table public.user_problems add column if not exists kan_dora jsonb;
+
+-- 検証
+--
+-- select id, dora, kan_dora from public.user_problems where kan_dora is not null;

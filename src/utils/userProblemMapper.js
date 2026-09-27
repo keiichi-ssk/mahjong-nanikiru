@@ -42,6 +42,7 @@ export function toUserDb(p, { categoryId = null } = {}) {
     tiles:              db.tiles,
     answer:             db.answer,
     dora:               db.dora,
+    kan_dora:           db.kan_dora,
     riichi:             db.riichi,
     explanation:        db.explanation,
     disabled:           db.disabled,

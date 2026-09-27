@@ -77,6 +77,8 @@ export function makeBoardSnapshot(partial = {}) {
     junme:   partial.junme   ?? null,
     jikaze:  partial.jikaze  ?? null,
     dora:    partial.dora    ?? null,
+    // カンドラ（ドラそのもの）の配列。その局面までにめくれたぶんだけ。無ければ null
+    kanDora: partial.kanDora ?? null,
     // 供託（1000 = リーチ棒1本）。problem 側では scores の中に入る
     kyotaku: partial.kyotaku ?? null,
     // 各家の持ち点 { 東, 南, 西, 北 }。未設定なら null
@@ -162,6 +164,7 @@ export function snapshotToProblem(snapshot) {
     tiles:         sortTiles(self?.hand ?? []),
     melds:         toProblemMelds(self?.melds, s.jikaze),
     dora:          s.dora,
+    kanDora:       s.kanDora,
     bakaze:        s.bakaze,
     kyoku:         s.kyoku,
     honba:         s.honba,

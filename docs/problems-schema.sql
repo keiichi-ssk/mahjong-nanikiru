@@ -124,3 +124,21 @@ from generate_series(1, 301 - (select count(*) from public.problems where sectio
 -- 作り終えた問題を出題対象にする（管理画面の「非表示」チェックを外すのと同じ）
 --
 -- update public.problems set disabled = false where id = <問題のid>;
+
+
+-- ------------------------------------------------------------
+-- 9. カンドラ列を追加する（2026-09-27）
+--
+--    kan_dora … カンドラ**そのもの**（表示牌ではない）の配列。例 '["5m","2z"]'
+--               無い＝ null。dora 列（1枚目のドラ）はこれまでどおり。
+--    今のところ値を入れるのは my問題集の牌譜取り込みだけだが、
+--    toDb を公式問題と共有しているので problems にも同じ列が要る
+--    （無いと管理画面の保存が「存在しない列」で失敗する）。
+--    user_problems 側は user-problems-schema.sql に同じものを書いてある。
+-- ------------------------------------------------------------
+
+alter table public.problems add column if not exists kan_dora jsonb;
+
+-- 検証（全行 null であること）
+--
+-- select count(*) filter (where kan_dora is not null) from public.problems;

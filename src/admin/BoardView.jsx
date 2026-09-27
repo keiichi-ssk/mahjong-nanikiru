@@ -197,11 +197,13 @@ function BoardArea({ className = '', active, empty, style, onClick, readOnly, ch
 }
 
 // 王牌。一番左がドラ表示牌で、残りは裏向き
-function BoardDeadWall({ indicator }) {
+// indicators … めくれているドラ表示牌（先頭が最初のドラ・以降がカンドラ）。左から順に表に返す。
+// カンは1局に4回までなので、表示牌は最大5枚＝王牌の枠にちょうど収まる
+function BoardDeadWall({ indicators }) {
   return (
     <div className="board-dead-wall">
       {Array.from({ length: DEAD_WALL_COUNT }, (_, i) => (
-        <BoardTile key={i} tile={i === 0 ? indicator : null} size={WALL_TILE} />
+        <BoardTile key={i} tile={indicators[i] ?? null} size={WALL_TILE} />
       ))}
     </div>
   )
@@ -230,6 +232,8 @@ function BoardSelect({ value, onChange, options, suffix = '', title }) {
 
 export default function BoardView({
   tiles = [], melds = [], dora, answerList = [],
+  // カンドラ（ドラそのもの）の配列。牌譜から取り込んだ問題だけが持つ。無ければ null
+  kanDora = null,
   bakaze, kyoku, honba, jikaze, junme, scores, otherDiscards = [],
   // 他家の手牌の実際の枚数 { 東: 14, 南: 13, … }。牌譜から局面を再現するときだけ渡す
   // （渡さなければ 13 − 3×副露数 で表示する）。problem には保存されない表示専用の情報
@@ -282,7 +286,8 @@ export default function BoardView({
     tsumogiri: selfOd?.tsumogiri ?? null,
   })
 
-  const doraIndicator = dora ? getDoraIndicator(dora) : null
+  // ★ dora / kanDora は「ドラそのもの」。王牌に置くのは表示牌（1つ前の牌）なので戻す
+  const doraIndicators = [dora, ...(kanDora ?? [])].map(d => (d ? getDoraIndicator(d) : null))
   const score = w => scores?.[w]
   // 手牌タブを開いている間だけ、盤面の手牌クリックが削除になる
   const handEditable = activeArea === 'hand' && !!onRemoveHandTile
@@ -414,7 +419,7 @@ export default function BoardView({
             <div className="board-center-info">
                 {readOnly ? (
                   <div className="board-dead-wall-btn">
-                    <BoardDeadWall indicator={doraIndicator} />
+                    <BoardDeadWall indicators={doraIndicators} />
                   </div>
                 ) : (
                   <button
@@ -423,7 +428,7 @@ export default function BoardView({
                     onClick={() => onSelectArea('dora')}
                     title="ドラを設定（下のパレットからドラ表示牌を選ぶ）"
                   >
-                    <BoardDeadWall indicator={doraIndicator} />
+                    <BoardDeadWall indicators={doraIndicators} />
                   </button>
                 )}
                 {/* 表示専用のときはセレクタではなく文字で出す。

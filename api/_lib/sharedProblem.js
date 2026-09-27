@@ -30,7 +30,7 @@ const TOKEN_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]
 //   PostgREST が 400 を返し、共有ページが丸ごと開けなくなる
 const COLUMNS = [
   'id', 'title', 'display_no', 'category_id',
-  'tiles', 'answer', 'dora', 'riichi', 'explanation', 'disabled', 'melds',
+  'tiles', 'answer', 'dora', 'kan_dora', 'riichi', 'explanation', 'disabled', 'melds',
   'problem_type', 'discarded_tile', 'naki_choices',
   'bakaze', 'kyoku', 'honba', 'jikaze', 'junme', 'note', 'other_discard', 'scores',
 ].join(',');

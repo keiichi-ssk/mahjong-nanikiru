@@ -212,6 +212,7 @@ describe('snapshotToProblem（BoardSnapshot → problem）', () => {
     junme:       'problem.junme',
     jikaze:      'problem.jikaze',
     dora:        'problem.dora',
+    kanDora:     'problem.kanDora',
     kyotaku:     'problem.scores.kyotaku',
     scores:      'problem.scores',
     seats:       'problem.tiles / melds / otherDiscards',
@@ -233,6 +234,7 @@ describe('snapshotToProblem（BoardSnapshot → problem）', () => {
   it('全フィールドを埋めた盤面が problem に反映される', () => {
     const p = snapshotToProblem({
       bakaze: '東', kyoku: 1, honba: 3, junme: 8, jikaze: '南', dora: '4z',
+      kanDora: ['2p'],
       kyotaku: 1000,
       scores: { 東: 25000, 南: 26000, 西: 24000, 北: 25000 },
       seats: {
@@ -248,6 +250,7 @@ describe('snapshotToProblem（BoardSnapshot → problem）', () => {
       tiles: ['1m', '2m', '3m'],
       melds: [{ type: 'pon', tiles: ['6z', '6z', '6z'], from: '対面' }],
       dora: '4z',
+      kanDora: ['2p'],
       bakaze: '東',
       kyoku: 1,
       honba: 3,

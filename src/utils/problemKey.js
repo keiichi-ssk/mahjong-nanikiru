@@ -47,6 +47,9 @@ function canonicalShape(p) {
       ? [p.scores['東'] ?? null, p.scores['南'] ?? null, p.scores['西'] ?? null,
          p.scores['北'] ?? null, p.scores.kyotaku ?? null]
       : null,
+    // ★ カンドラは後から足した項目なので**あるときだけ末尾に足す**（2026-09-27）。
+    //   常に足すと、カンドラを持たない既存の全問題のバージョンが変わって集計がリセットされる
+    ...(p?.kanDora?.length ? [['kanDora', p.kanDora]] : []),
   ]);
 }
 

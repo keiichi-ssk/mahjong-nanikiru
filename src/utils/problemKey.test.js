@@ -52,6 +52,7 @@ describe('problemKey', () => {
   it.each([
     ['手牌', { tiles: [...base.tiles.slice(0, 13), '1m'] }],
     ['ドラ', { dora: '1z' }],
+    ['カンドラ', { kanDora: ['5p'] }],
     ['副露', { melds: [{ type: 'pon', tiles: ['1p', '1p', '1p'], from: '上家' }] }],
     ['巡目', { junme: 12 }],
     ['場風', { bakaze: '南' }],
@@ -63,6 +64,13 @@ describe('problemKey', () => {
     ['他家の捨て牌', { otherDiscards: [{ player: '上家', tiles: ['1z'], riichiIndex: null, melds: [], tsumogiri: null }] }],
   ])('%s を変えるとバージョンが変わる', async (_label, patch) => {
     expect(await problemKey({ ...base, ...patch })).not.toBe(await problemKey(base));
+  });
+
+  // ★ カンドラは後から足した項目。持たない問題（null / 空配列）の値が変わると
+  //   既存の全問題の集計がリセットされる
+  it('カンドラが無い問題のバージョンは従来と同じ', async () => {
+    expect(await problemKey({ ...base, kanDora: null })).toBe(await problemKey(base));
+    expect(await problemKey({ ...base, kanDora: [] })).toBe(await problemKey(base));
   });
 
   // 欠けたフィールドがあっても落ちない（旧データ・作りかけの問題）

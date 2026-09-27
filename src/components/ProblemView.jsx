@@ -79,16 +79,19 @@ function AnswerPanel({ isCorrect, explanation, children, showLabel = true }) {
   );
 }
 
-function DoraIndicatorDisplay({ tile }) {
+// 王牌の上段7枚。左から3枚目以降に表示牌（最初のドラ → カンドラ）を並べる
+const DORA_WALL_COUNT = 7;
+const DORA_WALL_OFFSET = 2;
+
+function DoraIndicatorDisplay({ tiles }) {
   return (
     <div className="dora-indicator">
-      <div className="dora-indicator-back" />
-      <div className="dora-indicator-back" />
-      <img src={getTileImageUrl(tile)} alt={getTileLabel(tile)} className="dora-indicator-tile" />
-      <div className="dora-indicator-back" />
-      <div className="dora-indicator-back" />
-      <div className="dora-indicator-back" />
-      <div className="dora-indicator-back" />
+      {Array.from({ length: DORA_WALL_COUNT }, (_, i) => {
+        const tile = tiles[i - DORA_WALL_OFFSET];
+        return tile
+          ? <img key={i} src={getTileImageUrl(tile)} alt={getTileLabel(tile)} className="dora-indicator-tile" />
+          : <div key={i} className="dora-indicator-back" />;
+      })}
     </div>
   );
 }
@@ -667,6 +670,7 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
           tiles={p.tiles ?? []}
           melds={p.melds ?? []}
           dora={p.dora}
+          kanDora={p.kanDora}
           bakaze={p.bakaze}
           kyoku={p.kyoku}
           honba={p.honba}
@@ -691,12 +695,15 @@ export default function ProblemView({ problem, index, total, onBack, onPrev, onN
               p.junme  != null ? `${p.junme}巡目` : null,
             ].filter(Boolean).join(' ')
           : getSituationText(p.section);
-        const doraIndicator = getDoraIndicator(p.dora);
-        if (!situationText && !doraIndicator) return null;
+        // 最初のドラ → カンドラの順。ドラそのものを持っているので表示牌へ戻す
+        const doraIndicators = p.dora
+          ? [p.dora, ...(p.kanDora ?? [])].map(getDoraIndicator).filter(Boolean)
+          : [];
+        if (!situationText && doraIndicators.length === 0) return null;
         return (
           <div className="problem-info-row">
             {situationText && <span className="problem-situation">{situationText}</span>}
-            {doraIndicator && <DoraIndicatorDisplay tile={doraIndicator} />}
+            {doraIndicators.length > 0 && <DoraIndicatorDisplay tiles={doraIndicators} />}
           </div>
         );
       })()}

@@ -9,6 +9,7 @@ const fullRow = {
   tiles: ['1m', '2m', '3m', '4p', '5p', '6p', '7s', '8s', '9s', '1z', '1z', '5z', '5z'],
   answer: '5z',
   dora: '1m',
+  kan_dora: ['2p', '6z'],
   riichi: true,
   explanation: 'ここは[5z]切り。',
   reviewed: true,
@@ -51,6 +52,14 @@ describe('fromDb（DB行 → アプリ内オブジェクト）', () => {
 
   it('other_discard の空配列は null に正規化される', () => {
     expect(fromDb({ ...fullRow, other_discard: [] }).otherDiscards).toBeNull();
+  });
+
+  it('kan_dora は配列のまま / 無い・空配列・不正値は null になる', () => {
+    expect(fromDb(fullRow).kanDora).toEqual(['2p', '6z']);
+    expect(fromDb({ ...fullRow, kan_dora: undefined }).kanDora).toBeNull();
+    expect(fromDb({ ...fullRow, kan_dora: [] }).kanDora).toBeNull();
+    expect(fromDb({ ...fullRow, kan_dora: 'x' }).kanDora).toBeNull();
+    expect(toDb({ ...fromDb(fullRow), kanDora: [] }).kan_dora).toBeNull();
   });
 
   it('dora の空文字は null に正規化される（未設定判定・引き継ぎのため）', () => {
@@ -136,6 +145,7 @@ describe('toDb（アプリ内オブジェクト → DB行）', () => {
       tiles: [],
       answer: '',
       dora: '',
+      kan_dora: null,
       riichi: null,
       explanation: '',
       reviewed: false,
@@ -194,6 +204,7 @@ describe('newProblemBase（新規作成の初期値）', () => {
       tiles: [],
       answer: '',
       dora: '',
+      kan_dora: null,
       riichi: null,
       explanation: '',
       disabled: false,

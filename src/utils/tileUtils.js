@@ -118,6 +118,7 @@ export function remapProblem(problem, suitMap) {
     tiles: ts(problem.tiles),
     answer: remapAnswer(problem.answer, suitMap),
     dora: t(problem.dora),
+    kanDora: ts(problem.kanDora),
     melds: problem.melds
       ? problem.melds.map(meld => ({ ...meld, tiles: ts(meld.tiles) }))
       : problem.melds,

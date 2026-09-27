@@ -321,12 +321,17 @@ export default async function handler(req) {
   const handTile = { w: Math.floor(HAND.w * handScale), h: Math.floor(HAND.h * handScale) };
 
   // ★ problem.dora は「ドラそのもの」。卓に置くのは**ドラ表示牌**（1つ前の牌）なので必ず変換する
-  const doraIndicator = getDoraIndicator(problem?.dora);
+  //   カンドラ（kanDora・牌譜から取り込んだ問題だけが持つ）も同じ。最初のドラの右へ順に表に返す。
+  //   王牌の枠は5枚で、カンは1局4回までなので必ず収まる
+  const doraIndicators = problem?.dora
+    ? [problem.dora, ...(Array.isArray(problem.kanDora) ? problem.kanDora : [])]
+        .map(getDoraIndicator).filter(Boolean).slice(0, 5)
+    : [];
 
   // 画像の取得はまとめて1回で（牌の重複ぶんは Map で1本化する）
   const meldTiles = melds.flatMap(m => m.tiles);
   const riverTiles = Object.values(rivers).flat().map(c => c.tile);
-  const needed = [...new Set([...hand, ...meldTiles, ...riverTiles, doraIndicator].filter(Boolean))];
+  const needed = [...new Set([...hand, ...meldTiles, ...riverTiles, ...doraIndicators].filter(Boolean))];
   const [uriList, fontRegular, fontBold] = await Promise.all([
     Promise.all(needed.map(t => tileDataUri(origin, t))),
     fetch(new URL('/fonts/NotoSansJP-Regular.otf', origin)).then(r => r.arrayBuffer()),
@@ -377,7 +382,7 @@ export default async function handler(req) {
       children: [
         // 上辺＝対面
         seatSlot(seats[1].wind),
-        // 中段＝上家 / 王牌（左端がドラ表示牌・残り4枚は裏向き） / 下家
+        // 中段＝上家 / 王牌（左からドラ表示牌→カンドラの表示牌・残りは裏向き） / 下家
         {
           type: 'div',
           props: {
@@ -390,8 +395,9 @@ export default async function handler(req) {
                   style: { display: 'flex', gap: 3 },
                   children: [
                     // ドラが未設定なら表向きの牌を出さない（白い牌が1枚だけ浮いて見えるため）
-                    ...(doraIndicator ? [tileNode(uriOf[doraIndicator], WALL)] : [backNode(WALL)]),
-                    ...Array.from({ length: 4 }, () => backNode(WALL)),
+                    ...Array.from({ length: 5 }, (_, i) => (
+                      doraIndicators[i] ? tileNode(uriOf[doraIndicators[i]], WALL) : backNode(WALL)
+                    )),
                   ],
                 },
               },

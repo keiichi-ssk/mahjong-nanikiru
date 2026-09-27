@@ -43,6 +43,13 @@ function writeOtherDiscards(v) {
   })
 }
 
+// カンドラは「牌コードの配列」か null のどちらか。空配列・不正値は null に寄せる
+function normalizeKanDora(v) {
+  if (!Array.isArray(v)) return null
+  const list = v.filter(t => typeof t === 'string' && t !== '')
+  return list.length > 0 ? list : null
+}
+
 export function fromDb(p) {
   return {
     ...p,
@@ -53,6 +60,9 @@ export function fromDb(p) {
     // toDbではdora未設定時に''で保存される（bakaze/jikaze/junmeはnull保存）ため、
     // ここで''をnullに正規化しないと再読込後に「未設定」判定（?? / 前問題からの引き継ぎ）が効かなくなる
     dora:             p.dora || null,
+    // カンドラ（ドラそのもの）の配列。後から追加した列で、牌譜から取り込んだ問題だけが持つ。
+    // 無い＝ null（空配列にはしない。toDb も空なら null で書く）
+    kanDora:          normalizeKanDora(p.kan_dora),
     // honba は後から追加したカラム。古い行には無いので null に正規化する
     honba:            p.honba ?? null,
     // 副露の「鳴いた元」(from) は旧データに無いため、読み込み時に補完する（暗槓は null）。
@@ -78,6 +88,7 @@ export function newProblemBase() {
     tiles:            [],
     answer:           '',
     dora:             null,
+    kanDora:          null,
     riichi:           null,
     melds:            [],
     explanation:      '',
@@ -100,6 +111,7 @@ export function toDb(p) {
     tiles:              p.tiles ?? [],
     answer:             p.answer ?? '',
     dora:               p.dora ?? '',
+    kan_dora:           normalizeKanDora(p.kanDora),
     riichi:             p.riichi ?? null,
     explanation:        p.explanation ?? '',
     reviewed:           p.reviewed ?? false,

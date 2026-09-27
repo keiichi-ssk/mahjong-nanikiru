@@ -11,6 +11,7 @@ const full = {
   tiles: ['1m', '2m', '3m', '0p', '5p', '6p', '7s', '8s', '9s', '1z', '1z', '5z', '5z', '9m'],
   answer: '9m,ankan:5z',
   dora: '4z',
+  kanDora: ['0m', '1z'],
   riichi: false,
   problemType: 'default',
   discardedTile: '3p',
@@ -308,5 +309,21 @@ describe('ツモ切りフラグ', () => {
     const compact = await readCompact(await encodeProblemParam(p));
     compact.o = compact.o.map(line => `${line.split('|').slice(0, 4).join('|')}|x`);
     expect(await decodeProblemParam(await writeCompact(compact))).toBeNull();
+  });
+});
+
+describe('カンドラ（x）', () => {
+  const base = { tiles: ['1m', '2m', '3m'], dora: '4z', problemType: 'default' };
+
+  it('無ければ URL に x を入れず、読んでも null', async () => {
+    const compact = await readCompact(await encodeProblemParam(base));
+    expect('x' in compact).toBe(false);
+    expect((await decodeProblemParam(await encodeProblemParam(base))).kanDora).toBeNull();
+  });
+
+  it('5枚以上・未知の牌は無効', async () => {
+    const compact = await readCompact(await encodeProblemParam({ ...base, kanDora: ['1m'] }));
+    expect(await decodeProblemParam(await writeCompact({ ...compact, x: compact.x.repeat(5) }))).toBeNull();
+    expect(await decodeProblemParam(await writeCompact({ ...compact, x: '!' }))).toBeNull();
   });
 });

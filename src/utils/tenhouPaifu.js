@@ -242,6 +242,21 @@ function replayAll(paifu, roundIndex) {
   const windOf = p => playerWind(p, kyokuNo);
   const steps  = [];
 
+  // ★ めくれているドラ表示牌の枚数（最初のドラを含む）。
+  //   meta.doraIndicators は「その局で最終的にめくられた全部」なので、局の途中の局面では
+  //   まだめくられていないカンドラまで含んでしまう。カンのたびに数えて局面ごとに持たせる。
+  //   めくるタイミング（天鳳・雀魂とも）:
+  //     暗槓        … その場ですぐ
+  //     加槓・大明槓 … その家の次の打牌のあと（後めくり）
+  //   嶺上開花などでめくられずに局が終わることがあるので、牌譜にある枚数を上限にする
+  const maxRevealed = Math.max(1, meta.doraIndicators.length);
+  let revealed    = 1;
+  let pendingKans = 0;   // 宣言済みで、まだめくっていない加槓・大明槓の数
+  const flushPending = () => {
+    revealed = Math.min(maxRevealed, revealed + pendingKans);
+    pendingKans = 0;
+  };
+
   // その瞬間の全員の状態を控える。あとから任意のステップの盤面を作れるようにするため。
   // 1局は高々100手なのでコストは問題にならない
   function pushStep(player, kind, tile, extra = {}) {
@@ -252,6 +267,7 @@ function replayAll(paifu, roundIndex) {
       kind,
       tile,                              // 牌コード（ツモ牌 / 鳴いた牌 / 切った牌）
       junme:  seats[player].drawCount,
+      doraRevealed: revealed,
       state:  seats.map(s => ({
         hand:        [...s.hand],
         melds:       [...s.melds],       // 要素は作ったあと書き換えないので浅くてよい
@@ -323,6 +339,7 @@ function replayAll(paifu, roundIndex) {
     if (typeof drawn === 'string') {
       applyCall(s, current, drawn);
       const meld = parseMeldString(drawn);
+      if (meld?.type === 'kan') pendingKans++;   // 大明槓は後めくり
       kind     = 'call';
       kindTile = meld ? meld.tiles[meld.calledIndex] ?? null : null;
     } else {
@@ -343,6 +360,10 @@ function replayAll(paifu, roundIndex) {
         // 暗槓・加槓。処理して嶺上牌を引き、同じ手番で打牌へ戻る
         s.discardPtr++;
         applySelfKan(s, raw);
+        // 続けてカンした場合、前のカンの分は次のカンの時点でめくられる
+        flushPending();
+        if (parseMeldString(raw)?.type === 'ankan') revealed = Math.min(maxRevealed, revealed + 1);
+        else pendingKans++;
         const rinshan = s.draws[s.drawPtr];
         if (rinshan === undefined) return { steps, meta };
         s.drawPtr++;
@@ -375,6 +396,7 @@ function replayAll(paifu, roundIndex) {
       s.river.push(actual);
       s.riverTsumogiri.push(isTsumogiri);
       removeTile(s.hand, actual);
+      flushPending();   // 加槓・大明槓のカンドラは打牌のあとにめくる
 
       // 打牌の直後。他家から見れば「鳴くか・押すか」を問える瞬間
       pushStep(current, 'discard', actualCode, {
@@ -389,6 +411,11 @@ function replayAll(paifu, roundIndex) {
   return { steps, meta };
 }
 
+function toKanDora(indicators) {
+  const list = indicators.map(n => getDoraFromIndicator(parseTenhouTile(n))).filter(Boolean);
+  return list.length > 0 ? list : null;
+}
+
 // ステップの状態から BoardSnapshot を作る。seat（どの席の視点か）はステップとは独立
 function buildSnapshot(step, seat, meta) {
   const windOf = p => playerWind(p, meta.kyokuNo);
@@ -398,9 +425,10 @@ function buildSnapshot(step, seat, meta) {
     kyotaku: meta.kyotaku,
     junme:   step.state[seat].drawCount,
     jikaze:  windOf(seat),
-    // 牌譜が持つのは★ドラ表示牌★。このアプリの dora はドラそのものなので1つ進める。
-    // カンドラは problem が持てないので最初の1枚だけを採る
+    // 牌譜が持つのは★ドラ表示牌★。このアプリの dora / kanDora はドラそのものなので1つ進める。
+    // 1枚目が dora、この局面までにめくれた2枚目以降が kanDora（無ければ null）
     dora:    getDoraFromIndicator(parseTenhouTile(meta.doraIndicators[0])),
+    kanDora: toKanDora(meta.doraIndicators.slice(1, step.doraRevealed ?? 1)),
     scores:  Object.fromEntries(
       [0, 1, 2, 3].map(p => [windOf(p), meta.startScores[p] ?? 0])
     ),

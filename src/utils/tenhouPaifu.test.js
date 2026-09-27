@@ -287,6 +287,41 @@ describe('replayRound（局を再生して盤面を作る）', () => {
     expect(p.dora).toBe('4s');
   });
 
+  // 第5局（log[4]）は南家（プレイヤー1）の加槓でカンドラが1枚めくれる（表示牌 4萬・中）。
+  // ★ 牌譜の表示牌は「局で最終的にめくられた全部」なので、局面ごとに数えないと
+  //   カンの前からカンドラが見えてしまう。加槓は**打牌のあと**にめくる（後めくり）
+  describe('カンドラ（その局面までにめくれたぶんだけ）', () => {
+    const steps = listSteps(paifu, 4);
+    const problemAt = i => snapshotToProblem(snapshotAt(paifu, 4, i, { seat: 1 }).snapshot);
+    const kakanStep = steps.findIndex((_, i) => problemAt(i).melds.some(m => m.type === 'kakan'));
+
+    it('テスト用の牌譜に加槓の局面がある', () => {
+      expect(kakanStep).toBeGreaterThan(0);
+      expect(steps[kakanStep]).toMatchObject({ player: 1, kind: 'tsumo' });   // 嶺上牌を引いた直後
+    });
+
+    it('局の最初はカンドラが無い（最初のドラだけ）', () => {
+      expect(problemAt(0).dora).toBe('5m');
+      expect(problemAt(0).kanDora).toBeNull();
+    });
+
+    it('加槓して嶺上牌を引いた時点ではまだめくれていない', () => {
+      expect(problemAt(kakanStep).kanDora).toBeNull();
+    });
+
+    it('加槓した家の打牌のあとにめくれる（表示牌の中 → ドラは白）', () => {
+      expect(steps[kakanStep + 1]).toMatchObject({ player: 1, kind: 'discard' });
+      expect(problemAt(kakanStep + 1).kanDora).toEqual(['5z']);
+      expect(problemAt(steps.length - 1).kanDora).toEqual(['5z']);
+      expect(problemAt(kakanStep + 1).dora).toBe('5m');
+    });
+
+    it('カンの無い局では常に null', () => {
+      const list = listSteps(paifu, 0);
+      expect(list.every((_, i) => snapshotToProblem(snapshotAt(paifu, 0, i).snapshot).kanDora === null)).toBe(true);
+    });
+  });
+
   it('その時点までの河が全員ぶん入る（自分の河も含む）', () => {
     const first = snapshotToProblem(replayRound(paifu, 0, { seat: 0, turn: 1 }).snapshot);
     expect(first.otherDiscards).toBeNull(); // 親の第1打牌前なので誰も切っていない

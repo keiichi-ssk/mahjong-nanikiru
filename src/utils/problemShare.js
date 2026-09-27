@@ -46,6 +46,7 @@ const MAX_PARAM_LENGTH   = 4000;   // URLパラメータそのものの長さ
 const MAX_DECODED_LENGTH = 20000;  // 展開後のJSON（正当な最大ケースで約1200字）
 const MAX_MELDS          = 4;      // 副露は4組まで（ルール上の上限）
 const MAX_SEATS          = 4;      // 河は4家ぶんまで
+const MAX_KAN_DORA       = 4;      // カンは1局4回まで
 const MAX_RIVER_TILES    = 30;     // 1家の河（実際は流局まで打っても24枚程度）
 const MAX_NAKI_CHOICES   = 20;     // 鳴き選択の候補
 const MAX_TEXT_LENGTH    = 1000;   // 解説・注釈・タイトル（DB側の上限は200字）
@@ -226,6 +227,8 @@ export async function encodeProblemParam(problem) {
     t: encTiles(problem.tiles),
     a: problem.answer ?? '',
     d: encTile(problem.dora),
+    // カンドラ（牌譜から取り込んだ問題だけが持つ）。無ければキーごと入れない
+    ...(problem.kanDora?.length ? { x: encTiles(problem.kanDora) } : {}),
     r: problem.riichi ?? null,
     y: problem.problemType ?? 'default',
     c: encTile(problem.discardedTile),
@@ -298,6 +301,13 @@ export async function decodeProblemParam(param) {
 
   const dora = c.d ? CHAR_TO_TILE[c.d] : null;
   if (c.d && !dora) return null;
+  // ★ x（カンドラ）は後から足した。無い旧URLもそのまま受理すること
+  let kanDora = null;
+  if (c.x != null) {
+    const list = decTiles(c.x);
+    if (!list || list.length > MAX_KAN_DORA) return null;
+    kanDora = list.length > 0 ? list : null;
+  }
   const discardedTile = c.c ? CHAR_TO_TILE[c.c] : null;
   if (c.c && !discardedTile) return null;
 
@@ -326,6 +336,7 @@ export async function decodeProblemParam(param) {
     tiles,
     answer: text(c.a),
     dora,
+    kanDora,
     riichi,
     problemType,
     discardedTile,

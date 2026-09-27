@@ -746,6 +746,8 @@ export default function ProblemEditor({
 
   const boardProps = {
     tiles, melds, dora, answerList,
+    // カンドラは牌譜から取り込んだときだけ持つ。エディタでは編集しないので problem の値をそのまま渡す
+    kanDora: problem.kanDora ?? null,
     bakaze, kyoku, honba, jikaze, junme,
     scores, otherDiscards, concealedCounts,
     activeArea,
