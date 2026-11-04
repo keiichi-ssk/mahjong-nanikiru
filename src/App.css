@@ -87,6 +87,70 @@
 
 .btn-login:active { background: #eeeeee; }
 
+/* ヘッダー右側（ご意見・ご要望 → ログイン／ユーザー情報） */
+.app-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* ご意見・ご要望（2026-11-04 にフッターからヘッダーへ移した）。
+   PC はアイコン＋文字、スマホはアイコンだけ（Google ボタンと並ぶと幅が足りないため）。
+   見た目は Material Design のテキストボタン／アイコンボタン（枠も面も持たない） */
+.feedback-header-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 44px;
+  min-height: 44px;
+  justify-content: center;
+  padding: 0 10px;
+  border: none;
+  border-radius: 22px;
+  background: none;
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+@media (hover: hover) {
+  .feedback-header-btn:hover { background: var(--color-surface); }
+}
+
+.feedback-header-btn:active { background: var(--color-surface-hover); }
+
+@media (max-width: 600px) {
+  .feedback-header-label { display: none; }
+  .feedback-header-btn { padding: 0; }
+}
+
+/* ご意見・ご要望のダイアログ（ネイティブの <dialog>・Material Design のダイアログの形） */
+.feedback-dialog {
+  width: min(480px, calc(100vw - 32px));
+  /* index.css の全要素 margin: 0 が <dialog> の中央寄せ（margin: auto）を消すので戻す */
+  margin: auto;
+  padding: 20px;
+  border: none;
+  border-radius: 16px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+}
+
+.feedback-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.32);
+}
+
+/* ダイアログの中ではパネル自身の面・枠は付けない（ダイアログが面を持つ） */
+.feedback-dialog .feedback-panel {
+  padding: 0;
+  border: none;
+  background: none;
+}
+
 /* 清一色公開ページ（chinitsu.html）のヘッダーから本体へ誘導するリンク */
 .app-header-cta {
   background: var(--color-primary);

@@ -517,45 +517,44 @@ export default function App() {
     <>
       <header className="app-header">
         <span className="app-header-title">座学する麻雀</span>
-        {session ? (
-          <div className="user-info">
-            {/* ログイン中であることはアイコンだけで示す。
-                Googleアカウントの表示名・メールは画面に出さない（画面共有や撮影で写るため）。
-                alt / title にも入れないこと */}
-            {session.user.user_metadata?.avatar_url ? (
-              <img
-                src={session.user.user_metadata.avatar_url}
-                alt=""
-                className="user-avatar"
-              />
-            ) : (
-              <span className="user-avatar user-avatar--fallback" aria-hidden="true">
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
-                     stroke="currentColor" strokeWidth="2"
-                     strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                  <circle cx="12" cy="7" r="4" />
-                </svg>
-              </span>
-            )}
-            <button
-              className="btn-logout"
-              onClick={() => supabase.auth.signOut()}
-            >
-              ログアウト
-            </button>
-          </div>
-        ) : (
-          <GoogleSignInButton onClick={signInWithGoogle} />
-        )}
+        <div className="app-header-actions">
+          <FeedbackWidget source="app" variant="header" />
+          {session ? (
+            <div className="user-info">
+              {/* ログイン中であることはアイコンだけで示す。
+                  Googleアカウントの表示名・メールは画面に出さない（画面共有や撮影で写るため）。
+                  alt / title にも入れないこと */}
+              {session.user.user_metadata?.avatar_url ? (
+                <img
+                  src={session.user.user_metadata.avatar_url}
+                  alt=""
+                  className="user-avatar"
+                />
+              ) : (
+                <span className="user-avatar user-avatar--fallback" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none"
+                       stroke="currentColor" strokeWidth="2"
+                       strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                </span>
+              )}
+              <button
+                className="btn-logout"
+                onClick={() => supabase.auth.signOut()}
+              >
+                ログアウト
+              </button>
+            </div>
+          ) : (
+            <GoogleSignInButton onClick={signInWithGoogle} />
+          )}
+        </div>
       </header>
       {renderContent()}
-      {/* クローラーがたどれる実リンク（/chinitsu.html の発見用）とご意見・ご要望をまとめたフッター。
-          ドリルの説明テキストは公開ページ（chinitsu.html）だけに置く方針なのでここには出さない。 */}
-      <footer className="app-footer">
-        <FeedbackWidget source="app" />
-        <a href="/chinitsu.html" target="_blank" rel="noopener">メンチン何切るドリル（無料公開中）</a>
-      </footer>
+      {/* フッターは廃止（2026-11-04）。ご意見・ご要望はヘッダー右上へ移し、
+          /chinitsu.html への実リンクはトップの行き先リスト（LandingPage）が持っている */}
     </>
   );
 }
