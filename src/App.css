@@ -220,10 +220,25 @@
   border-top: 1px solid var(--color-border);
 }
 
-.landing-nav-item {
+/* 1つの行き先 = 行（リンク＋開閉ボタン）＋開いたときの説明。区切り線はこのまとまりの下に引く */
+.landing-nav-group {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.landing-nav-row {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
+}
+
+/* 行のリンク部分（タイトル＋説明）。右端の › は付けない（2026-11-04 に外した） */
+.landing-nav-item {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
   min-height: 84px;
   padding: 16px 8px 16px 0;
   color: var(--color-text);
@@ -237,23 +252,16 @@
 }
 
 @media (hover: hover) {
-  .landing-nav-item:hover {
-    background: var(--color-surface);
+  .landing-nav-item:hover .landing-nav-title {
+    color: var(--color-accent);
   }
-}
-
-.landing-nav-text {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
 }
 
 .landing-nav-title {
   font-size: 1.125rem;
   font-weight: 600;
   color: var(--color-text-bright);
+  transition: color 0.15s;
 }
 
 .landing-nav-desc {
@@ -264,53 +272,38 @@
   text-wrap: pretty;
 }
 
-.landing-nav-chevron {
+/* 説明の開閉ボタン（⌄）。行の右端に置く。アイコンボタンなので枠も面も持たない（押せる範囲は 44×44px） */
+.landing-nav-toggle {
   flex-shrink: 0;
-  color: var(--color-text-secondary);
-}
-
-/* 1つの行き先 = 行（リンク）＋「詳しく」の折りたたみ。区切り線はこのまとまりの下に引く */
-.landing-nav-group {
-  border-bottom: 1px solid var(--color-border);
-}
-
-/* 「詳しく」（HTML 標準の <details>）。中身は index.html の .site-about から LandingPage が移してくる */
-.landing-nav-more {
-  margin-top: -8px;
-}
-
-.landing-nav-more summary {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  min-height: 44px;
-  padding: 0 8px 0 0;
-  list-style: none;
-  font-size: 0.875rem;
-  color: var(--color-accent);
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--color-text-secondary);
   cursor: pointer;
+  transition: background 0.15s;
 }
 
-.landing-nav-more summary::-webkit-details-marker {
-  display: none;
-}
-
-/* 開閉を示す下向きの山形（開くと上向き） */
-.landing-nav-more summary::after {
-  content: '';
-  width: 6px;
-  height: 6px;
-  margin-left: 2px;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  transform: translateY(-2px) rotate(45deg);
+.landing-nav-toggle svg {
   transition: transform 0.15s;
 }
 
-.landing-nav-more[open] summary::after {
-  transform: translateY(1px) rotate(-135deg);
+.landing-nav-toggle--open svg {
+  transform: rotate(180deg);
 }
 
+@media (hover: hover) {
+  .landing-nav-toggle:hover { background: var(--color-surface); }
+}
+
+.landing-nav-toggle:active { background: var(--color-surface-hover); }
+
+/* 開いたときの説明。中身は index.html の .site-about から LandingPage が移してくる */
 .landing-nav-more-body {
   padding: 0 8px 16px 0;
   font-size: 0.9rem;
@@ -346,13 +339,14 @@
     margin: 0 -10px;
   }
 
+  .landing-nav-row {
+    gap: 0;
+    padding-right: 4px;
+  }
+
   .landing-nav-item {
     min-height: 76px;
     padding: 14px 4px 14px 10px;
-  }
-
-  .landing-nav-more summary {
-    padding-left: 10px;
   }
 
   .landing-nav-more-body {
@@ -417,6 +411,8 @@
   background: var(--color-primary);
 }
 
+/* つまみはオン・オフとも白（iOS / Material Design の標準的なスイッチと同じ）。
+   溝の色（オフ=灰・オン=主色）で状態を示す */
 .random-toggle-thumb {
   position: absolute;
   top: 3px;
@@ -424,9 +420,9 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: var(--color-text-bright);
+  background: #ffffff;
   transition: left 0.2s;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
 }
 
 .random-toggle--on .random-toggle-thumb {
@@ -435,16 +431,19 @@
 
 /* ===== 書籍タブ ===== */
 /* スクロールしても書籍切り替えが常に見えるよう画面上部に固定 */
+/* Material Design の「タブ」の形（2026-11-04〜）。枠・面は持たず、選択中だけ文字色と下線で示す。
+   タブの並び全体の下に1pxの区切り線を引く */
 .book-tabs {
   position: sticky;
   top: 0;
   z-index: 50;
   background: var(--color-bg);
   display: flex;
-  gap: 6px;
+  gap: 0;
   overflow-x: auto;
-  padding: 8px 0 12px;
-  margin-bottom: 8px;
+  padding: 0;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
   scrollbar-width: none;
   -webkit-overflow-scrolling: touch;
 }
@@ -460,35 +459,37 @@
   gap: 7px;
   /* ドリルへのタブだけ <a>（他は <button>）。下線と既定のリンク色を打ち消して見た目を揃える */
   text-decoration: none;
-  padding: 8px 16px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface);
+  min-height: 48px;
+  padding: 0 16px;
+  border: none;
+  /* 選択中の下線。タブの並びの区切り線（1px）に重ねるため -1px ずらす */
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  border-radius: 0;
+  background: none;
   color: var(--color-text-secondary);
   font-size: 0.9rem;
-  font-weight: bold;
+  font-weight: 600;
+  font-family: inherit;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  transition: color 0.15s, border-color 0.15s;
   white-space: nowrap;
 }
 
 @media (hover: hover) {
   .book-tab:hover {
-    border-color: var(--color-primary-light);
     color: var(--color-text);
   }
 }
 
 .book-tab--active {
-  background: var(--color-surface-active);
-  border-color: var(--color-primary);
   color: var(--color-accent);
+  border-bottom-color: var(--color-accent);
 }
 
 /* 未ログイン時に書籍名の代わりに出すダミータブ（選択すると下に文言が出る） */
 .book-tab--locked {
   color: var(--color-text-muted);
-  border-style: dashed;
 }
 
 .book-tab-badge {
@@ -564,22 +565,22 @@
 }
 
 .major-category-group {
-  margin-bottom: 28px;
+  margin-bottom: 4px;
 }
 
+/* 大分類の見出し。左端のカラーバー・面の色はやめて文字だけにした（2026-11-04・DESIGN.md） */
 .major-category-label {
   font-size: 0.95rem;
   font-weight: bold;
-  color: var(--color-category);
+  color: var(--color-text-bright);
   text-align: left;
-  margin: 0 0 12px 0;
-  padding: 5px 12px;
-  border-left: 3px solid var(--color-category-strong);
-  background: color-mix(in srgb, var(--color-success) 8%, transparent);
-  border-radius: 0 6px 6px 0;
+  margin: 0;
+  min-height: 48px;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 
 /* ===== 大カテゴリのアコーディオン ===== */
@@ -595,13 +596,13 @@
 
 @media (hover: hover) {
   .major-toggle-area:hover .major-label-text {
-    color: var(--color-category-hover);
+    color: var(--color-accent);
   }
 }
 
 .major-chevron {
   font-size: 0.65rem;
-  color: var(--color-category-strong);
+  color: var(--color-text-secondary);
   flex-shrink: 0;
   transition: transform 0.15s;
 }
@@ -625,57 +626,61 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* 全選択／全解除。Material Design のテキストボタン（枠なし・主色の文字） */
 .select-badge {
-  font-size: 0.75rem;
-  font-weight: normal;
-  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--color-accent);
   background: none;
   cursor: pointer;
-  padding: 2px 8px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: 10px;
+  min-height: 36px;
+  padding: 0 8px;
+  border: none;
+  border-radius: 18px;
   flex-shrink: 0;
-  transition: border-color 0.15s, color 0.15s;
+  transition: background 0.15s;
 }
 
 @media (hover: hover) {
   .select-badge:hover {
-    border-color: var(--color-primary);
-    color: var(--color-accent);
+    background: var(--color-surface);
   }
 }
 
 .select-badge--active {
-  color: var(--color-accent);
-  border-color: var(--color-primary);
+  color: var(--color-text-secondary);
 }
 
+/* カテゴリの一覧。1行ずつの枠をやめ、区切り線だけのリストにした（2026-11-04・DESIGN.md） */
 .category-grid {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 0;
+  margin-bottom: 16px;
+  border-top: 1px solid var(--color-border);
   animation: fadeIn 0.15s ease;
 }
 
 .category-card {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  padding: 10px 14px;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--color-border);
+  border-radius: 0;
+  padding: 10px 4px;
   cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
+  transition: background 0.15s;
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   text-align: left;
-  min-height: 46px;
+  min-height: 52px;
 }
 
 @media (hover: hover) {
   .category-card:hover:not(.category-card--disabled) {
-    border-color: var(--color-primary-light);
-    background: var(--color-surface-hover);
+    background: var(--color-surface);
   }
 }
 
@@ -685,16 +690,31 @@
 }
 
 .category-card--checked {
-  border-color: var(--color-primary-light);
-  background: var(--color-surface-active);
+  background: color-mix(in srgb, var(--color-primary) 6%, transparent);
 }
 
+/* 選択状態のチェックボックス（Material Design のリストの先頭のチェックボックス）。
+   中身の「✓」は JSX が選択時だけ入れる */
 .card-check {
-  font-size: 0.75rem;
-  color: var(--color-accent);
-  font-weight: bold;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
-  width: 14px;
+  width: 18px;
+  height: 18px;
+  box-sizing: border-box;
+  border: 2px solid var(--color-border-strong);
+  border-radius: 3px;
+  font-size: 0.75rem;
+  line-height: 1;
+  font-weight: bold;
+  color: var(--color-on-primary);
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.category-card--checked .card-check {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .category-name {
@@ -754,73 +774,45 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* ===== 正誤リセットボタン ===== */
-.btn-reset-section {
+/* ===== 正誤リセットボタン =====
+   3種類とも Material Design のテキストボタン（枠なし）。押すと確認ダイアログが出るので、
+   普段は控えめな灰色にして、マウスを乗せたときだけ危険色にする */
+.btn-reset-section,
+.btn-reset-major,
+.btn-reset-book {
   background: none;
-  border: 1px solid var(--color-border-strong);
-  border-radius: 5px;
-  padding: 2px 8px;
+  border: none;
+  border-radius: 16px;
+  min-height: 32px;
+  padding: 0 8px;
   font-size: 0.75rem;
+  font-family: inherit;
   color: var(--color-text-secondary);
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  transition: color 0.15s, background 0.15s;
   white-space: nowrap;
   flex-shrink: 0;
-  line-height: 1.5;
 }
 
-.btn-reset-section:hover {
-  border-color: var(--color-danger);
-  color: var(--color-danger);
-  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+@media (hover: hover) {
+  .btn-reset-section:hover,
+  .btn-reset-major:hover,
+  .btn-reset-book:hover {
+    color: var(--color-danger);
+    background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+  }
 }
 
 .major-category-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
-}
-
-.btn-reset-major {
-  background: none;
-  border: 1px solid var(--color-border-strong);
-  border-radius: 5px;
-  padding: 2px 8px;
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
-  white-space: nowrap;
-}
-
-.btn-reset-major:hover {
-  border-color: var(--color-danger);
-  color: var(--color-danger);
-  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+  gap: 2px;
 }
 
 .book-reset-bar {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 14px;
-}
-
-.btn-reset-book {
-  background: none;
-  border: 1px solid var(--color-border-strong);
-  border-radius: 6px;
-  padding: 2px 8px;
-  font-size: 0.75rem;
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
-  white-space: nowrap;
-}
-
-.btn-reset-book:hover {
-  border-color: var(--color-danger);
-  color: var(--color-danger);
-  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
+  margin-bottom: 4px;
 }
 
 /* ===== 出題開始スティッキーバー ===== */
@@ -2871,8 +2863,6 @@
   color: var(--color-text-secondary);
   font-size: 0.95rem;
   padding: 24px;
-  border: 1px dashed var(--color-border);
-  border-radius: 8px;
   margin: 8px 0;
 }
 
@@ -3174,7 +3164,7 @@
   .category-card-status {
     flex: 1 1 100%;
     justify-content: space-between;
-    margin-left: 24px; /* チェック列ぶんインデントしてカテゴリ名と揃える */
+    margin-left: 30px; /* チェックボックス（18px）＋隙間（12px）ぶんインデントしてカテゴリ名と揃える */
   }
 
   .app-title {
