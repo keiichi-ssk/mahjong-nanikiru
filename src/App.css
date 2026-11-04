@@ -12,7 +12,8 @@
   margin: -24px -16px 28px;
   padding: 14px 20px;
   gap: 12px;
-  background: var(--color-surface);
+  /* 面の色は付けず、下の区切り線だけで本文と分ける（DESIGN.md） */
+  background: var(--color-bg);
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -53,20 +54,38 @@
   color: var(--color-text-secondary);
 }
 
+/* 「Google でログイン」ボタン。Google のブランドガイドライン
+   （https://developers.google.com/identity/branding-guidelines）のライト・ピル型に合わせてある。
+   色・角丸・Gロゴは規定なので、サイトの配色トークンに置き換えないこと */
 .btn-login {
-  background: var(--color-primary);
-  border: none;
-  border-radius: 8px;
-  padding: 7px 14px;
-  font-size: 0.85rem;
-  font-weight: bold;
-  color: var(--color-text-bright);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #747775;
+  border-radius: 20px;
+  background: #ffffff;
+  color: #1f1f1f;
+  font-family: Roboto, 'Hiragino Sans', Meiryo, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.25px;
   cursor: pointer;
-  transition: background 0.15s;
   white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.15s;
 }
 
-.btn-login:hover { background: var(--color-primary-hover); }
+.btn-login-logo {
+  flex-shrink: 0;
+}
+
+@media (hover: hover) {
+  .btn-login:hover { background: #f8f9fa; }
+}
+
+.btn-login:active { background: #eeeeee; }
 
 /* 清一色公開ページ（chinitsu.html）のヘッダーから本体へ誘導するリンク */
 .app-header-cta {
@@ -75,7 +94,7 @@
   padding: 7px 14px;
   font-size: 0.85rem;
   font-weight: bold;
-  color: var(--color-text-bright);
+  color: var(--color-on-primary);
   text-decoration: none;
   white-space: nowrap;
   flex-shrink: 0;
@@ -100,21 +119,12 @@
   color: var(--color-danger);
 }
 
-/* ===== トップページ（未ログイン時のランディング） =====
-   構成は「コンテンツ2枚（CTA込み） → ログイン案内」の1カラム。見える見出し（ヒーロー）は置かない（2026-11-04〜）。
-   ★ 塗りのCTA（.landing-cta）は **登録不要で始められるコンテンツのカードに1つずつ**（2026-08-02〜）。
-   作問（/myproblems.html）とメンチンドリル（/chinitsu.html）は同格に扱う。
-   ログイン必須の導線をカードとして並べないこと（権限のない訪問者が行き止まりに落ちる）。
-
-   ★ PCは2カラム・スマホは縦積みだが **構造はどちらも同じ**。
-   スマホ用に別レイアウトを作らないこと（片方だけ直す事故が起きる）。
-
-   配色は 70 : 25 : 5 —— ベース(--color-bg) : カードの段差(--color-surface) : アクセント(--color-accent)。
-   **アクセントはCTAとアイコンにだけ使う**。枠線や見出しに広げるとCTAの目立ちが薄まる。
-   セクションの区切りは色を増やすのではなく、余白と surface の段差で作ること。 */
-.landing {
-  text-align: center;
-}
+/* ===== トップページ（未ログイン時のランディング・2026-11-04〜） =====
+   構成は「説明1行 → 行き先のリスト（牌図作成／メンチン何切る）」だけ。ログインはヘッダー右上。
+   リストは iOS の設定画面や Material Design のナビゲーションリストと同じ形で、
+   **行全体が1つのリンク**（右端の › で移動先があることを示す）。行の区切りは1pxの線だけで、
+   カード・枠・アイコン・塗りのボタンは置かない（DESIGN.md の「枠線の禁止」「キャッチー表現の禁止」）。
+   PC もスマホも構造は同じ（幅だけ max-width で抑える）。 */
 
 /* 画面には出さず、検索エンジン・スクリーンリーダーにだけ読ませる要素（ランディングの h1 など） */
 .visually-hidden {
@@ -129,195 +139,99 @@
   border: 0;
 }
 
-/* CTA。既存の --color-primary 塗りより一段強く見せるためアクセント色を使う
-   （背景 #2e3440 に対して約6.2:1 = WCAG AA）。
-   カードの中で最下部に置くので幅いっぱいに伸ばす */
-.landing-cta {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  min-height: 56px;
-  padding: 0 20px;
-  border-radius: 10px;
-  background: var(--color-accent);
-  color: var(--color-bg);
-  font-size: 1.05rem;
-  font-weight: bold;
-  text-decoration: none;
-  box-shadow: 0 4px 14px rgba(136, 192, 208, 0.18);
-  transition: background 0.15s, transform 0.15s;
+.landing {
+  max-width: 640px;
+  margin: 0 auto;
+  padding-top: 40px;
 }
 
-/* 押下は filter のみ。scale だと当たり判定が動いて誤爆する（mobile-touch-ui のルール） */
-.landing-cta:active {
-  filter: brightness(0.92);
+.landing-lead {
+  margin: 0 0 24px;
+  font-size: 1rem;
+  line-height: 1.8;
+  color: var(--color-text-secondary);
 }
 
-@media (hover: hover) {
-  .landing-cta:hover {
-    background: #9ed0de;
-    transform: translateY(-1px);
-  }
-}
-
-/* コンテンツ2枚（作問／メンチンドリル）。並び順は JSX の CONTENTS が持っているので、
-   CSSで order を触らないこと（PCの左右とスマホの上下が食い違う） */
-.landing-contents {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-  margin-top: 40px;
-  text-align: left;
-}
-
-/* ベース背景との段差（配色の25%ぶん）。区切り線ではなく面で分ける。
-   ★ 縦フレックスにして .landing-points を伸ばすことで、
-   要点の行数が左右で違ってもCTAの高さが揃う */
-.landing-content-card {
-  display: flex;
-  flex-direction: column;
-  padding: 20px 18px;
-  border: 1px solid var(--color-border);
-  border-radius: 12px;
-  background: var(--color-surface);
-}
-
-.landing-content-card h2 {
-  margin: 0 0 16px;
-  font-size: 1.15rem;
-  font-weight: bold;
-  color: var(--color-text-bright);
-}
-
-.landing-points {
-  flex: 1;
-  margin: 0 0 20px;
-  padding: 0;
-  list-style: none;
-}
-
-.landing-points li {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 16px;
-}
-
-.landing-points li:last-child {
-  margin-bottom: 0;
-}
-
-/* アイコンは1行目の文字と高さを合わせる（li の先頭で上に浮かないように） */
-.landing-feature-icon {
-  flex-shrink: 0;
-  margin-top: 1px;
-  color: var(--color-accent);
-}
-
-.landing-points strong {
-  display: block;
-  margin-bottom: 2px;
-  font-size: 0.95rem;
-  color: var(--color-text);
-}
-
-.landing-points span {
-  display: block;
-  max-width: 34em;
-  font-size: 0.9rem;
-  line-height: 1.7;
-  color: var(--color-text-muted);
-}
-
-.landing-secondary {
-  margin-top: 64px;
-  padding-top: 32px;
+.landing-nav {
   border-top: 1px solid var(--color-border);
 }
 
-/* 見出しの大きさはコンテンツカード（.landing-content-card h2）と揃える。
-   ここは副次セクションなので、格の差は「色を落とす・段差を付けない」で表す */
-.landing-secondary h2 {
-  margin: 0 0 16px;
-  font-size: 1.15rem;
-  font-weight: bold;
-  color: var(--color-text);
-}
-
-/* ログインでできることの一覧。ドリル・作問（登録不要）との違いが伝わるよう具体的に書く。
-   ここにCTAを増やさないこと（塗りのCTAはコンテンツカードの2つだけ）。
-   ★ 上のコンテンツカードと同じ2カラムにして左右の端を揃える
-   （中央寄せの狭いブロックにすると、カードと左端がズレて座りが悪くなる） */
-.landing-benefits {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+.landing-nav-item {
+  display: flex;
+  align-items: center;
   gap: 16px;
-  margin: 0 0 24px;
-  padding: 0;
-  list-style: none;
-  text-align: left;
-}
-
-.landing-benefits li {
-  margin-bottom: 0;
-}
-
-.landing-benefits strong {
-  display: block;
-  margin-bottom: 2px;
-  font-size: 0.95rem;
+  min-height: 84px;
+  padding: 16px 8px 16px 0;
+  border-bottom: 1px solid var(--color-border);
   color: var(--color-text);
-}
-
-.landing-benefits span {
-  font-size: 0.9rem;
-  line-height: 1.7;
-  color: var(--color-text-muted);
-}
-
-.landing-login-btn {
-  min-height: 44px;
-  padding: 0 22px;
-  border: 1px solid var(--color-border-strong);
-  border-radius: 8px;
-  background: none;
-  color: var(--color-text);
-  font-size: 0.9rem;
-  cursor: pointer;
+  text-decoration: none;
   transition: background 0.15s;
 }
 
+/* 押下は背景色だけ（scale は当たり判定が動くので使わない・DESIGN.md） */
+.landing-nav-item:active {
+  background: var(--color-bg);
+}
+
 @media (hover: hover) {
-  .landing-login-btn:hover {
-    background: var(--color-surface-hover);
+  .landing-nav-item:hover {
+    background: var(--color-surface);
   }
 }
 
-/* スマホがメインターゲット。カードは縦積みになるが、**構造はPCと同じまま**にする */
-@media (max-width: 640px) {
-  .landing-contents {
-    grid-template-columns: 1fr;
-    margin-top: 32px;
+.landing-nav-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.landing-nav-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--color-text-bright);
+}
+
+.landing-nav-desc {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  /* 2行目に1文字だけ落ちる（「ログイン不」「要」）のを防ぐ */
+  text-wrap: pretty;
+}
+
+.landing-nav-chevron {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 600px) {
+  .landing {
+    padding-top: 20px;
   }
 
-  /* 本文を小さくしない（スマホの本文で 14px 台は読みにくい）。
-     文字を上げるぶん、行間が詰まって見えないよう .landing-points li の間隔も広めにしてある */
-  .landing-points strong {
-    font-size: 1rem;
-  }
-
-  .landing-points span {
+  .landing-lead {
+    margin-bottom: 16px;
     font-size: 0.95rem;
   }
 
-  .landing-secondary {
-    margin-top: 48px;
-    padding-top: 28px;
+  /* スマホでは行の左右を画面端まで伸ばし、文字だけを内側に寄せる（iOS のリストと同じ） */
+  .landing-nav {
+    margin: 0 -10px;
   }
 
-  .landing-benefits {
-    grid-template-columns: 1fr;
+  .landing-nav-item {
+    min-height: 76px;
+    padding: 14px 4px 14px 10px;
+  }
+
+  .landing-nav-title {
+    font-size: 1.0625rem;
+  }
+
+  .landing-nav-desc {
+    font-size: 0.875rem;
   }
 }
 
@@ -428,7 +342,7 @@
 @media (hover: hover) {
   .book-tab:hover {
     border-color: var(--color-primary-light);
-    color: #c8d0dc;
+    color: var(--color-text);
   }
 }
 
@@ -452,7 +366,7 @@
   height: 18px;
   padding: 0 5px;
   background: var(--color-primary);
-  color: var(--color-text-bright);
+  color: var(--color-on-primary);
   border-radius: 9px;
   font-size: 0.75rem;
   font-weight: bold;
@@ -475,13 +389,13 @@
 .book-label {
   font-size: 1.2rem;
   font-weight: bold;
-  color: #ebcb8b;
+  color: var(--color-gold);
   text-align: left;
   margin: 0 0 16px 0;
   padding: 8px 16px;
-  background: rgba(235, 203, 139, 0.08);
+  background: color-mix(in srgb, var(--color-gold) 8%, transparent);
   border-bottom: 1px solid var(--color-border);
-  border-left: 3px solid #d4aa60;
+  border-left: 3px solid var(--color-gold-strong);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -498,7 +412,7 @@
 
 .book-label-chevron {
   font-size: 1rem;
-  color: #d4aa60;
+  color: var(--color-gold-strong);
   flex-shrink: 0;
   transition: transform 0.2s;
 }
@@ -509,11 +423,11 @@
 }
 
 .book-label--selectable:hover {
-  background: rgba(235, 203, 139, 0.14);
+  background: color-mix(in srgb, var(--color-gold) 14%, transparent);
 }
 
 .book-label--checked {
-  background: rgba(235, 203, 139, 0.16);
+  background: color-mix(in srgb, var(--color-gold) 16%, transparent);
 }
 
 .major-category-group {
@@ -523,12 +437,12 @@
 .major-category-label {
   font-size: 0.95rem;
   font-weight: bold;
-  color: #a3d48e;
+  color: var(--color-category);
   text-align: left;
   margin: 0 0 12px 0;
   padding: 5px 12px;
-  border-left: 3px solid #7db860;
-  background: rgba(163, 190, 140, 0.08);
+  border-left: 3px solid var(--color-category-strong);
+  background: color-mix(in srgb, var(--color-success) 8%, transparent);
   border-radius: 0 6px 6px 0;
   display: flex;
   align-items: center;
@@ -548,13 +462,13 @@
 
 @media (hover: hover) {
   .major-toggle-area:hover .major-label-text {
-    color: #c3e4b0;
+    color: var(--color-category-hover);
   }
 }
 
 .major-chevron {
   font-size: 0.65rem;
-  color: #7db860;
+  color: var(--color-category-strong);
   flex-shrink: 0;
   transition: transform 0.15s;
 }
@@ -725,7 +639,7 @@
 .btn-reset-section:hover {
   border-color: var(--color-danger);
   color: var(--color-danger);
-  background: rgba(191, 97, 106, 0.08);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
 }
 
 .major-category-actions {
@@ -749,7 +663,7 @@
 .btn-reset-major:hover {
   border-color: var(--color-danger);
   color: var(--color-danger);
-  background: rgba(191, 97, 106, 0.08);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
 }
 
 .book-reset-bar {
@@ -773,7 +687,7 @@
 .btn-reset-book:hover {
   border-color: var(--color-danger);
   color: var(--color-danger);
-  background: rgba(191, 97, 106, 0.08);
+  background: color-mix(in srgb, var(--color-danger) 8%, transparent);
 }
 
 /* ===== 出題開始スティッキーバー ===== */
@@ -895,10 +809,10 @@
   padding: 14px 40px;
   font-size: 1.1rem;
   font-weight: bold;
-  color: var(--color-text-bright);
+  color: var(--color-on-primary);
   cursor: pointer;
   transition: background 0.2s, transform 0.1s;
-  box-shadow: 0 4px 14px rgba(94, 129, 172, 0.4);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-primary) 40%, transparent);
 }
 
 .btn-start:hover:not(:disabled) {
@@ -1036,17 +950,17 @@
   letter-spacing: 0.08em;
   white-space: nowrap;
   padding: 4px 12px;
-  border: 1px solid rgba(136, 192, 208, 0.35);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
   border-radius: 6px;
-  background: rgba(136, 192, 208, 0.1);
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
 }
 
 .problem-note {
   font-size: 0.85rem;
-  color: #9aa7b8;
+  color: var(--color-text-secondary);
   line-height: 1.6;
-  background: rgba(255, 255, 255, 0.04);
-  border-left: 3px solid #4a5a7a;
+  background: var(--color-overlay);
+  border-left: 3px solid var(--color-border-strong);
   border-radius: 4px;
   padding: 8px 12px;
   margin-top: 8px;
@@ -1294,17 +1208,17 @@
     inset 0 -1px 0 rgba(0, 0, 0, 0.08),
     1px 2px 0 #b06820,
     2px 4px 6px rgba(0, 0, 0, 0.22),
-    0 0 8px rgba(129, 161, 193, 0.5);
+    0 0 8px color-mix(in srgb, var(--color-primary-light) 50%, transparent);
   transform: translateY(-4px);
 }
 
 .tile-button--missed {
-  border-color: #d08770;
+  border-color: var(--color-warning);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.95),
     inset 0 -1px 0 rgba(0, 0, 0, 0.08),
     1px 2px 0 #b06820,
-    0 0 8px rgba(208, 135, 112, 0.45);
+    0 0 8px color-mix(in srgb, var(--color-warning) 45%, transparent);
 }
 
 /* ベタオリ問題の選択順バッジ（牌の右上に重ねる・タップ判定には影響しない） */
@@ -1317,7 +1231,7 @@
   padding: 0 3px;
   border-radius: 8px;
   background: var(--color-primary);
-  color: var(--color-text-bright);
+  color: var(--color-on-primary);
   font-size: 0.7rem;
   font-weight: bold;
   line-height: 16px;
@@ -1390,7 +1304,7 @@
   bottom: -2px;
   width: 3px;
   border-radius: 2px;
-  background: #f5c842;
+  background: var(--color-highlight);
   pointer-events: none;
 }
 
@@ -1424,8 +1338,8 @@
 }
 
 /* あなたの回答の正誤色分け（順位が正しい牌=緑・違う牌=赤） */
-.tile-readonly--ok { border: 2px solid #a3be8c; }
-.tile-readonly--ng { border: 2px solid #bf616a; }
+.tile-readonly--ok { border: 2px solid var(--color-success); }
+.tile-readonly--ng { border: 2px solid var(--color-danger); }
 
 .tile-image {
   width: 34px;
@@ -1465,13 +1379,13 @@
 }
 
 .answer-panel--correct {
-  background: rgba(163, 190, 140, 0.1);
-  border: 1px solid #6a8c5a;
+  background: color-mix(in srgb, var(--color-success) 10%, transparent);
+  border: 1px solid var(--color-success-strong);
 }
 
 .answer-panel--wrong {
-  background: rgba(191, 97, 106, 0.1);
-  border: 1px solid #8a4a50;
+  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
+  border: 1px solid var(--color-danger-strong);
 }
 
 .answer-result {
@@ -1524,7 +1438,7 @@
 
 .answer-explanation {
   line-height: 1.8;
-  color: #c0c8d4;
+  color: var(--color-text);
   font-size: 0.95rem;
 }
 
@@ -1588,14 +1502,14 @@
   flex-direction: column;
   gap: 1px;
   padding: 4px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid var(--color-overlay-strong);
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--color-overlay);
 }
 
 .score-chip--self {
   border-color: var(--color-accent);
-  background: rgba(136, 192, 208, 0.1);
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
 }
 
 .score-chip-wind {
@@ -1609,7 +1523,7 @@
 
 .score-chip-self-badge {
   font-size: 0.62rem;
-  color: #0b1220;
+  color: var(--color-on-accent);
   background: var(--color-accent);
   border-radius: 3px;
   padding: 0 4px;
@@ -1618,7 +1532,7 @@
 
 .score-chip-points {
   font-size: 0.88rem;
-  color: #dde4ee;
+  color: var(--color-text);
   font-weight: bold;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
@@ -1755,7 +1669,7 @@
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 10px;
-  color: #c8d0dc;
+  color: var(--color-text);
   font-size: 1rem;
   cursor: pointer;
   text-align: center;
@@ -1786,7 +1700,7 @@
   background: var(--color-primary);
   border: none;
   border-radius: 10px;
-  color: var(--color-text-bright);
+  color: var(--color-on-primary);
   font-size: 1rem;
   font-weight: bold;
   cursor: pointer;
@@ -1866,10 +1780,10 @@
 }
 
 .riichi-toggle--on {
-  background: #6e3a3e;
+  background: var(--color-danger-strong);
   border-color: var(--color-danger);
-  color: #e5d0d0;
-  box-shadow: 0 0 10px rgba(191, 97, 106, 0.3);
+  color: var(--color-on-primary);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--color-danger) 30%, transparent);
 }
 
 .riichi-toggle:disabled {
@@ -1926,14 +1840,14 @@
 }
 
 .ankan-btn--correct {
-  border-color: #6a8c5a;
-  background: rgba(163, 190, 140, 0.12);
+  border-color: var(--color-success-strong);
+  background: color-mix(in srgb, var(--color-success) 12%, transparent);
   color: var(--color-success);
 }
 
 .ankan-btn--wrong {
-  border-color: #8a4a50;
-  background: rgba(191, 97, 106, 0.12);
+  border-color: var(--color-danger-strong);
+  background: color-mix(in srgb, var(--color-danger) 12%, transparent);
   color: var(--color-danger);
 }
 
@@ -2009,51 +1923,51 @@
 }
 
 .riichi-choice-btn--riichi {
-  background: rgba(191, 97, 106, 0.1);
+  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
   border-color: var(--color-danger);
   color: var(--color-danger);
 }
 
 .riichi-choice-btn--riichi:hover {
-  background: rgba(191, 97, 106, 0.2);
-  box-shadow: 0 4px 14px rgba(191, 97, 106, 0.25);
+  background: color-mix(in srgb, var(--color-danger) 20%, transparent);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-danger) 25%, transparent);
 }
 
 .riichi-choice-btn--dama {
-  background: rgba(129, 161, 193, 0.1);
+  background: color-mix(in srgb, var(--color-primary-light) 10%, transparent);
   border-color: var(--color-primary-light);
   color: var(--color-primary-light);
 }
 
 .riichi-choice-btn--dama:hover {
-  background: rgba(129, 161, 193, 0.2);
-  box-shadow: 0 4px 14px rgba(129, 161, 193, 0.25);
+  background: color-mix(in srgb, var(--color-primary-light) 20%, transparent);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-primary-light) 25%, transparent);
 }
 
 /* ===== 清一色トレーニング: ツモ/ノーテン2択（見た目はリーチ/ダマ2択を流用） ===== */
 .chinitsu-tsumo-btn {
-  background: rgba(235, 203, 139, 0.15);
-  border-color: #ebcb8b;
-  color: #ebcb8b;
+  background: color-mix(in srgb, var(--color-gold) 15%, transparent);
+  border-color: var(--color-gold);
+  color: var(--color-gold);
 }
 
 @media (hover: hover) {
   .chinitsu-tsumo-btn:hover:not(:disabled) {
-    background: rgba(235, 203, 139, 0.25);
-    box-shadow: 0 4px 14px rgba(235, 203, 139, 0.25);
+    background: color-mix(in srgb, var(--color-gold) 25%, transparent);
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--color-gold) 25%, transparent);
   }
 }
 
 .tenpai-choice-btn--noten {
-  background: rgba(129, 161, 193, 0.1);
+  background: color-mix(in srgb, var(--color-primary-light) 10%, transparent);
   border-color: var(--color-primary-light);
   color: var(--color-primary-light);
 }
 
 @media (hover: hover) {
   .tenpai-choice-btn--noten:hover:not(:disabled) {
-    background: rgba(129, 161, 193, 0.2);
-    box-shadow: 0 4px 14px rgba(129, 161, 193, 0.25);
+    background: color-mix(in srgb, var(--color-primary-light) 20%, transparent);
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--color-primary-light) 25%, transparent);
   }
 }
 
@@ -2071,7 +1985,7 @@
   display: block;
   width: 100%;
   padding: 13px;
-  background: rgba(136, 192, 208, 0.1);
+  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
   border: 1px solid var(--color-accent);
   border-radius: 8px;
   color: var(--color-accent);
@@ -2084,7 +1998,7 @@
 
 @media (hover: hover) {
   .chinitsu-review-btn:hover {
-    background: rgba(136, 192, 208, 0.2);
+    background: color-mix(in srgb, var(--color-accent) 20%, transparent);
   }
 }
 
@@ -2101,10 +2015,10 @@
   width: 100%;
   padding: 13px;
   margin-top: 12px;
-  background: linear-gradient(135deg, var(--color-primary), #b48ead);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent-alt));
   border: none;
   border-radius: 8px;
-  color: var(--color-text-bright);
+  color: var(--color-on-primary);
   font-size: 1rem;
   font-weight: bold;
   cursor: pointer;
@@ -2159,10 +2073,10 @@
   max-width: 22em;
   margin: 8px auto 0;
   padding: 13px;
-  background: linear-gradient(135deg, var(--color-primary), #b48ead);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent-alt));
   border: none;
   border-radius: 8px;
-  color: var(--color-text-bright);
+  color: var(--color-on-primary);
   font-size: 1rem;
   font-weight: bold;
   cursor: pointer;
@@ -2268,10 +2182,10 @@
 .chinitsu-lb-register-btn {
   flex-shrink: 0;
   padding: 10px 16px;
-  background: linear-gradient(135deg, var(--color-primary), #b48ead);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-accent-alt));
   border: none;
   border-radius: 8px;
-  color: var(--color-text-bright);
+  color: var(--color-on-primary);
   font-size: 0.95rem;
   font-weight: bold;
   cursor: pointer;
@@ -2327,7 +2241,7 @@
 }
 
 .chinitsu-lb-status--error {
-  color: var(--color-danger, #bf616a);
+  color: var(--color-danger);
 }
 
 .chinitsu-lb-list {
@@ -2351,7 +2265,7 @@
 
 /* 自分の登録行のハイライト */
 .chinitsu-lb-row--me {
-  background: rgba(136, 192, 208, 0.14);
+  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
   border-radius: 8px;
 }
 
@@ -2365,9 +2279,9 @@
 }
 
 /* 上位3位は色付き */
-.chinitsu-lb-rank--1 { color: #ebcb8b; }
-.chinitsu-lb-rank--2 { color: #d8dee9; }
-.chinitsu-lb-rank--3 { color: #d08770; }
+.chinitsu-lb-rank--1 { color: var(--color-gold); }
+.chinitsu-lb-rank--2 { color: var(--color-text); }
+.chinitsu-lb-rank--3 { color: var(--color-warning); }
 
 .chinitsu-lb-name {
   flex: 1;
@@ -2387,7 +2301,7 @@
   padding: 1px 6px;
   background: var(--color-accent);
   border-radius: 999px;
-  color: var(--color-bg, #2e3440);
+  color: var(--color-bg);
   font-size: 0.7rem;
   font-weight: bold;
 }
@@ -2801,7 +2715,7 @@
   border-radius: 8px;
   font-size: 0.9rem;
   font-weight: bold;
-  color: var(--color-text-bright);
+  color: var(--color-on-primary);
   cursor: pointer;
 }
 
@@ -2815,13 +2729,13 @@
   font-size: 0.85rem;
 }
 
-.feedback-status--ok { color: var(--color-success, #a3be8c); }
+.feedback-status--ok { color: var(--color-success); }
 .feedback-status--error { color: var(--color-danger); }
 
 /* ===== 準備中表示 ===== */
 .pending-notice {
   text-align: center;
-  color: #8b98aa;
+  color: var(--color-text-secondary);
   font-size: 0.95rem;
   padding: 24px;
   border: 1px dashed var(--color-border);
@@ -2871,14 +2785,14 @@
 .btn-nav--finish {
   background: var(--color-primary);
   border-color: var(--color-primary);
-  color: var(--color-text-bright);
+  color: var(--color-on-primary);
   font-weight: bold;
 }
 
 .btn-nav--finish:hover:not(:disabled) {
   background: var(--color-primary-hover);
   border-color: var(--color-primary-hover);
-  color: var(--color-text-bright);
+  color: var(--color-on-primary);
 }
 
 /* ===== 出題進捗バー ===== */
@@ -3034,7 +2948,7 @@
 .btn-upgrade-confirm {
   background: var(--color-success);
   border: none;
-  color: var(--color-text-bright);
+  color: var(--color-on-primary);
 }
 
 .btn-upgrade-confirm:active { transform: scale(0.97); }
@@ -3068,10 +2982,10 @@
   padding: 14px 20px;
   font-size: 1rem;
   font-weight: bold;
-  color: var(--color-text-bright);
+  color: var(--color-on-primary);
   cursor: pointer;
   transition: background 0.2s, transform 0.1s;
-  box-shadow: 0 4px 14px rgba(94, 129, 172, 0.4);
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-primary) 40%, transparent);
 }
 
 .btn-retry-wrong:hover { background: var(--color-primary-hover); }
@@ -3366,7 +3280,7 @@
   max-height: 360px;
   object-fit: contain;
   border-radius: 8px;
-  border: 1px solid #3a4a6a;
+  border: 1px solid var(--color-border-strong);
 }
 
 /* ===== 横向き牌ユーティリティ =====
@@ -3404,7 +3318,7 @@
   border: none;
   border-radius: 8px;
   background: var(--color-primary);
-  color: var(--color-text-bright);
+  color: var(--color-on-primary);
   font-size: 0.95rem;
   font-weight: bold;
   text-decoration: none;
@@ -3596,7 +3510,7 @@
   padding: 1px 6px;
   border-radius: 999px;
   background: var(--color-primary);
-  color: var(--color-text-bright);
+  color: var(--color-on-primary);
   font-size: 0.7rem;
   white-space: nowrap;
 }
@@ -3650,7 +3564,7 @@
 .share-cta:active { filter: brightness(0.92); }
 
 @media (hover: hover) {
-  .share-cta:hover { background: #9ed0de; }
+  .share-cta:hover { background: var(--color-accent-hover); }
 }
 
 /* 出題画面のシェアボタンの行（自作問題のときだけ出る）。

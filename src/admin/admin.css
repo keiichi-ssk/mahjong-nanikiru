@@ -9,6 +9,29 @@
 /* Xへのシェアボタン。こちらも App.css と共用している */
 @import '../styles/share-button.css';
 
+/* 旧配色（Nord）の固定（2026-11-04〜）。
+   公開側（index.css の :root）は新デザインのライト配色に移行するが、admin.css を読む
+   管理画面と my問題集 はまだ旧配色のまま。両者を新デザインへ移すまでここで値を固定する。
+   my問題集を新デザインに移すときに、このブロックの扱い（my問題集だけ外す等）を決めること */
+:root {
+  --color-bg: #2e3440;
+  --color-surface: #3b4252;
+  --color-surface-hover: #424c60;
+  --color-surface-active: #3a4a5c;
+  --color-border: #434c5e;
+  --color-border-strong: #4c566a;
+  --color-primary: #5e81ac;
+  --color-primary-hover: #6d90bb;
+  --color-primary-light: #81a1c1;
+  --color-accent: #88c0d0;
+  --color-text: #d8dee9;
+  --color-text-bright: #eceff4;
+  --color-text-secondary: #9fadbf;
+  --color-text-muted: #93a0b3;
+  --color-success: #a3be8c;
+  --color-danger: #bf616a;
+}
+
 html {
   overflow-y: auto;
 }

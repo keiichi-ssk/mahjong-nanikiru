@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from './lib/supabase';
 import CategoryList from './components/CategoryList';
 import FeedbackWidget from './components/FeedbackWidget';
+import GoogleSignInButton from './components/GoogleSignInButton';
 import LandingPage from './components/LandingPage';
 import ProblemView from './components/ProblemView';
 import SessionSummary from './components/SessionSummary';
@@ -447,7 +448,7 @@ export default function App() {
     // 未ログインの訪問者にはランディングを見せる。
     // 問題一覧は RLS でどのみち0件になるため、取得完了を待たずに描画してよい
     if (!session) {
-      return <LandingPage onLogin={signInWithGoogle} />;
+      return <LandingPage />;
     }
     if (isAllowed === null) {
       return <LoadingSkeleton />;
@@ -545,9 +546,7 @@ export default function App() {
             </button>
           </div>
         ) : (
-          <button className="btn-login" onClick={signInWithGoogle}>
-            Googleでログイン
-          </button>
+          <GoogleSignInButton onClick={signInWithGoogle} />
         )}
       </header>
       {renderContent()}

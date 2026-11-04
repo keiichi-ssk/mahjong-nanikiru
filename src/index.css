@@ -1,22 +1,39 @@
-/* セマンティックカラートークン（Nord系ダークテーマ）
-   色を変えるときはここだけを変更する。App.css 側は var() 参照 */
+/* セマンティックカラートークン（ライトテーマ・2026-11-04〜。デザインのルールは DESIGN.md）
+   色を変えるときはここだけを変更する。App.css 側は var() 参照。
+   旧配色（Nord系ダーク）の値は admin/admin.css の :root に残してある（管理画面と my問題集 用） */
 :root {
-  --color-bg: #2e3440;
-  --color-surface: #3b4252;
-  --color-surface-hover: #424c60;
-  --color-surface-active: #3a4a5c;
-  --color-border: #434c5e;
-  --color-border-strong: #4c566a;
-  --color-primary: #5e81ac;
-  --color-primary-hover: #6d90bb;
-  --color-primary-light: #81a1c1;
-  --color-accent: #88c0d0;
-  --color-text: #d8dee9;
-  --color-text-bright: #eceff4;
-  --color-text-secondary: #9fadbf;
-  --color-text-muted: #93a0b3;
-  --color-success: #a3be8c;
-  --color-danger: #bf616a;
+  --color-bg: #ffffff;
+  --color-surface: #f5f5f5;
+  --color-surface-hover: #eeeeee;
+  --color-surface-active: #e6efe9;
+  --color-border: #e4e4e4;
+  --color-border-strong: #c4c4c4;
+  --color-primary: #1f6f4a;
+  --color-primary-hover: #185c3d;
+  --color-primary-light: #2e8a5f;
+  --color-accent: #1f6f4a;
+  --color-text: #1b1b1b;
+  --color-text-bright: #111111;
+  --color-text-secondary: #5c5c5c;
+  --color-text-muted: #6b6b6b;
+  --color-success: #1e7d3a;
+  --color-danger: #b3261e;
+
+  --color-on-primary: #ffffff;   /* 塗りのボタン（primary / success / danger）の上の文字 */
+  --color-accent-hover: #185c3d;
+  --color-accent-alt: #1f6f4a;   /* 旧デザインのグラデーションの2色目。主色と同じにして単色にしている */
+  --color-on-accent: #ffffff;
+  --color-warning: #b35c00;
+  --color-success-strong: #1e7d3a;
+  --color-danger-strong: #b3261e;
+  --color-gold: #7a5600;
+  --color-gold-strong: #a87a1e;
+  --color-category: #2b6b3f;
+  --color-category-strong: #4c8a5e;
+  --color-category-hover: #1e5530;
+  --color-highlight: #e0a800;
+  --color-overlay: rgba(0, 0, 0, 0.03);
+  --color-overlay-strong: rgba(0, 0, 0, 0.12);
 }
 
 *, *::before, *::after {
@@ -39,7 +56,7 @@ body {
 
 /* キーボード操作時のフォーカスリング */
 :focus-visible {
-  outline: 2px solid #88c0d0;
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
