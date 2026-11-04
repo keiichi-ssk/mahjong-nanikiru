@@ -2719,6 +2719,52 @@
   color: var(--color-text-secondary);
 }
 
+/* メンチン何切るの説明は <details> で畳んである（2026-11-04〜）。
+   見出しの行がそのまま開閉ボタンになり、右端の山形（⌄）で開閉できることを示す（トップの行と同じ見せ方） */
+.chinitsu-about summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  list-style: none;
+  cursor: pointer;
+}
+
+.chinitsu-about summary::-webkit-details-marker {
+  display: none;
+}
+
+.chinitsu-about summary h2 {
+  margin: 0;
+}
+
+.chinitsu-about summary::after {
+  content: '';
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  margin-right: 14px;
+  border-right: 2px solid var(--color-text-secondary);
+  border-bottom: 2px solid var(--color-text-secondary);
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 0.15s;
+}
+
+.chinitsu-about details[open] summary::after {
+  transform: translateY(2px) rotate(-135deg);
+}
+
+@media (hover: hover) {
+  .chinitsu-about summary:hover h2 {
+    color: var(--color-accent);
+  }
+}
+
+.chinitsu-about details p:last-child {
+  margin-bottom: 0;
+}
+
 /* 本文に牌姿の例（例：11123334445678）を載せるときに使う。
    2026-07-26 の本文短縮で例を外したため現在は未使用。書き戻し用に残してある */
 .chinitsu-about-hand {
