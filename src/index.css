@@ -1,40 +1,86 @@
-/* セマンティックカラートークン（ライトテーマ・2026-11-04〜。デザインのルールは DESIGN.md）
+/* セマンティックカラートークン（ライトテーマ・主色は藍。2026-11-04〜。デザインのルールは DESIGN.md）
    色を変えるときはここだけを変更する。App.css 側は var() 参照。
+   ★ 文字色×背景色のコントラストは src/utils/colorTokens.test.js が WCAG AA で検査している。
+     値を変えたら npm test で確かめること（落ちたら読みにくい色になっている）。
+   灰色・背景には主色（藍）の色みをわずかに混ぜて全体の統一感を出している。背景は真っ白にしない
+   （白い牌の輪郭が背景に溶けないように）。
    旧配色（Nord系ダーク）の値は admin/admin.css の :root に残してある（管理画面と my問題集 用） */
 :root {
-  --color-bg: #ffffff;
-  --color-surface: #f5f5f5;
-  --color-surface-hover: #eeeeee;
-  --color-surface-active: #e6efe9;
-  --color-border: #e4e4e4;
-  --color-border-strong: #c4c4c4;
-  --color-primary: #1f6f4a;
-  --color-primary-hover: #185c3d;
-  --color-primary-light: #2e8a5f;
-  --color-accent: #1f6f4a;
-  --color-text: #1b1b1b;
-  --color-text-bright: #111111;
-  --color-text-secondary: #5c5c5c;
-  --color-text-muted: #6b6b6b;
-  --color-success: #1e7d3a;
-  --color-danger: #b3261e;
+  color-scheme: light;
+  --color-bg: #fbfbfd;
+  --color-surface: #f1f3f7;
+  --color-surface-hover: #e8ebf1;
+  --color-surface-active: #e3e8f2;
+  --color-border: #e1e5ec;
+  --color-border-strong: #c6ccd7;
+  --color-primary: #2c4a85;      /* 主色（藍）。塗りのボタン・選択中のタブ・リンクだけに使う */
+  --color-primary-hover: #233c6d;
+  --color-primary-light: #3d5e9e;
+  --color-accent: #2c4a85;       /* 主色の文字（線のボタンの文字・選択中のタブ等）。主色と同じ */
+  --color-text: #1c2028;
+  --color-text-bright: #11141a;
+  --color-text-secondary: #596071;
+  --color-text-muted: #6a7182;
+  --color-success: #1d7a3c;      /* 正解。主色（藍）と別の色にして「押せる場所」と「結果」を区別する */
+  --color-danger: #b3261e;       /* 不正解・削除 */
 
   --color-on-primary: #ffffff;   /* 塗りのボタン（primary / success / danger）の上の文字 */
-  --color-outline: #8a8a8a;      /* 線のボタンの枠。白地に対して 3:1 以上（WCAG の非テキストのコントラスト） */
-  --color-accent-hover: #185c3d;
-  --color-accent-alt: #1f6f4a;   /* 旧デザインのグラデーションの2色目。主色と同じにして単色にしている */
+  --color-outline: #868fa0;      /* 線のボタンの枠。背景に対して 3:1 以上（WCAG の非テキストのコントラスト） */
+  --color-accent-hover: #233c6d;
+  --color-accent-alt: #2c4a85;   /* 旧デザインのグラデーションの2色目。主色と同じにして単色にしている */
   --color-on-accent: #ffffff;
-  --color-warning: #b35c00;
-  --color-success-strong: #1e7d3a;
+  --color-warning: #a35200;
+  --color-success-strong: #1d7a3c;
   --color-danger-strong: #b3261e;
   --color-gold: #7a5600;
   --color-gold-strong: #a87a1e;
-  --color-category: #2b6b3f;
-  --color-category-strong: #4c8a5e;
-  --color-category-hover: #1e5530;
+  --color-category: #2c4a85;
+  --color-category-strong: #5a6ea0;
+  --color-category-hover: #233c6d;
   --color-highlight: #e0a800;
-  --color-overlay: rgba(0, 0, 0, 0.03);
-  --color-overlay-strong: rgba(0, 0, 0, 0.12);
+  --color-overlay: rgba(20, 30, 60, 0.03);
+  --color-overlay-strong: rgba(20, 30, 60, 0.12);
+}
+
+/* ダークテーマ（2026-11-04〜）。<html data-theme="dark"> のときに上のトークンを差し替える。
+   data-theme は各HTMLの先読みスクリプトと utils/theme.js が付ける（端末の設定に従い、ヘッダーの切り替えで上書き）。
+   背景は真っ黒にせず濃い灰色、主色（藍）は明るく彩度を落とす、文字は真っ白にしない。
+   コントラストは colorTokens.test.js がライトと同じ組み合わせで検査している */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-bg: #121418;
+  --color-surface: #1c1f25;
+  --color-surface-hover: #252932;
+  --color-surface-active: #242c3b;
+  --color-border: #2c3039;
+  --color-border-strong: #3d4350;
+  --color-primary: #9db6ea;
+  --color-primary-hover: #b3c6f0;
+  --color-primary-light: #8aa6e0;
+  --color-accent: #9db6ea;
+  --color-text: #e1e4ea;
+  --color-text-bright: #f1f3f7;
+  --color-text-secondary: #a3aab7;
+  --color-text-muted: #959cab;
+  --color-success: #7dd193;
+  --color-danger: #f2a097;
+
+  --color-on-primary: #0f1b36;
+  --color-outline: #6c7383;
+  --color-accent-hover: #b3c6f0;
+  --color-accent-alt: #9db6ea;
+  --color-on-accent: #0f1b36;
+  --color-warning: #f0b070;
+  --color-success-strong: #7dd193;
+  --color-danger-strong: #f2a097;
+  --color-gold: #e6c27a;
+  --color-gold-strong: #c9a14a;
+  --color-category: #9db6ea;
+  --color-category-strong: #7d8fb8;
+  --color-category-hover: #b3c6f0;
+  --color-highlight: #e0b030;
+  --color-overlay: rgba(255, 255, 255, 0.04);
+  --color-overlay-strong: rgba(255, 255, 255, 0.12);
 }
 
 *, *::before, *::after {

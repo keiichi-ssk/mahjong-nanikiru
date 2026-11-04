@@ -87,7 +87,20 @@
 
 .btn-login:active { background: #eeeeee; }
 
-/* ヘッダー右側（ご意見・ご要望 → ログイン／ユーザー情報） */
+/* ダークテーマでは Google のガイドラインのダーク版（黒地・灰色の縁） */
+:root[data-theme="dark"] .btn-login {
+  border-color: #8e918f;
+  background: #131314;
+  color: #e3e3e3;
+}
+
+@media (hover: hover) {
+  :root[data-theme="dark"] .btn-login:hover { background: #1f1f20; }
+}
+
+:root[data-theme="dark"] .btn-login:active { background: #2a2a2b; }
+
+/* ヘッダー右側（ご意見・ご要望 → テーマの切り替え → ログイン／ユーザー情報） */
 .app-header-actions {
   display: flex;
   align-items: center;
@@ -97,8 +110,10 @@
 
 /* ご意見・ご要望（2026-11-04 にフッターからヘッダーへ移した）。
    PC はアイコン＋文字、スマホはアイコンだけ（Google ボタンと並ぶと幅が足りないため）。
-   見た目は Material Design のテキストボタン／アイコンボタン（枠も面も持たない） */
-.feedback-header-btn {
+   見た目は Material Design のテキストボタン／アイコンボタン（枠も面も持たない）。
+   .header-icon-btn はテーマの切り替え（ThemeToggle）など、アイコンだけのヘッダーのボタン */
+.feedback-header-btn,
+.header-icon-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -117,10 +132,28 @@
 }
 
 @media (hover: hover) {
-  .feedback-header-btn:hover { background: var(--color-surface); }
+  .feedback-header-btn:hover,
+  .header-icon-btn:hover { background: var(--color-surface); }
 }
 
-.feedback-header-btn:active { background: var(--color-surface-hover); }
+.feedback-header-btn:active,
+.header-icon-btn:active { background: var(--color-surface-hover); }
+
+.header-icon-btn { padding: 0; }
+
+/* 狭い画面ではヘッダー右側を詰め、サイト名が「座学する…」と省略されないようにする（2026-11-04〜） */
+@media (max-width: 400px) {
+  .app-header { gap: 8px; }
+  .app-header-actions { gap: 0; }
+  .feedback-header-btn,
+  .header-icon-btn { min-width: 40px; }
+}
+
+/* さらに狭い画面では、Google のログインボタンを「Gロゴだけ」の形にする（ガイドラインにある形） */
+@media (max-width: 389px) {
+  .btn-login { width: 40px; padding: 0; justify-content: center; }
+  .btn-login-text { display: none; }
+}
 
 @media (max-width: 600px) {
   .feedback-header-label { display: none; }
@@ -2469,6 +2502,11 @@
   background: var(--color-bg);
   box-shadow: 0 0 0 1px var(--color-border);
 }
+
+/* ライト用・ダーク用の画像のうち、表示中のテーマに合う方だけを見せる */
+.chinitsu-rules-example-img--dark { display: none; }
+:root[data-theme="dark"] .chinitsu-rules-example-img--light { display: none; }
+:root[data-theme="dark"] .chinitsu-rules-example-img--dark { display: block; }
 
 .chinitsu-rules-example-caption {
   margin: 8px 0 0;

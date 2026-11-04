@@ -22,6 +22,18 @@
       gtag('js', new Date());
       gtag('config', 'G-VQYJXV1K4H');
     </script>
+    <!-- テーマの先読み（2026-11-04〜）。画面が描かれる前に <html data-theme> を付けて、ライト→ダークのちらつきを防ぐ。
+         判定は src/utils/theme.js の resolveTheme と同じ（保存キー 'theme'。変えるときは両方そろえる） -->
+    <script>
+      (function () {
+        var t = 'light';
+        try {
+          var p = localStorage.getItem('theme');
+          t = p === 'light' || p === 'dark' ? p : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        } catch (e) { /* localStorage が使えなくてもライトで表示する */ }
+        document.documentElement.dataset.theme = t;
+      })();
+    </script>
   </head>
   <body>
     <!-- #root は空だと高さ0になり、読み込み中に下の要素が画面最上部へ回り込む。
@@ -37,17 +49,20 @@
         align-items: center;
         justify-content: center;
         gap: 14px;
-        color: #8fa5bd;
+        color: #596071;
         font-size: 0.9rem;
       }
+      /* 色は index.css のトークンと同じ値（ライトとダーク）。配色を変えるときはここもそろえる */
+      html[data-theme="dark"] .boot-loading { color: #a3aab7; }
       .boot-spinner {
         width: 28px;
         height: 28px;
-        border: 3px solid rgba(143, 165, 189, 0.25);
-        border-top-color: #8fa5bd;
+        border: 3px solid #e1e5ec;
+        border-top-color: #2c4a85;
         border-radius: 50%;
         animation: boot-spin 0.8s linear infinite;
       }
+      html[data-theme="dark"] .boot-spinner { border-color: #2c3039; border-top-color: #9db6ea; }
       @keyframes boot-spin { to { transform: rotate(360deg); } }
     </style>
     <div id="root">

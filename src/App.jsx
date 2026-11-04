@@ -3,6 +3,7 @@ import { supabase } from './lib/supabase';
 import CategoryList from './components/CategoryList';
 import FeedbackWidget from './components/FeedbackWidget';
 import GoogleSignInButton from './components/GoogleSignInButton';
+import ThemeToggle from './components/ThemeToggle';
 import LandingPage from './components/LandingPage';
 import ProblemView from './components/ProblemView';
 import SessionSummary from './components/SessionSummary';
@@ -516,6 +517,7 @@ export default function App() {
         <span className="app-header-title">座学する麻雀</span>
         <div className="app-header-actions">
           <FeedbackWidget source="app" variant="header" />
+          <ThemeToggle />
           {session ? (
             <div className="user-info">
               {/* ログイン中であることはアイコンだけで示す。

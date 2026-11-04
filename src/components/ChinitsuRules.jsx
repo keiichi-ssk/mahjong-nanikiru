@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { computeBestDiscards } from '../utils/chinitsuUtils';
-import { CHINITSU_EXAMPLE_HAND, CHINITSU_EXAMPLE_IMAGE } from '../utils/chinitsuExample';
+import { CHINITSU_EXAMPLE_HAND, CHINITSU_EXAMPLE_IMAGES } from '../utils/chinitsuExample';
 
 // メンチン何切るのルール説明（操作の例＋遊び方）と、出題中に開くルールのダイアログ。
 // タイムアタックの開始前画面・タイムアタック中・練習モードの3か所で同じものを使う（文言を二重に持たない）。
@@ -22,22 +22,27 @@ export function ChinitsuRuleList({ timeAttack = false }) {
 
 /**
  * 操作の例。実際の練習画面のスクリーンショット（scripts/capture-chinitsu-example.mjs で撮る）。
+ * ライト用とダーク用の2枚を置き、表示中のテーマに合う方だけを CSS で見せる（App.css）。
  * 説明文の打牌と待ちは手で書かず、画像と同じ手牌を判定エンジンにかけて求める
  */
 function ChinitsuRuleExample() {
   const { bestTiles, analysisByTile } = computeBestDiscards(CHINITSU_EXAMPLE_HAND);
   const discard = bestTiles[0][0];
   const waits = analysisByTile.get(bestTiles[0]).waits.map(t => t[0]);
+  const alt = `回答画面の例。手牌から${discard}を選び、待ち牌の${waits.join('と')}を選んだところ`;
   return (
     <figure className="chinitsu-rules-example">
-      <img
-        className="chinitsu-rules-example-img"
-        src={CHINITSU_EXAMPLE_IMAGE}
-        // 画像の実寸（撮り直して寸法が変わったら合わせる。読み込み中に画面がずれないための指定）
-        width="780"
-        height="790"
-        alt={`回答画面の例。手牌から${discard}を選び、待ち牌の${waits.join('と')}を選んだところ`}
-      />
+      {Object.entries(CHINITSU_EXAMPLE_IMAGES).map(([theme, src]) => (
+        <img
+          key={theme}
+          className={`chinitsu-rules-example-img chinitsu-rules-example-img--${theme}`}
+          src={src}
+          // 画像の実寸（撮り直して寸法が変わったら合わせる。読み込み中に画面がずれないための指定）
+          width="780"
+          height="790"
+          alt={alt}
+        />
+      ))}
       <figcaption className="chinitsu-rules-example-caption">
         操作の例：{discard}を切ると {waits.join('・')} 待ちのテンパイ。
         {discard}を選び、{waits.join('と')}を選んで「回答する」

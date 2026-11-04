@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import ProblemView from '../components/ProblemView'
+import ThemeToggle from '../components/ThemeToggle'
 import AnswerTally from './AnswerTally'
 import { decodeProblemParam } from '../utils/problemShare'
 import { problemKey } from '../utils/problemKey'
@@ -136,7 +137,10 @@ export default function ShareApp() {
     <>
       <header className="app-header">
         <h1 className="app-header-title">共有された何切る</h1>
-        <a className="app-header-cta" href="/">座学する麻雀へ</a>
+        <div className="app-header-actions">
+          <ThemeToggle />
+          <a className="app-header-cta" href="/">座学する麻雀へ</a>
+        </div>
       </header>
 
       {status === 'loading' && (

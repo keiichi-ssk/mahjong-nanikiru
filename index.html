@@ -32,12 +32,26 @@
       開発時も確実に効くようここにインラインで書いている（CSSファイルには移さないこと）。
       React の createRoot().render() はマウント時に #root の子要素を削除するため、
       このローディングは JS 側で消す処理を書かなくても自動的に置き換わる。
-      背景色は index.css の --color-bg と同じ値。変えるときは両方そろえる。
     -->
+    <!-- テーマの先読み（2026-11-04〜）。画面が描かれる前に <html data-theme> を付けて、ライト→ダークのちらつきを防ぐ。
+         判定は src/utils/theme.js の resolveTheme と同じ（保存キー 'theme'。変えるときは両方そろえる） -->
+    <script>
+      (function () {
+        var t = 'light';
+        try {
+          var p = localStorage.getItem('theme');
+          t = p === 'light' || p === 'dark' ? p : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        } catch (e) { /* localStorage が使えなくてもライトで表示する */ }
+        document.documentElement.dataset.theme = t;
+      })();
+    </script>
     <style>
       /* margin は index.css の * リセットに合わせる（開発時、CSS が来る前に
          8px の白い枠が見えてしまうため） */
-      body { background: #2e3440; margin: 0; }
+      /* 色は index.css の --color-bg / --color-text-secondary / --color-border / --color-primary と同じ値
+         （ライトとダーク）。配色を変えるときはここもそろえる */
+      body { background: #fbfbfd; margin: 0; }
+      html[data-theme="dark"] body { background: #121418; }
       .boot-loading {
         min-height: 100vh;
         display: flex;
@@ -45,18 +59,20 @@
         align-items: center;
         justify-content: center;
         gap: 14px;
-        color: #9fadbf;
+        color: #596071;
         font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
         font-size: 0.9rem;
       }
+      html[data-theme="dark"] .boot-loading { color: #a3aab7; }
       .boot-loading-spinner {
         width: 34px;
         height: 34px;
-        border: 3px solid #434c5e;
-        border-top-color: #88c0d0;
+        border: 3px solid #e1e5ec;
+        border-top-color: #2c4a85;
         border-radius: 50%;
         animation: boot-spin 0.8s linear infinite;
       }
+      html[data-theme="dark"] .boot-loading-spinner { border-color: #2c3039; border-top-color: #9db6ea; }
       @keyframes boot-spin { to { transform: rotate(360deg); } }
       @media (prefers-reduced-motion: reduce) {
         .boot-loading-spinner { animation-duration: 2.4s; }
