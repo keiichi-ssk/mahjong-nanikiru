@@ -14,7 +14,7 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <header className="app-header">
       {/* このページの主題を検索エンジンに伝えるため h1 にする（本体の App.jsx は span のまま） */}
-      <h1 className="app-header-title">メンチン何切るドリル</h1>
+      <h1 className="app-header-title">メンチン何切る</h1>
       <div className="app-header-actions">
         <FeedbackWidget source="chinitsu" variant="header" />
         {/* ご意見・ご要望のアイコンと並ぶとスマホで h1 が省略されるため、共有ページと同じ短い文言にしている */}

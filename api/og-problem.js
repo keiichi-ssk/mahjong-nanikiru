@@ -498,7 +498,7 @@ export default async function handler(req) {
                 textNode('座学する麻雀', { fontSize: 62, fontWeight: 700, color: '#f0f4f8' }),
                 // 金色の下線（ヘッダーと同じアクセント）
                 { type: 'div', props: { style: { display: 'flex', width: 104, height: 5, marginTop: 16, borderRadius: 3, background: '#d9a520' } } },
-                textNode('何切る問題集 | メンチン何切るドリル', { fontSize: 22, color: '#9fb2c9', marginTop: 26 }),
+                textNode('何切る問題集 | メンチン何切る', { fontSize: 22, color: '#9fb2c9', marginTop: 26 }),
                 textNode('自分で作る my問題集(β)', { fontSize: 22, color: '#9fb2c9', marginTop: 8 }),
               ],
             },

@@ -936,17 +936,11 @@
   font-weight: bold;
   color: var(--color-on-primary);
   cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-primary) 40%, transparent);
+  transition: background 0.2s;
 }
 
 .btn-start:hover:not(:disabled) {
   background: var(--color-primary-hover);
-  transform: translateY(-1px);
-}
-
-.btn-start:active:not(:disabled) {
-  transform: scale(0.97);
 }
 
 .btn-start:disabled {
@@ -1025,20 +1019,10 @@
   justify-content: space-between;
 }
 
+/* 「← 戻る」の見た目はファイル末尾の「ボタンの共通スタイル」（文字だけのボタン） */
 .btn-back {
-  background: none;
-  border: 1px solid var(--color-border);
-  color: var(--color-text-secondary);
-  padding: 6px 14px;
-  border-radius: 8px;
   cursor: pointer;
   font-size: 0.9rem;
-  transition: border-color 0.2s, color 0.2s;
-}
-
-.btn-back:hover {
-  border-color: var(--color-primary-light);
-  color: var(--color-accent);
 }
 
 .problem-header-right {
@@ -1479,9 +1463,11 @@
 }
 
 /* ===== 回答パネル ===== */
+/* 正誤の結果欄。色の面・枠では囲まず、上の区切り線で手牌と分ける（2026-11-04〜）。
+   正解／不正解は .answer-result の文字色で示す */
 .answer-panel {
-  border-radius: 10px;
-  padding: 20px;
+  border-top: 1px solid var(--color-border);
+  padding: 16px 0 4px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -1504,13 +1490,11 @@
 }
 
 .answer-panel--correct {
-  background: color-mix(in srgb, var(--color-success) 10%, transparent);
-  border: 1px solid var(--color-success-strong);
+  background: none;
 }
 
 .answer-panel--wrong {
-  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
-  border: 1px solid var(--color-danger-strong);
+  background: none;
 }
 
 .answer-result {
@@ -2037,64 +2021,8 @@
   transition: transform 0.1s, box-shadow 0.15s;
 }
 
-@media (hover: hover) {
-  .riichi-choice-btn:hover {
-    transform: translateY(-3px);
-  }
-}
-
-.riichi-choice-btn:active {
-  transform: translateY(0);
-}
-
-.riichi-choice-btn--riichi {
-  background: color-mix(in srgb, var(--color-danger) 10%, transparent);
-  border-color: var(--color-danger);
-  color: var(--color-danger);
-}
-
-.riichi-choice-btn--riichi:hover {
-  background: color-mix(in srgb, var(--color-danger) 20%, transparent);
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-danger) 25%, transparent);
-}
-
-.riichi-choice-btn--dama {
-  background: color-mix(in srgb, var(--color-primary-light) 10%, transparent);
-  border-color: var(--color-primary-light);
-  color: var(--color-primary-light);
-}
-
-.riichi-choice-btn--dama:hover {
-  background: color-mix(in srgb, var(--color-primary-light) 20%, transparent);
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-primary-light) 25%, transparent);
-}
-
-/* ===== 清一色トレーニング: ツモ/ノーテン2択（見た目はリーチ/ダマ2択を流用） ===== */
-.chinitsu-tsumo-btn {
-  background: color-mix(in srgb, var(--color-gold) 15%, transparent);
-  border-color: var(--color-gold);
-  color: var(--color-gold);
-}
-
-@media (hover: hover) {
-  .chinitsu-tsumo-btn:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--color-gold) 25%, transparent);
-    box-shadow: 0 4px 14px color-mix(in srgb, var(--color-gold) 25%, transparent);
-  }
-}
-
-.tenpai-choice-btn--noten {
-  background: color-mix(in srgb, var(--color-primary-light) 10%, transparent);
-  border-color: var(--color-primary-light);
-  color: var(--color-primary-light);
-}
-
-@media (hover: hover) {
-  .tenpai-choice-btn--noten:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--color-primary-light) 20%, transparent);
-    box-shadow: 0 4px 14px color-mix(in srgb, var(--color-primary-light) 25%, transparent);
-  }
-}
+/* リーチ/ダマ・ツモ/ノーテンは同格の選択肢なので、色で差を付けず同じ線ボタンにする（2026-11-04〜）。
+   見た目はファイル末尾の「ボタンの共通スタイル」が決める */
 
 .riichi-choice-btn:disabled {
   opacity: 0.35;
@@ -2110,21 +2038,9 @@
   display: block;
   width: 100%;
   padding: 13px;
-  background: color-mix(in srgb, var(--color-accent) 10%, transparent);
-  border: 1px solid var(--color-accent);
-  border-radius: 8px;
-  color: var(--color-accent);
   font-size: 1rem;
-  font-weight: bold;
   cursor: pointer;
-  transition: background 0.15s;
   margin-top: 14px;
-}
-
-@media (hover: hover) {
-  .chinitsu-review-btn:hover {
-    background: color-mix(in srgb, var(--color-accent) 20%, transparent);
-  }
 }
 
 .chinitsu-review-status {
@@ -2140,21 +2056,8 @@
   width: 100%;
   padding: 13px;
   margin-top: 12px;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-accent-alt));
-  border: none;
-  border-radius: 8px;
-  color: var(--color-on-primary);
   font-size: 1rem;
-  font-weight: bold;
   cursor: pointer;
-  transition: filter 0.15s, box-shadow 0.2s;
-}
-
-@media (hover: hover) {
-  .chinitsu-timeattack-btn:hover {
-    filter: brightness(1.08);
-    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
-  }
 }
 
 /* スタート画面・結果画面の共通の中央寄せブロック */
@@ -2198,21 +2101,8 @@
   max-width: 22em;
   margin: 8px auto 0;
   padding: 13px;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-accent-alt));
-  border: none;
-  border-radius: 8px;
-  color: var(--color-on-primary);
   font-size: 1rem;
-  font-weight: bold;
   cursor: pointer;
-  transition: filter 0.15s, box-shadow 0.2s;
-}
-
-@media (hover: hover) {
-  .chinitsu-ta-start-btn:hover {
-    filter: brightness(1.08);
-    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
-  }
 }
 
 .chinitsu-ta-result .chinitsu-share-btn {
@@ -2307,21 +2197,8 @@
 .chinitsu-lb-register-btn {
   flex-shrink: 0;
   padding: 10px 16px;
-  background: linear-gradient(135deg, var(--color-primary), var(--color-accent-alt));
-  border: none;
-  border-radius: 8px;
-  color: var(--color-on-primary);
   font-size: 0.95rem;
-  font-weight: bold;
   cursor: pointer;
-  transition: filter 0.15s, box-shadow 0.2s;
-}
-
-@media (hover: hover) {
-  .chinitsu-lb-register-btn:hover {
-    filter: brightness(1.08);
-    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.3);
-  }
 }
 
 .chinitsu-lb-register-btn:disabled {
@@ -2390,8 +2267,7 @@
 
 /* 自分の登録行のハイライト */
 .chinitsu-lb-row--me {
-  background: color-mix(in srgb, var(--color-accent) 14%, transparent);
-  border-radius: 8px;
+  background: color-mix(in srgb, var(--color-accent) 8%, transparent);
 }
 
 .chinitsu-lb-rank {
@@ -2421,13 +2297,11 @@
   white-space: nowrap;
 }
 
+/* 「あなた」の印。塗りのバッジではなく主色の文字だけ */
 .chinitsu-lb-me-badge {
   flex-shrink: 0;
-  padding: 1px 6px;
-  background: var(--color-accent);
-  border-radius: 999px;
-  color: var(--color-bg);
-  font-size: 0.7rem;
+  color: var(--color-accent);
+  font-size: 0.75rem;
   font-weight: bold;
 }
 
@@ -2532,15 +2406,13 @@
    段階の判定は ChinitsuAnswerInput（切る牌を選んだかどうかだけ）。 */
 .chinitsu-step {
   margin: 8px 0 12px;
-  padding-left: 8px;
-  border-left: 3px solid transparent;
   font-size: 0.9rem;
   color: var(--color-text-muted);
 }
 
 .chinitsu-step--active {
-  border-left-color: var(--color-accent);
   color: var(--color-text-bright);
+  font-weight: 600;
 }
 
 .chinitsu-step-check {
@@ -2604,10 +2476,7 @@
   grid-template-columns: auto auto;
   gap: 5px 12px;
   margin: 6px 0 0;
-  padding: 8px 14px;
-  border: 1px solid var(--color-border);
-  border-radius: 8px;
-  background: var(--color-surface);
+  padding: 4px 0;
   text-align: left;
 }
 
@@ -2651,7 +2520,6 @@
   margin-top: 36px;
   padding: 16px 0 8px;
   text-align: center;
-  border-top: 1px solid var(--color-border);
 }
 
 .app-footer a {
@@ -3744,4 +3612,123 @@
   justify-content: center;
   align-self: center;
   margin-top: 18px;
+}
+
+/* ===== ボタンの共通スタイル（2026-11-04〜・DESIGN.md） =====
+   Material Design のボタンの3段階にそろえる。角は全部「丸い両端」（Google ボタン・タブ等と同じ）。
+   - 塗り（主の操作）… その画面でいちばん押してほしいもの。1画面に1つを目安にする
+   - 線（副の操作）  … 塗りの次に大事なもの・同格の選択肢（リーチ/ダマ、ツモ/ノーテン）
+   - 文字だけ        … 戻る・取り消しなど控えめな操作
+   グラデーション・光る影・押下時の scale は使わない。押下・hover は背景色の変化だけで示す。
+   ★ 新しくボタンを作るときは、下のどれかのセレクタに足すこと（個別に色や角丸を書かない） */
+
+/* 線（副の操作） */
+.btn-nav,
+.chinitsu-review-btn,
+.chinitsu-timeattack-btn,
+.riichi-choice-btn {
+  min-height: 44px;
+  background: none;
+  border: 1px solid var(--color-outline);
+  border-radius: 999px;
+  color: var(--color-text);
+  font-family: inherit;
+  font-weight: 600;
+  box-shadow: none;
+  transition: background 0.15s;
+}
+
+/* 練習モード／タイムアタックへの切り替えは、主色の文字にして「別のモードへ行く」ことを示す */
+.chinitsu-review-btn,
+.chinitsu-timeattack-btn {
+  color: var(--color-accent);
+}
+
+@media (hover: hover) {
+  .btn-nav:hover:not(:disabled),
+  .chinitsu-review-btn:hover,
+  .chinitsu-timeattack-btn:hover,
+  .riichi-choice-btn:hover:not(:disabled) {
+    background: var(--color-surface);
+  }
+}
+
+.btn-nav:active:not(:disabled),
+.chinitsu-review-btn:active,
+.chinitsu-timeattack-btn:active,
+.riichi-choice-btn:active:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+/* 塗り（主の操作）。.btn-nav--finish は .btn-nav と併用されるので、線の指定より後ろに置く */
+.btn-start,
+.btn-nav--finish,
+.chinitsu-ta-start-btn,
+.chinitsu-lb-register-btn,
+.naki-choice-submit-btn,
+.my-problems-link,
+.feedback-send-btn,
+.app-header-cta {
+  background: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: 999px;
+  color: var(--color-on-primary);
+  font-family: inherit;
+  font-weight: 600;
+  box-shadow: none;
+  filter: none;
+  transition: background 0.15s;
+}
+
+.btn-start,
+.btn-nav--finish,
+.chinitsu-ta-start-btn,
+.chinitsu-lb-register-btn,
+.naki-choice-submit-btn {
+  min-height: 44px;
+}
+
+@media (hover: hover) {
+  .btn-start:hover:not(:disabled),
+  .btn-nav--finish:hover:not(:disabled),
+  .chinitsu-ta-start-btn:hover,
+  .chinitsu-lb-register-btn:hover:not(:disabled),
+  .naki-choice-submit-btn:hover:not(:disabled),
+  .my-problems-link:hover,
+  .feedback-send-btn:hover:not(:disabled),
+  .app-header-cta:hover {
+    background: var(--color-primary-hover);
+    border-color: var(--color-primary-hover);
+  }
+}
+
+.btn-start:active:not(:disabled),
+.btn-nav--finish:active:not(:disabled),
+.chinitsu-ta-start-btn:active,
+.chinitsu-lb-register-btn:active:not(:disabled),
+.naki-choice-submit-btn:active:not(:disabled),
+.my-problems-link:active,
+.feedback-send-btn:active:not(:disabled),
+.app-header-cta:active {
+  background: var(--color-primary-hover);
+  filter: none;
+}
+
+/* 文字だけ（控えめな操作） */
+.btn-back {
+  min-height: 40px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 999px;
+  background: none;
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s;
+}
+
+@media (hover: hover) {
+  .btn-back:hover {
+    background: var(--color-surface);
+    color: var(--color-text);
+  }
 }

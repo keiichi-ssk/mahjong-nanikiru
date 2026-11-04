@@ -56,7 +56,7 @@ export function buildShareUrl(hand) {
     '何を切って何待ち？',
     '答えはリンク先で確認できます',
     '',
-    '#麻雀 #何切る #メンチン何切るドリル',
+    '#麻雀 #何切る #メンチン何切る',
   ].join('\n');
   const shareUrl = `${SHARE_REDIRECT_URL}?q=${encodeHandParam(hand)}`;
   return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
@@ -71,7 +71,7 @@ export function buildTimeAttackShareUrl(score) {
     '',
     'あなたは何問解ける？挑戦👇',
     '',
-    '#麻雀 #何切る #メンチン何切るドリル',
+    '#麻雀 #何切る #メンチン何切る',
   ].join('\n');
   const shareUrl = `${SITE_URL}/chinitsu.html`;
   return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;

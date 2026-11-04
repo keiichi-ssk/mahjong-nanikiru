@@ -154,7 +154,7 @@ export default function ShareApp() {
             共有元の方にもう一度リンクを送ってもらってください。
           </p>
           <a className="share-cta" href={`${SITE_URL}/chinitsu.html`}>
-            メンチン何切るドリルを試す
+            メンチン何切るを試す
           </a>
         </div>
       )}

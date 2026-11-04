@@ -312,7 +312,7 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
         {/* ドリルの実体は公開ページ（/chinitsu.html）に一本化してある。本体側はリンクを置くだけ。
             別タブで開くのは、本体（ログイン状態と problems の全件取得）を読み込み直させないため。 */}
         <a className="book-tab" href="/chinitsu.html" target="_blank" rel="noopener">
-          メンチン何切るドリル
+          メンチン何切る
         </a>
         {session ? (
           books.map(({ label: bookLabel, majorGroups }) => {
@@ -350,7 +350,7 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
       {officialLocked && (
         <p className="limited-notice">
           一部のコンテンツは限定公開です。<br />
-          「何切るエディタ」で作る自作問題と「メンチン何切るドリル」はご利用いただけます。
+          「何切るエディタ」で作る自作問題と「メンチン何切る」はご利用いただけます。
         </p>
       )}
 

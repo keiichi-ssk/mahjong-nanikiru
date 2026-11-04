@@ -30,8 +30,8 @@ export default async function handler(req, res) {
 <meta charset="utf-8" />
 <meta http-equiv="refresh" content="0; url=${targetUrl}" />
 <meta name="robots" content="noindex, follow" />
-<title>メンチン何切るドリル</title>
-<meta property="og:title" content="メンチン何切るドリル" />
+<title>メンチン何切る</title>
+<meta property="og:title" content="メンチン何切る" />
 <meta property="og:description" content="メンチン（清一色）の何切るをトレーニング。間違えた問題を復習可能。登録不要・スマホ対応。" />
 <meta property="og:url" content="${targetUrl}" />
 <meta property="og:image" content="${imageUrl}" />

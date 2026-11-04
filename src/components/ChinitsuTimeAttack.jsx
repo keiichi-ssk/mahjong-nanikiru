@@ -234,8 +234,8 @@ export default function ChinitsuTimeAttack({ onBack, onPractice, onReview }) {
         </div>
 
         <div className="chinitsu-ta-intro">
-          <h2 className="chinitsu-ta-title">⏱ メンチン何切る タイムアタック</h2>
-          <p className="chinitsu-ta-lead">90秒で何問正解できるか挑戦しよう！</p>
+          <h2 className="chinitsu-ta-title">メンチン何切る タイムアタック</h2>
+          <p className="chinitsu-ta-lead">90秒で何問正解できるかを記録します</p>
 
           <p className="chinitsu-ta-section-label">遊び方</p>
           <ul className="chinitsu-instruction-list">
@@ -247,7 +247,7 @@ export default function ChinitsuTimeAttack({ onBack, onPractice, onReview }) {
 
           <div className="chinitsu-ta-actions">
             <button className="chinitsu-ta-start-btn" onClick={startGame}>スタート</button>
-            <button className="chinitsu-review-btn" onClick={onPractice}>📖 練習モードで解く</button>
+            <button className="chinitsu-review-btn" onClick={onPractice}>練習モード</button>
           </div>
         </div>
       </div>
@@ -275,7 +275,7 @@ export default function ChinitsuTimeAttack({ onBack, onPractice, onReview }) {
           <div className="chinitsu-lb-register">
             {submitStatus === 'done' ? (
               <p className="chinitsu-lb-registered">
-                今日のランキングに登録しました！ 現在 <strong>{rankForScore(ranking, score)}位</strong>
+                今日のランキングに登録しました。現在 <strong>{rankForScore(ranking, score)}位</strong>
               </p>
             ) : (
               <>
@@ -318,7 +318,7 @@ export default function ChinitsuTimeAttack({ onBack, onPractice, onReview }) {
           </div>
 
           {/* 今日のランキング */}
-          <p className="chinitsu-lb-heading">🏆 今日のランキング</p>
+          <p className="chinitsu-lb-heading">今日のランキング</p>
           <ChinitsuLeaderboard
             entries={ranking}
             highlightId={myEntryId}
@@ -330,7 +330,7 @@ export default function ChinitsuTimeAttack({ onBack, onPractice, onReview }) {
 
           <div className="chinitsu-ta-actions">
             <button className="chinitsu-ta-start-btn" onClick={startGame}>もう一度挑戦</button>
-            <button className="chinitsu-review-btn" onClick={onPractice}>📖 練習モードへ</button>
+            <button className="chinitsu-review-btn" onClick={onPractice}>練習モード</button>
           </div>
 
           {missedCount > 0 && (

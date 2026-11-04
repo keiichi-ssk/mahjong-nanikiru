@@ -28,7 +28,7 @@ const HAND = ['2p', '3p', '3p', '4p', '4p', '4p', '5p', '5p', '5p', '6p', '6p', 
 const CARDS = [
   {
     file: 'ogp.png',
-    title: 'メンチン何切るドリル',
+    title: 'メンチン何切る',
     subtitle: '清一色の何切るを特訓 ｜ 登録不要・スマホ対応',
     question: '何を切って何待ち？',
     tiles: HAND,

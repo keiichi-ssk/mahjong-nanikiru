@@ -20,6 +20,7 @@
   --color-danger: #b3261e;
 
   --color-on-primary: #ffffff;   /* 塗りのボタン（primary / success / danger）の上の文字 */
+  --color-outline: #8a8a8a;      /* 線のボタンの枠。白地に対して 3:1 以上（WCAG の非テキストのコントラスト） */
   --color-accent-hover: #185c3d;
   --color-accent-alt: #1f6f4a;   /* 旧デザインのグラデーションの2色目。主色と同じにして単色にしている */
   --color-on-accent: #ffffff;

@@ -61,7 +61,7 @@ export default async function handler(req) {
         children: [
           { type: 'div', props: { style: { position: 'absolute', top: 0, left: 0, right: 0, height: 10, background: '#88c0d0', display: 'flex' } } },
           { type: 'div', props: { style: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 10, background: '#88c0d0', display: 'flex' } } },
-          { type: 'div', props: { style: { fontSize: 82, fontWeight: 700, color: '#eceff4', display: 'flex' }, children: 'メンチン何切るドリル' } },
+          { type: 'div', props: { style: { fontSize: 82, fontWeight: 700, color: '#eceff4', display: 'flex' }, children: 'メンチン何切る' } },
           { type: 'div', props: { style: { fontSize: 30, color: '#9fadbf', display: 'flex' }, children: '清一色の何切るを特訓' } },
           { type: 'div', props: { style: { display: 'flex', gap: 7 }, children: tileUris.map(tileNode) } },
           { type: 'div', props: { style: { fontSize: 40, fontWeight: 700, color: '#88c0d0', display: 'flex' }, children: '何を切って何待ち？' } },

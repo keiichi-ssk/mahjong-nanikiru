@@ -336,12 +336,12 @@ export default function ChinitsuTrainer({ onBack, onTimeAttack, reviewHands = nu
         reviewQueue !== null ? (
           // 復習モード: 練習モードへ戻る／タイムアタックへ を横並びで表示（周囲に合わせ全幅）
           <div className="chinitsu-ta-actions chinitsu-ta-actions--full">
-            <button className="chinitsu-review-btn" onClick={exitReview}>📖 練習モードへ</button>
-            <button className="chinitsu-timeattack-btn" onClick={onTimeAttack}>⏱ タイムアタック</button>
+            <button className="chinitsu-review-btn" onClick={exitReview}>練習モード</button>
+            <button className="chinitsu-timeattack-btn" onClick={onTimeAttack}>タイムアタック</button>
           </div>
         ) : (
           <button className="chinitsu-timeattack-btn" onClick={onTimeAttack}>
-            ⏱ タイムアタックに挑戦（90秒で何問解ける？）
+            タイムアタック（90秒）
           </button>
         )
       )}

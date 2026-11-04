@@ -47,7 +47,7 @@ describe('buildShareUrl', () => {
     const url = buildShareUrl(HAND_M);
     expect(url).toMatch(/^https:\/\/twitter\.com\/intent\/tweet\?text=/);
     expect(decodeURIComponent(url)).toContain('api/share?q=11234556789999m');
-    expect(decodeURIComponent(url)).toContain('#メンチン何切るドリル');
+    expect(decodeURIComponent(url)).toContain('#メンチン何切る');
     expect(decodeURIComponent(url)).toContain('一一二三四五五六七八九九九九');
   });
 
@@ -65,7 +65,7 @@ describe('buildTimeAttackShareUrl', () => {
     const decoded = decodeURIComponent(url);
     expect(decoded).toContain('タイムアタック');
     expect(decoded).toContain('90秒で12問正解！');
-    expect(decoded).toContain('#メンチン何切るドリル');
+    expect(decoded).toContain('#メンチン何切る');
     expect(decoded).toContain(`${SITE_URL}/chinitsu.html`);
   });
 
