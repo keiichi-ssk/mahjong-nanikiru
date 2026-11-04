@@ -350,7 +350,7 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
       {officialLocked && (
         <p className="limited-notice">
           一部のコンテンツは限定公開です。<br />
-          自分で作る「my問題集(β)」と「メンチン何切るドリル」はご利用いただけます。
+          「何切るエディタ」で作る自作問題と「メンチン何切るドリル」はご利用いただけます。
         </p>
       )}
 

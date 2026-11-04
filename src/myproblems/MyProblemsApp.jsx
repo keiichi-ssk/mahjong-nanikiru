@@ -770,7 +770,7 @@ export default function MyProblemsApp() {
                 <div className="mp-guest-bar">
                   {/* 矢印は CSS（.mp-back-link::before）が付ける */}
                   <a className="mp-back-link mp-back-link--inline" href="/">座学する麻雀</a>
-                  <h3 className="editor-title">my問題集(β)</h3>
+                  <h3 className="editor-title">何切るエディタ</h3>
                   {guestPaifu ? (
                     <button className="mp-add-btn mp-add-btn--sm" onClick={() => setView('editor')}>
                       手で作る
@@ -887,7 +887,7 @@ export default function MyProblemsApp() {
             同じタブで出題画面へ移動する（target を付けないこと） */}
         {/* 矢印は CSS（.mp-back-link::before）が付ける */}
         <a className="mp-back-link" href="/">座学する麻雀</a>
-        <h1 className="admin-sidebar-title">my問題集(β)</h1>
+        <h1 className="admin-sidebar-title">何切るエディタ</h1>
 
         {/* 自動保存できなかった下書きの案内。**画面を塞がずに開き直せる場所**として置いてある
             （メイン領域を専有すると、問題を選んでも切り替わらない画面になる）。

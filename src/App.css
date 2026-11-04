@@ -184,7 +184,7 @@
 }
 
 /* ===== トップページ（未ログイン時のランディング・2026-11-04〜） =====
-   構成は「説明1行 → 行き先のリスト（牌図作成／メンチン何切る）」だけ。ログインはヘッダー右上。
+   構成は「説明1行 → 行き先のリスト（何切るエディタ／メンチン何切る）」だけ。ログインはヘッダー右上。
    リストは iOS の設定画面や Material Design のナビゲーションリストと同じ形で、
    **行全体が1つのリンク**（右端の › で移動先があることを示す）。行の区切りは1pxの線だけで、
    カード・枠・アイコン・塗りのボタンは置かない（DESIGN.md の「枠線の禁止」「キャッチー表現の禁止」）。
@@ -226,7 +226,6 @@
   gap: 16px;
   min-height: 84px;
   padding: 16px 8px 16px 0;
-  border-bottom: 1px solid var(--color-border);
   color: var(--color-text);
   text-decoration: none;
   transition: background 0.15s;
@@ -270,6 +269,68 @@
   color: var(--color-text-secondary);
 }
 
+/* 1つの行き先 = 行（リンク）＋「詳しく」の折りたたみ。区切り線はこのまとまりの下に引く */
+.landing-nav-group {
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* 「詳しく」（HTML 標準の <details>）。中身は index.html の .site-about から LandingPage が移してくる */
+.landing-nav-more {
+  margin-top: -8px;
+}
+
+.landing-nav-more summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 0 8px 0 0;
+  list-style: none;
+  font-size: 0.875rem;
+  color: var(--color-accent);
+  cursor: pointer;
+}
+
+.landing-nav-more summary::-webkit-details-marker {
+  display: none;
+}
+
+/* 開閉を示す下向きの山形（開くと上向き） */
+.landing-nav-more summary::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  margin-left: 2px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-2px) rotate(45deg);
+  transition: transform 0.15s;
+}
+
+.landing-nav-more[open] summary::after {
+  transform: translateY(1px) rotate(-135deg);
+}
+
+.landing-nav-more-body {
+  padding: 0 8px 16px 0;
+  font-size: 0.9rem;
+  line-height: 1.8;
+  color: var(--color-text-secondary);
+}
+
+/* 小見出しは行のタイトルと重複するので、移してきた中では見せない（静的HTML側では見出しとして残す） */
+.landing-nav-more-body h3 {
+  display: none;
+}
+
+.landing-nav-more-body p {
+  margin: 0 0 8px;
+}
+
+.landing-nav-more-body p:last-child {
+  margin-bottom: 0;
+}
+
 @media (max-width: 600px) {
   .landing {
     padding-top: 20px;
@@ -288,6 +349,14 @@
   .landing-nav-item {
     min-height: 76px;
     padding: 14px 4px 14px 10px;
+  }
+
+  .landing-nav-more summary {
+    padding-left: 10px;
+  }
+
+  .landing-nav-more-body {
+    padding: 0 10px 14px;
   }
 
   .landing-nav-title {

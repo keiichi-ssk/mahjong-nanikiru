@@ -13,7 +13,7 @@
     <link rel="canonical" href="https://zagakumahjong.com/" />
     <!-- OGP（SNSでのリンクカード表示用） -->
     <meta property="og:title" content="座学する麻雀" />
-    <meta property="og:description" content="麻雀の「何切る」を一問一答形式で学ぶ学習サイト。登録不要のメンチン何切るドリルと、実戦の局面から自分で問題を作れる my問題集(β)。" />
+    <meta property="og:description" content="麻雀の「何切る」を一問一答形式で学ぶ学習サイト。登録不要のメンチン何切るドリルと、実戦の局面から自分で問題を作れる何切るエディタ。" />
     <meta property="og:url" content="https://zagakumahjong.com/" />
     <!-- カード画像を差し替えるときは【新しいファイル名】にすること。
          X は画像を自分側にキャッシュするため、同名で上書きしても古い画像が出続ける。
@@ -84,13 +84,17 @@
       移すと意味が失われるので、整理や短縮の対象にしないこと。
       ドリル自体の詳しい説明は chinitsu.html 側にあるので、ここでは重複させず
       「サイト全体が何か」に絞って書く（詳細は CLAUDE.md の「SEO（検索流入）の方針」）。
-      #root の外にあるので放っておくと出題画面にも出てしまう。トップ（ランディング・
-      カテゴリ一覧）でだけ見せたいので、出題中は App.jsx の effect が hidden にしている。
+      #root の外にあるので、JSが動くと App.jsx の effect が常に hidden にする（2026-11-04〜）。
+      代わりにトップ（LandingPage.jsx）が、data-about の付いた各ブロックを行き先リストの
+      各行の下の折りたたみ（「詳しく」）へ DOM ごと移して表示する。文章はここが唯一の置き場所で、
+      React 側に同じ文章を書き写さないこと。ブロックを足すときは data-about と LandingPage の
+      DESTINATIONS の aboutKey を揃える。
     -->
     <section class="site-about">
       <h2>座学する麻雀について</h2>
 
-      <h3>my問題集(β) — 自分で問題を作る</h3>
+      <div data-about="editor">
+      <h3>何切るエディタ — 自分で問題を作る</h3>
       <p>
         手牌・ドラ・巡目・点数といった状況を並べて、自作の何切る問題を登録できます。
         リーチ判断や鳴き、押し引きの問題も作れます。
@@ -102,7 +106,9 @@
         作った問題は出題画面から繰り返し解けて、正誤も記録されます。
         Googleアカウントでログインすれば誰でも使えます。
       </p>
+      </div>
 
+      <div data-about="chinitsu">
       <h3>メンチン何切るドリル — 登録不要・無料</h3>
       <p>
         清一色の手牌14枚から、切る牌とその後の待ち牌をすべて答える形式です。
@@ -111,6 +117,7 @@
       <p>
         90秒で正答数を競うタイムアタックと、間違えた手牌だけを解き直す復習機能も用意しています。
       </p>
+      </div>
     </section>
     <script type="module" src="/src/main.jsx"></script>
   </body>
