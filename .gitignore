@@ -23,6 +23,7 @@ screenshot_zihai_before.png
 
 # Claude Code 開発メモ（CLAUDE.md から分割したものも同じ扱い）
 CLAUDE.md
+DESIGN.md
 docs/dev-*.md
 docs/troubleshooting.md
 

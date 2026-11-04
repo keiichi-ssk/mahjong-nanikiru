@@ -133,7 +133,7 @@ const CONTENTS = [
 
 /**
  * 未ログインでトップページに来た人向けのランディング。
- * 構成は「ヒーロー → コンテンツ2枚（CTA込み） → ログイン案内」の1カラム。
+ * 構成は「コンテンツ2枚（CTA込み） → ログイン案内」の1カラム（見える見出しは置かない）。
  * PCは2カラム・スマホは縦積みになるだけで、**構造はどちらも同じ**（出し分けをしないこと）。
  *
  * ★ 塗りのCTA（.landing-cta）は **登録不要で始められるコンテンツのカードに1つずつ**。
@@ -145,11 +145,9 @@ const CONTENTS = [
 export default function LandingPage({ onLogin }) {
   return (
     <div className="landing">
-      <section className="landing-hero">
-        <h1 className="landing-title">解いて、強くなる</h1>
-        {/* 見出しに準じる短い一行なので句点は付けない */}
-        <p className="landing-lead">一問一答形式の麻雀学習サイト</p>
-      </section>
+      {/* 画面上の見出しは置かない方針（キャッチコピー的な見出しを撤去・2026-11-04）。
+          ただしページの h1 が無くなると検索エンジン・スクリーンリーダーが困るので、見えない h1 だけ残す */}
+      <h1 className="visually-hidden">座学する麻雀</h1>
 
       <section className="landing-contents">
         {CONTENTS.map(({ key, href, title, ctaLabel, points }) => (
