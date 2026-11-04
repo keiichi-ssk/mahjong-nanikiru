@@ -2089,12 +2089,6 @@
   margin-bottom: 8px;
 }
 
-.chinitsu-ta-lead {
-  font-size: 1rem;
-  color: var(--color-accent);
-  margin-bottom: 8px;
-}
-
 .chinitsu-ta-start-btn {
   display: block;
   width: 100%;
@@ -2365,12 +2359,6 @@
   margin: 8px 0 6px;
 }
 
-.chinitsu-rules-title {
-  font-weight: bold;
-  font-size: 0.9rem;
-  color: var(--color-text-secondary);
-}
-
 .chinitsu-instruction-list {
   margin: 0 0 12px;
   padding-left: 1.3em;
@@ -2418,6 +2406,129 @@
 .chinitsu-step-check {
   color: var(--color-success);
 }
+
+/* ===== メンチン何切るのルール（components/ChinitsuRules.jsx） ===== */
+/* 操作の例（左）と遊び方（右）。スマホは「遊び方（＋ボタン）→ 操作の例」の縦並び。
+   操作の例は実際の画面のスクリーンショット（scripts/capture-chinitsu-example.mjs で撮る） */
+.chinitsu-rules {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  max-width: 820px;
+  margin: 0 auto;
+  text-align: left;
+}
+
+.chinitsu-rules-text {
+  order: 1;
+  min-width: 0;
+}
+
+.chinitsu-rules-example {
+  order: 2;
+  margin: 0;
+  min-width: 0;
+}
+
+@media (min-width: 720px) {
+  .chinitsu-rules {
+    grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+    align-items: start;
+    gap: 32px;
+  }
+
+  .chinitsu-rules-text,
+  .chinitsu-rules-example {
+    order: 0;
+  }
+}
+
+/* 中の「遊び方」見出しと箇条書きは列の左端に揃える（中央寄せ用の max-width・auto を打ち消す） */
+.chinitsu-rules .chinitsu-ta-section-label,
+.chinitsu-rules .chinitsu-instruction-list {
+  max-width: none;
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.chinitsu-rules .chinitsu-ta-section-label {
+  margin-top: 0;
+}
+
+.chinitsu-rules .chinitsu-ta-actions {
+  max-width: none;
+  margin: 16px 0 0;
+}
+
+/* スクリーンショット。白い画面の上に白い画像なので、1pxの細い輪郭だけ付けて「画面の例」だと分かるようにする */
+.chinitsu-rules-example-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  background: var(--color-bg);
+  box-shadow: 0 0 0 1px var(--color-border);
+}
+
+.chinitsu-rules-example-caption {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+}
+
+/* タイムアタック中は「正解 n問」と「ルール」を横に並べる */
+.chinitsu-ta .problem-header-right {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+
+/* 出題中に開くルール。背景は不透明にして手牌を隠す（止めている間に考えられないように） */
+.chinitsu-rules-dialog {
+  width: min(820px, calc(100vw - 24px));
+  max-height: calc(100dvh - 32px);
+  /* index.css の全要素 margin: 0 が <dialog> の中央寄せを消すので戻す */
+  margin: auto;
+  padding: 16px 16px 20px;
+  overflow-y: auto;
+  border: none;
+  border-radius: 16px;
+  background: var(--color-bg);
+  color: var(--color-text);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+}
+
+.chinitsu-rules-dialog::backdrop {
+  background: var(--color-surface-hover);
+}
+
+.chinitsu-rules-dialog-title {
+  margin: 0 0 8px;
+  font-size: 1.1rem;
+  color: var(--color-text-bright);
+}
+
+/* ダイアログ下部の中央の「スタート」／「再開する」。押すとダイアログが閉じてタイマーが動く */
+.chinitsu-rules-dialog-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.chinitsu-rules-start-btn {
+  min-width: 9em;
+  padding: 0 24px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.chinitsu-rules-dialog-note {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+}
+
 
 /* ツモ／ノーテンのボタンに添えるキー。ボタンごとの色に馴染ませる。
    キーボードのない環境では出さない */
@@ -3664,6 +3775,7 @@
 .btn-start,
 .btn-nav--finish,
 .chinitsu-ta-start-btn,
+.chinitsu-rules-start-btn,
 .chinitsu-lb-register-btn,
 .naki-choice-submit-btn,
 .my-problems-link,
@@ -3683,6 +3795,7 @@
 .btn-start,
 .btn-nav--finish,
 .chinitsu-ta-start-btn,
+.chinitsu-rules-start-btn,
 .chinitsu-lb-register-btn,
 .naki-choice-submit-btn {
   min-height: 44px;
@@ -3692,6 +3805,7 @@
   .btn-start:hover:not(:disabled),
   .btn-nav--finish:hover:not(:disabled),
   .chinitsu-ta-start-btn:hover,
+  .chinitsu-rules-start-btn:hover,
   .chinitsu-lb-register-btn:hover:not(:disabled),
   .naki-choice-submit-btn:hover:not(:disabled),
   .my-problems-link:hover,
@@ -3705,6 +3819,7 @@
 .btn-start:active:not(:disabled),
 .btn-nav--finish:active:not(:disabled),
 .chinitsu-ta-start-btn:active,
+.chinitsu-rules-start-btn:active,
 .chinitsu-lb-register-btn:active:not(:disabled),
 .naki-choice-submit-btn:active:not(:disabled),
 .my-problems-link:active,
@@ -3715,7 +3830,8 @@
 }
 
 /* 文字だけ（控えめな操作） */
-.btn-back {
+.btn-back,
+.chinitsu-rules-btn {
   min-height: 40px;
   padding: 0 12px;
   border: none;
@@ -3726,8 +3842,17 @@
   transition: background 0.15s, color 0.15s;
 }
 
+.chinitsu-rules-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
 @media (hover: hover) {
-  .btn-back:hover {
+  .btn-back:hover,
+  .chinitsu-rules-btn:hover {
     background: var(--color-surface);
     color: var(--color-text);
   }

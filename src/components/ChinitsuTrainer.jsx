@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import TileButton from './TileButton';
 import ChinitsuAnswerInput from './ChinitsuAnswerInput';
 import ChinitsuAnswerResult from './ChinitsuAnswerResult';
+import { ChinitsuRulesButton } from './ChinitsuRules';
 import ShareButton from './ShareButton';
 import { generateChinitsuHand, evaluateAnswer } from '../utils/chinitsuUtils';
 import { saveChinitsuRound, loadChinitsuRound } from '../utils/chinitsuStorage';
 import { useChinitsuKeys } from '../utils/chinitsuKeys';
 import { decodeHandParam, buildShareUrl } from '../utils/chinitsuShare';
 import { track, EVENTS } from '../utils/analytics';
+import { useChinitsuAboutVisible } from '../utils/useChinitsuAboutVisible';
 
 // スーツ選択は各スーツの5の牌を代表としてボタン表示する
 const SUITS = [
@@ -55,6 +57,17 @@ function initialReviewState(reviewHands) {
 export default function ChinitsuTrainer({ onBack, onTimeAttack, reviewHands = null }) {
   // 出題スーツ(m/p/s)。localStorageに保存して次回以降も維持する
   const [suit, setSuit] = useState(loadSuit);
+  // ページ下の「メンチン何切るについて」は練習モード（出題画面）では出さない
+  useChinitsuAboutVisible(false);
+  // ルールのダイアログ。練習モードに入ったときは自動で開く（タイムアタックと同じ）。
+  // 開いている間はキー操作を止める（裏の手牌が選ばれないように）
+  const [rulesOpen, setRulesOpen] = useState(true);
+  // 一度閉じたら、次に開いたときのボタンは「スタート」ではなく「再開する」
+  const [rulesSeen, setRulesSeen] = useState(false);
+  function handleRulesOpenChange(open) {
+    setRulesOpen(open);
+    if (!open) setRulesSeen(true);
+  }
   // reviewHands が渡されたときは復習モードで開始した状態を初期 state として組む
   const initial = useState(() => initialReviewState(reviewHands))[0];
   const [round, setRound] = useState(initial.round);
@@ -246,7 +259,7 @@ export default function ChinitsuTrainer({ onBack, onTimeAttack, reviewHands = nu
 
   // キーボード操作（マウス操作と同じコールバックを呼ぶだけ。割り当ては chinitsuKeys.js）
   useChinitsuKeys({
-    enabled: true,
+    enabled: !rulesOpen,
     answered,
     hasDiscard: discardedIndex != null,
     waitCount: selectedWaits.size,
@@ -274,8 +287,13 @@ export default function ChinitsuTrainer({ onBack, onTimeAttack, reviewHands = nu
         </div>
       </div>
 
+      {/* ルールは常に出さず「ルール」ボタンからダイアログで開く（タイムアタック中と同じ部品） */}
       <div className="chinitsu-rules-header">
-        <span className="chinitsu-rules-title">ルール</span>
+        <ChinitsuRulesButton
+          open={rulesOpen}
+          onOpenChange={handleRulesOpenChange}
+          actionLabel={rulesSeen ? '再開する' : 'スタート'}
+        />
         {reviewQueue === null && historyPos === null && (
           <div className="chinitsu-suit-tabs" role="group" aria-label="出題するスーツ">
             {SUITS.map(({ code, tile }) => (
@@ -289,12 +307,6 @@ export default function ChinitsuTrainer({ onBack, onTimeAttack, reviewHands = nu
           </div>
         )}
       </div>
-      <ul className="chinitsu-instruction-list">
-        <li>既にアガリの場合 → 「ツモ」</li>
-        <li>どの牌を切ってもテンパイしない場合 → 「ノーテン」</li>
-        <li>テンパイが取れる場合 → 切る牌と待ち牌をすべて選んで「回答する」</li>
-        <li>正解は受け入れ枚数（待ち牌の残り枚数）が最大になる打牌。同じ枚数なら高打点が見込める方が正解</li>
-      </ul>
 
       {/* 常に1行分の高さを確保する（履歴閲覧・復習の出入りで画面全体が上下に動くのを防ぐ） */}
       <p className="chinitsu-review-status">

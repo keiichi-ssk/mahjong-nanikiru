@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import ChinitsuAnswerInput from './ChinitsuAnswerInput';
 import ChinitsuAnswerResult from './ChinitsuAnswerResult';
 import ChinitsuLeaderboard from './ChinitsuLeaderboard';
+import { ChinitsuRuleList, ChinitsuRulesButton } from './ChinitsuRules';
 import ShareButton from './ShareButton';
 import { generateChinitsuHand, evaluateAnswer } from '../utils/chinitsuUtils';
 import { buildTimeAttackShareUrl } from '../utils/chinitsuShare';
@@ -9,6 +10,7 @@ import { fetchTodayRanking, submitScore } from '../utils/leaderboardApi';
 import { rankForScore, MAX_NAME_LENGTH } from '../utils/leaderboardUtils';
 import { track, EVENTS } from '../utils/analytics';
 import { useChinitsuKeys } from '../utils/chinitsuKeys';
+import { useChinitsuAboutVisible } from '../utils/useChinitsuAboutVisible';
 
 // 前回入力したニックネームを localStorage から復元する（任意入力・公開ページでも動く）
 const PLAYER_NAME_KEY = 'chinitsuPlayerName';
@@ -65,8 +67,15 @@ export default function ChinitsuTimeAttack({ onBack, onPractice, onReview }) {
   const [submitStatus, setSubmitStatus] = useState('idle');     // 'idle'|'sending'|'done'|'error'
   const [myEntryId, setMyEntryId] = useState(null);             // 登録した自分の行ID（ハイライト用）
 
+  // 出題中に「ルール」を開いている間は true。タイマーとキー操作を止める
+  const [rulesOpen, setRulesOpen] = useState(false);
+
   const { hand, discardedIndex, selectedWaits } = round;
-  const answering = phase === 'playing' && result === null;
+  // ルールを開いている間は「回答中」とみなさない（＝タイマーが止まり、牌も選べない）
+  const answering = phase === 'playing' && result === null && !rulesOpen;
+
+  // ページ下の「メンチン何切るについて」は出題中は隠す（開始前・結果画面だけ出す）
+  useChinitsuAboutVisible(phase !== 'playing');
   const discarded = discardedIndex != null ? hand[discardedIndex] : null;
 
   // タイマー: 「回答中」のときだけ実時間ぶんを減算する（Date.now の差分で正確に計る）。
@@ -131,6 +140,9 @@ export default function ChinitsuTimeAttack({ onBack, onPractice, onReview }) {
     setRemainingMs(TOTAL_MS);
     setResult(null);
     setRound(newRound());
+    // スタート直後はルールのダイアログを開いた状態で出題画面へ移る（＝タイマーはまだ動かない）。
+    // ダイアログ右下の「スタート」で閉じたときに初めてタイマーが動き出す
+    setRulesOpen(true);
     setPhase('playing');
   }
 
@@ -207,7 +219,7 @@ export default function ChinitsuTimeAttack({ onBack, onPractice, onReview }) {
   // キーボード操作（マウス操作と同じコールバックを呼ぶだけ。割り当ては chinitsuKeys.js）。
   // 開始前・結果画面では無効にする（結果画面のニックネーム入力を邪魔しないため）
   useChinitsuKeys({
-    enabled: phase === 'playing',
+    enabled: phase === 'playing' && !rulesOpen,
     answered: result !== null,
     hasDiscard: discardedIndex != null,
     waitCount: selectedWaits.size,
@@ -235,15 +247,10 @@ export default function ChinitsuTimeAttack({ onBack, onPractice, onReview }) {
 
         <div className="chinitsu-ta-intro">
           <h2 className="chinitsu-ta-title">メンチン何切る タイムアタック</h2>
-          <p className="chinitsu-ta-lead">90秒で何問正解できるかを記録します</p>
 
+          {/* 開始前は遊び方の箇条書きだけ。操作の例はスタート直後に自動で開くルールのダイアログで見せる */}
           <p className="chinitsu-ta-section-label">遊び方</p>
-          <ul className="chinitsu-instruction-list">
-            <li>既にアガリの場合 → 「ツモ」</li>
-            <li>どの牌を切ってもテンパイしない場合 → 「ノーテン」</li>
-            <li>テンパイが取れる場合 → 切る牌と待ち牌をすべて選んで「回答する」</li>
-            <li>正解は受け入れ枚数（待ち牌の残り枚数）が最大になる打牌。同じ枚数なら高打点が見込める方が正解</li>
-          </ul>
+          <ChinitsuRuleList timeAttack />
 
           <div className="chinitsu-ta-actions">
             <button className="chinitsu-ta-start-btn" onClick={startGame}>スタート</button>
@@ -352,6 +359,13 @@ export default function ChinitsuTimeAttack({ onBack, onPractice, onReview }) {
         <button className="btn-back" onClick={finishGame}>← 終了</button>
         <div className="problem-header-right">
           <span className="problem-counter">正解 {score}問</span>
+          {/* まだ1秒も減っていなければ「スタート」、途中で開いたなら「再開する」 */}
+          <ChinitsuRulesButton
+            timeAttack
+            open={rulesOpen}
+            onOpenChange={setRulesOpen}
+            actionLabel={remainingMs === TOTAL_MS ? 'スタート' : '再開する'}
+          />
         </div>
       </div>
 
