@@ -31,14 +31,14 @@
       このローディングは JS 側で消す処理を書かなくても自動的に置き換わる。
     -->
     <!-- テーマの先読み（2026-11-04〜）。画面が描かれる前に <html data-theme> を付けて、ライト→ダークのちらつきを防ぐ。
-         判定は src/utils/theme.js の resolveTheme と同じ（保存キー 'theme'。変えるときは両方そろえる） -->
+         判定は src/utils/theme.js の resolveTheme と同じ（保存キー 'theme'・既定はダーク。変えるときは両方そろえる） -->
     <script>
       (function () {
-        var t = 'light';
+        var t = 'dark';
         try {
           var p = localStorage.getItem('theme');
-          t = p === 'light' || p === 'dark' ? p : (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-        } catch (e) { /* localStorage が使えなくてもライトで表示する */ }
+          if (p === 'light' || p === 'dark') t = p;
+        } catch (e) { /* localStorage が使えなくても既定（ダーク）で表示する */ }
         document.documentElement.dataset.theme = t;
       })();
     </script>
