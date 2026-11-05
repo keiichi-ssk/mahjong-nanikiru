@@ -1236,10 +1236,12 @@
   justify-content: safe center;
 }
 
+/* 手牌の牌と牌の間隔は捨て牌（.other-discard-tiles-row）・副露と同じ 2px（2026-11-05〜。卓の上の牌のように詰めて並べる）。
+   スマホの牌幅の計算式（@media (max-width: 600px) の clamp）も 2px 前提なので、変えるときはそろえる */
 .tile-selector {
   display: flex;
   flex-wrap: nowrap;
-  gap: 6px;
+  gap: 2px;
   align-items: flex-end;
 }
 
@@ -2034,7 +2036,7 @@
 .tile-display-readonly {
   display: flex;
   flex-wrap: nowrap;
-  gap: 6px;
+  gap: 2px;   /* 手牌と同じ（.tile-selector のコメント参照） */
   align-items: flex-end;
   overflow-x: auto;
   padding-top: 6px;
