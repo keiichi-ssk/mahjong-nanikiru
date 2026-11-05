@@ -40,32 +40,37 @@
   --color-highlight: #e0a800;
   --color-overlay: rgba(20, 30, 60, 0.03);
   --color-overlay-strong: rgba(20, 30, 60, 0.12);
+
+  /* 牌（白い面の画像）に掛けるフィルター。ライトでは掛けない（ダークで少し暗くする） */
+  --tile-dim: none;
 }
 
 /* ダークテーマ（2026-11-04〜）。<html data-theme="dark"> のときに上のトークンを差し替える。
    data-theme は各HTMLの先読みスクリプトと utils/theme.js が付ける（端末の設定に従い、ヘッダーの切り替えで上書き）。
-   背景は真っ黒にせず濃い灰色、主色（藍）は明るく彩度を落とす、文字は真っ白にしない。
+   背景は真っ黒にせず濃い灰色、文字は真っ白にしない（2026-11-05 に「目が疲れる」との声で明るさを抑えた）。
+   主色は「塗りの面」（--color-primary）だけ落ち着いた藍にし、まぶしさを抑える（Material Design 3 のダークと同じ考え方）。
+   文字や枠に使う主色（--color-accent / --color-primary-light）は明るい藍のまま。
    コントラストは colorTokens.test.js がライトと同じ組み合わせで検査している */
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --color-bg: #121418;
-  --color-surface: #1c1f25;
-  --color-surface-hover: #252932;
-  --color-surface-active: #242c3b;
-  --color-border: #2c3039;
-  --color-border-strong: #3d4350;
-  --color-primary: #9db6ea;
-  --color-primary-hover: #b3c6f0;
+  --color-bg: #17191e;
+  --color-surface: #20232a;
+  --color-surface-hover: #292d35;
+  --color-surface-active: #283247;
+  --color-border: #2d3139;
+  --color-border-strong: #3e4451;
+  --color-primary: #34508a;      /* 塗りの面。明るい水色だとまぶしいので落ち着いた藍 */
+  --color-primary-hover: #3d5c9c;
   --color-primary-light: #8aa6e0;
   --color-accent: #9db6ea;
-  --color-text: #e1e4ea;
-  --color-text-bright: #f1f3f7;
-  --color-text-secondary: #a3aab7;
-  --color-text-muted: #959cab;
+  --color-text: #cfd3db;
+  --color-text-bright: #e2e5eb;
+  --color-text-secondary: #9aa1ae;
+  --color-text-muted: #8e95a3;
   --color-success: #7dd193;
   --color-danger: #f2a097;
 
-  --color-on-primary: #0f1b36;
+  --color-on-primary: #e6ecf8;
   --color-outline: #6c7383;
   --color-accent-hover: #b3c6f0;
   --color-accent-alt: #9db6ea;
@@ -81,6 +86,9 @@
   --color-highlight: #e0b030;
   --color-overlay: rgba(255, 255, 255, 0.04);
   --color-overlay-strong: rgba(255, 255, 255, 0.12);
+
+  /* 白い牌は暗い画面で光って見えるので、少しだけ暗くする（白背景のルールはそのまま） */
+  --tile-dim: brightness(0.92);
 }
 
 *, *::before, *::after {

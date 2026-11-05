@@ -63,8 +63,9 @@ function CategoryCard({ label, available, isChecked, countText, answeredCount, c
   );
 }
 
-// 大カテゴリのアコーディオン。見出しタップで開閉、右端の全選択/全解除で一括選択。
-// 畳んだ状態でも問題数・進捗・選択数が見えるようにする
+// 大カテゴリのアコーディオン。見出しタップで開閉、左端のチェックボックスで一括選択（2026-11-05〜）。
+// チェックボックスは「全部選択 ✓／一部選択 −／未選択」の3状態（Material Design・HIG の親子チェックボックスの形）。
+// 畳んだ状態でも選択の状態と、選んだ数（選んでいなければ問題数・進捗）が見えるようにする
 function MajorGroup({
   majorLabel, sections, getSectionProblems, results, session, onResetResults,
   filterActive, filterLabelText, isProblemIncluded, availableSections,
@@ -72,7 +73,8 @@ function MajorGroup({
   isOpen, onToggleOpen, userCategories,
 }) {
   const majorAvailable = availableSections(sections);
-  const majorAllChecked = majorAvailable.length > 0 && majorAvailable.every(s => checkedSections.has(s));
+  const checkedInMajor = majorAvailable.filter(s => checkedSections.has(s)).length;
+  const groupState = checkedInMajor === 0 ? 'none' : checkedInMajor === majorAvailable.length ? 'all' : 'some';
   const majorProblems = sections.flatMap(getSectionProblems);
   const answeredInMajor = majorProblems.filter(p => results[p.id] !== undefined).length;
   const correctInMajor = majorProblems.filter(p => results[p.id] === true).length;
@@ -85,6 +87,18 @@ function MajorGroup({
   return (
     <div className="major-category-group">
       <h3 className="major-category-label">
+        {/* 一部選択から押すと全部選択になる（toggleGroup は「全部選択なら全解除、それ以外は全選択」） */}
+        <button
+          type="button"
+          className={`group-check group-check--${groupState}`}
+          role="checkbox"
+          aria-checked={groupState === 'all' ? true : groupState === 'some' ? 'mixed' : false}
+          aria-label={`「${majorLabel}」をまとめて選択`}
+          disabled={majorAvailable.length === 0}
+          {...selectTap}
+        >
+          {groupState === 'all' ? '✓' : groupState === 'some' ? '−' : ''}
+        </button>
         <span
           className="major-toggle-area"
           role="button"
@@ -93,9 +107,11 @@ function MajorGroup({
           {...headerTap}
           onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onToggleOpen()}
         >
-          <span className={`major-chevron${isOpen ? ' major-chevron--open' : ''}`}>▶</span>
           <span className="major-label-text">{majorLabel}</span>
-          {!isOpen && (
+          {!isOpen && (checkedInMajor > 0 ? (
+            // 選んだ数（選択中のグループは閉じていても分かるように主色で出す）
+            <span className="major-summary major-summary--selected">{checkedInMajor}/{majorAvailable.length}</span>
+          ) : (
             <span className="major-summary">
               {filterActive
                 ? `${filteredInMajor}問（${filterLabelText}）`
@@ -103,7 +119,8 @@ function MajorGroup({
                   ? `✓ ${correctInMajor}/${totalInMajor}`
                   : `${totalInMajor}問`}
             </span>
-          )}
+          ))}
+          <span className={`major-chevron${isOpen ? ' major-chevron--open' : ''}`} aria-hidden="true">▶</span>
         </span>
         <div className="major-category-actions">
           {isOpen && session && onResetResults && answeredInMajor > 0 && (
@@ -114,12 +131,6 @@ function MajorGroup({
               進捗をリセット
             </button>
           )}
-          <button
-            className={`select-badge${majorAllChecked ? ' select-badge--active' : ''}`}
-            {...selectTap}
-          >
-            {majorAllChecked ? '全解除' : '全選択'}
-          </button>
         </div>
       </h3>
       {isOpen && (
@@ -444,7 +455,7 @@ export default function CategoryList({ categories, problems, randomMode, onToggl
                     applyQuestionCount(Number(e.target.value));
                   }}
                   aria-label="出題数"
-                  style={{ '--track-fill': `linear-gradient(to right, var(--color-primary) ${trackPct}%, var(--color-border-strong) ${trackPct}%)` }}
+                  style={{ '--track-fill': `linear-gradient(to right, var(--color-accent) ${trackPct}%, var(--color-border-strong) ${trackPct}%)` }}
                 />
                 <input
                   type="number"

@@ -48,6 +48,8 @@ const PAIRS = [
   ['color-accent', 'color-bg', 4.5, '主色の文字（線のボタン・選択中のタブ）'],
   ['color-on-primary', 'color-primary', 4.5, '塗りのボタンの文字'],
   ['color-on-primary', 'color-primary-hover', 4.5, '塗りのボタン（hover）の文字'],
+  ['color-on-accent', 'color-accent', 4.5, 'チェックボックス・バッジの塗りの上の印'],
+  ['color-accent', 'color-surface', 3, '面の上の選択の目印（チェックボックス・スイッチ）'],
   ['color-success', 'color-bg', 4.5, '正解の文字'],
   ['color-danger', 'color-bg', 4.5, '不正解の文字'],
   ['color-warning', 'color-bg', 4.5, '注意の文字'],

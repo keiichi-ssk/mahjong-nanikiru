@@ -440,8 +440,9 @@
   flex-shrink: 0;
 }
 
+/* オンの目印は明るい主色（--color-accent）。--color-primary はダークで暗い「塗りの面」の色なので使わない */
 .random-toggle--on {
-  background: var(--color-primary);
+  background: var(--color-accent);
 }
 
 /* つまみはオン・オフとも白（iOS / Material Design の標準的なスイッチと同じ）。
@@ -613,7 +614,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  /* チェックボックス（20px）との隙間。下の行の字下げ（32px）と合わせる */
+  gap: 12px;
 }
 
 /* ===== 大カテゴリのアコーディオン ===== */
@@ -659,30 +661,52 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* 全選択／全解除。Material Design のテキストボタン（枠なし・主色の文字） */
-.select-badge {
-  font-size: 0.8rem;
-  font-weight: 600;
-  font-family: inherit;
-  color: var(--color-accent);
-  background: none;
-  cursor: pointer;
-  min-height: 36px;
-  padding: 0 8px;
-  border: none;
-  border-radius: 18px;
+/* 大分類の見出しのチェックボックス（2026-11-05〜。旧「全選択／全解除」の文字ボタンの代わり）。
+   全部選択 ✓／一部選択 −／未選択 の3状態。塗りは明るい主色（ダークでも暗い背景に沈まないように）。
+   見た目は 20px だが、押せる範囲は ::after で 44px に広げる（DESIGN.md） */
+.group-check {
+  position: relative;
   flex-shrink: 0;
-  transition: background 0.15s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  box-sizing: border-box;
+  padding: 0;
+  border: 2px solid var(--color-outline);
+  border-radius: 3px;
+  background: none;
+  color: var(--color-on-accent);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
 }
 
-@media (hover: hover) {
-  .select-badge:hover {
-    background: var(--color-surface);
-  }
+.group-check::after {
+  content: '';
+  position: absolute;
+  inset: -12px;
 }
 
-.select-badge--active {
-  color: var(--color-text-secondary);
+.group-check--all,
+.group-check--some {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
+.group-check:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+/* 閉じた見出しに出す「選んだ数」 */
+.major-summary--selected {
+  color: var(--color-accent);
+  font-weight: 700;
 }
 
 /* カテゴリの一覧。1行ずつの枠をやめ、区切り線だけのリストにした（2026-11-04・DESIGN.md） */
@@ -691,6 +715,8 @@
   flex-direction: column;
   gap: 0;
   margin-bottom: 16px;
+  /* 行のチェックボックスを見出しのカテゴリ名の位置にそろえる（見出しのチェックボックス 20px＋隙間 12px） */
+  margin-left: 32px;
   border-top: 1px solid var(--color-border);
   animation: fadeIn 0.15s ease;
 }
@@ -722,8 +748,13 @@
   cursor: default;
 }
 
+/* 選んだ行。背景を少し濃くし（12%）、カテゴリ名を主色にして選んでいない行と見分けやすくする（2026-11-05〜） */
 .category-card--checked {
-  background: color-mix(in srgb, var(--color-primary) 6%, transparent);
+  background: color-mix(in srgb, var(--color-accent) 12%, transparent);
+}
+
+.category-card--checked .category-name {
+  color: var(--color-accent);
 }
 
 /* 選択状態のチェックボックス（Material Design のリストの先頭のチェックボックス）。
@@ -741,13 +772,14 @@
   font-size: 0.75rem;
   line-height: 1;
   font-weight: bold;
-  color: var(--color-on-primary);
+  color: var(--color-on-accent);
   transition: background 0.15s, border-color 0.15s;
 }
 
+/* チェックの塗りは明るい主色（ダークでも暗い背景に沈まないように） */
 .category-card--checked .card-check {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
+  background: var(--color-accent);
+  border-color: var(--color-accent);
 }
 
 .category-name {
@@ -2034,6 +2066,45 @@
   display: block;
 }
 
+/* ===== 表示専用の牌の縁と厚み（2026-11-05〜） =====
+   白い面の画像だけだと、明るい背景では輪郭が消えて牌が浮いて見える（ドラ表示牌などで指摘あり）。
+   手牌（.tile-button）と同じ色の「灰色の細い縁＋下のオレンジ茶色の厚み」を付けてそろえる。
+   box-shadow で描くので牌の大きさは変わらない。色は牌そのものの色なので配色トークンにしない（DESIGN.md の例外）。
+   ★ 牌の画像を表示する場所を新しく作ったら、ここのセレクタに足すこと */
+.dora-indicator-tile,
+.dora-tile-image,
+.meld-tile img,
+.other-discard-tile img,
+.answer-tile-image,
+.discarded-tile-img,
+.explanation-tile-img {
+  box-shadow: 0 0 0 1px #b8c0cc, 0 3px 0 #b06820;
+}
+
+/* 小さい牌は厚みを細くする */
+.dora-indicator-tile,
+.other-discard-tile img,
+.other-discard-melds .meld-tile img,
+.explanation-tile-img {
+  box-shadow: 0 0 0 1px #b8c0cc, 0 2px 0 #b06820;
+}
+
+/* ダークでは白い牌が光って見えるので少しだけ暗くする（--tile-dim は index.css。ライトでは none）。
+   ツモ切りの捨て牌はもともと暗くしてあるので（.other-discard-tile--tsumogiri）ここでは上書きしない */
+.tile-button,
+.tile-readonly,
+.betaori-order-tile,
+.tally-tile,
+.dora-indicator-tile,
+.dora-tile-image,
+.meld-tile img,
+.other-discard-tile:not(.other-discard-tile--tsumogiri) img,
+.answer-tile-image,
+.discarded-tile-img,
+.explanation-tile-img {
+  filter: var(--tile-dim);
+}
+
 /* ===== リーチ/ダマ 2択ボタン ===== */
 .riichi-choice-btns {
   display: flex;
@@ -3318,6 +3389,8 @@
     --od-tile-w: clamp(14px, calc((100vw - 96px - (var(--od-units, 6) - 1) * 2px) / var(--od-units, 6)), 22px);
     --od-tile-h: calc(var(--od-tile-w) * 30 / 22);
     overflow-x: auto; /* 副露が極端に多く収まらないケースは行ごとの横スクロール */
+    /* overflow で牌の縁（1px）と厚み（下 2px）が切り取られないよう、その分だけ内側に余白を取る */
+    padding: 1px 1px 3px;
   }
 
   .other-discard-tile img {

@@ -270,6 +270,8 @@
   border-radius: 6px;
   padding: 1px;
   object-fit: contain;
+  /* ダークでは少し暗くする（--tile-dim は index.css。admin.css では未定義なので none 扱い） */
+  filter: var(--tile-dim, none);
 }
 
 /* 裏向き。出題画面のドラ表示牌の裏（App.css の .dora-indicator-back）と同じ見た目。

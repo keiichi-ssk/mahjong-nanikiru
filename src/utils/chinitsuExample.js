@@ -7,5 +7,5 @@ export const CHINITSU_EXAMPLE_HAND = ['1p', '1p', '2p', '3p', '4p', '5p', '5p', 
 
 export const CHINITSU_EXAMPLE_IMAGES = {
   light: '/images/chinitsu-example-2-light.png',
-  dark: '/images/chinitsu-example-2-dark.png',
+  dark: '/images/chinitsu-example-3-dark.png', // 2026-11-05 ダークの配色見直しで撮り直した
 };
